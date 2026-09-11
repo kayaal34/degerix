@@ -8,9 +8,14 @@ const MAX_AREA = 10_000_000;
 const MOBILE = window.matchMedia("(max-width: 860px)");
 const SVG_NS = "http://www.w3.org/2000/svg";
 const BASEMAP_KEY = "degerix-basemap";
+const COMPARE_KEY = "degerix-compare";
+const COMPARE_LIMIT = 2;
 const PARCEL_CASING = { color: "#fff", weight: 7, opacity: 0.9, fill: false };
 const PARCEL_STYLE = { color: "#e8590c", weight: 3, fillColor: "#e8590c", fillOpacity: 0.18 };
 const POINT_STYLE = { radius: 7, color: "#fff", weight: 2, fillColor: "#e8590c", fillOpacity: 1, interactive: false };
+
+// Paylaşım bağlantısında seçmeli soruların parametre adları
+const RADIO_PARAMS = { tapu: "deed", yol: "road", altyapi: "utilities", manzara: "view", kose: "corner", sulama: "irrigation" };
 
 const money = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 });
 const integer = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 });
@@ -25,6 +30,10 @@ const state = {
   zonedUsages: new Set(),   // emsal ve köşe parsel sorulan (imarlı) imar durumları
   analysisProvince: null,   // bölge analizi gösterilen il
   basemapChosen: false,     // kullanıcı altlığı kendisi seçtiyse parsel seçiminde değiştirilmez
+  calculated: false,        // "Değeri hesapla"ya basıldı mı; basılana kadar fiyat istenmez
+  prewarmedParcel: null,    // çevre ölçümleri arka planda hazırlanan parsel
+  lastResult: null,         // ekrandaki son tahmin; rapor ve karşılaştırma bunu kullanır
+  presetAnswers: null,      // paylaşılan bağlantıdan gelen yanıtlar; parsel yüklenince uygulanır
   lookupSeq: 0,             // geç gelen eski yanıtların yenisini ezmesini önler
   estimateSeq: 0,
   searchSeq: 0,
@@ -216,6 +225,7 @@ async function lookup(url, { point = null, fit = false } = {}) {
     showParcel(parcel, point, fit);
   } catch (error) {
     if (seq !== state.lookupSeq) return;
+    state.presetAnswers = null; // paylaşılan yanıtlar yanlış parsele uygulanmasın
     // Haritaya tıklayan kullanıcı panele değil haritaya bakıyor
     if (point) setMapStatus(error.message, "error");
     else {
@@ -265,7 +275,14 @@ function showParcel(parcel, point, fit) {
   resetQuestions();
   $("#inpArea").value = parcel.area_m2 ? Math.round(parcel.area_m2) : 500;
   $("#selUsage").value = parcel.usage;
+  if (state.presetAnswers) {
+    // Paylaşılan bağlantı: yanıtlar yerine konur; bağlantı hesaplanmış bir sonucu gösteriyorsa hemen hesaplanır
+    applyAnswers(state.presetAnswers);
+    state.calculated = state.presetAnswers.get("hesapla") === "1";
+    state.presetAnswers = null;
+  }
   updateQuestions();
+  showOutput(state.calculated);
 
   $("#emptyState").hidden = true;
   $("#mapHint").hidden = true;
@@ -279,14 +296,12 @@ function showParcel(parcel, point, fit) {
 
 /* ---------- Arsa soruları ---------- */
 
-let calculated = false;       // "Değeri hesapla"ya basıldı mı; basılana kadar fiyat istenmez
-let prewarmedParcel = null;  // çevre ölçümleri arka planda hazırlanan parsel
-
 function resetQuestions() {
   // Yeni parselde önce bilgiler tamamlanır, sonra fiyat hesaplanır
-  calculated = false;
-  $("#resultOutput").hidden = true;
-  $("#calcActions").hidden = false;
+  state.calculated = false;
+  state.lastResult = null;
+  showOutput(false);
+  setResultActions(false);
   $("#inpKaks").value = "";
   $("#inpShare").value = "";
   document.querySelectorAll('#questions input[value="bilinmiyor"]').forEach((radio) => (radio.checked = true));
@@ -343,6 +358,33 @@ function readInputs() {
   };
 }
 
+// Formdaki yanıtlar → paylaşım bağlantısı parametreleri ("bilmiyorum" yanıtları yazılmaz)
+function answerParams() {
+  const params = new URLSearchParams({ alan: $("#inpArea").value, imar: $("#selUsage").value });
+  if ($("#inpKaks").value.trim()) params.set("emsal", $("#inpKaks").value.trim());
+  if ($("#inpShare").value.trim()) params.set("pay", $("#inpShare").value.trim());
+  for (const [param, name] of Object.entries(RADIO_PARAMS)) {
+    const value = radioValue(name);
+    if (value !== "bilinmiyor") params.set(param, value);
+  }
+  return params;
+}
+
+// Paylaşım bağlantısı parametreleri → form; tanınmayan değerler yok sayılır
+function applyAnswers(params) {
+  if (Number(params.get("alan")) > 0) $("#inpArea").value = params.get("alan");
+  if ([...$("#selUsage").options].some((option) => option.value === params.get("imar"))) {
+    $("#selUsage").value = params.get("imar");
+  }
+  if (params.has("emsal")) $("#inpKaks").value = params.get("emsal");
+  if (params.has("pay")) $("#inpShare").value = params.get("pay");
+  for (const [param, name] of Object.entries(RADIO_PARAMS)) {
+    if (!params.has(param)) continue;
+    const radio = document.querySelector(`input[name="${name}"][value="${CSS.escape(params.get(param))}"]`);
+    if (radio) radio.checked = true;
+  }
+}
+
 /* ---------- Değer tahmini ---------- */
 
 let estimateTimer;
@@ -366,6 +408,17 @@ $("#questions").addEventListener("change", (event) => {
   updateQuestions();
   runEstimate();
 });
+
+function showOutput(visible) {
+  $("#resultOutput").hidden = !visible;
+  $("#calcActions").hidden = visible;
+}
+
+// Rapor ve karşılaştırma yalnızca ekrandaki değer güncelken kullanılabilir
+function setResultActions(enabled) {
+  $("#btnPrint").disabled = !enabled;
+  $("#btnCompare").disabled = !enabled;
+}
 
 function postEstimate(parcel, inputs) {
   return api("/api/estimate", {
@@ -393,9 +446,8 @@ function postEstimate(parcel, inputs) {
 }
 
 $("#btnCalculate").addEventListener("click", () => {
-  calculated = true;
-  $("#calcActions").hidden = true;
-  $("#resultOutput").hidden = false;
+  state.calculated = true;
+  showOutput(true);
   runEstimate();
   $("#resultOutput").scrollIntoView({ behavior: "smooth", block: "start" });
 });
@@ -406,10 +458,10 @@ async function runEstimate() {
 
   document.querySelectorAll(".is-invalid").forEach((input) => input.classList.remove("is-invalid"));
   const inputs = readInputs();
-  if (!calculated) {
+  if (!state.calculated) {
     // Kullanıcı soruları yanıtlarken ilçe sınırı ve çevre ölçümleri sunucuda hazırlansın
-    if (!inputs.error && prewarmedParcel !== parcel) {
-      prewarmedParcel = parcel;
+    if (!inputs.error && state.prewarmedParcel !== parcel) {
+      state.prewarmedParcel = parcel;
       postEstimate(parcel, inputs).catch(() => {});
     }
     return;
@@ -422,6 +474,7 @@ async function runEstimate() {
 
   const seq = ++state.estimateSeq;
   $("#valueCard").classList.add("is-loading");
+  setResultActions(false);
   try {
     const result = await postEstimate(parcel, inputs);
     if (seq !== state.estimateSeq) return;
@@ -435,6 +488,7 @@ async function runEstimate() {
 }
 
 function renderEstimate(result, parcel) {
+  state.lastResult = result;
   $("#valTotal").textContent = money.format(result.total);
   $("#valRange").textContent = `${shortRange(result.low, result.high)} aralığında`;
   $("#valUnit").textContent = money.format(result.unit_price);
@@ -472,6 +526,10 @@ function renderEstimate(result, parcel) {
     ),
     factorRow("m² fiyatı", "Çarpımın yuvarlanmış sonucu", `${money.format(result.unit_price)}/m²`, "total"),
   );
+
+  updateShareUrl();
+  prepareReport(); // tarayıcının kendi yazdır menüsünden basılsa da rapor hazır olsun
+  setResultActions(true);
 }
 
 function factorRow(title, detail, value, tone = "") {
@@ -484,6 +542,8 @@ function factorRow(title, detail, value, tone = "") {
 
 function renderInvalid(message) {
   state.estimateSeq++; // yoldaki isteğin sonucunu yok say
+  state.lastResult = null;
+  setResultActions(false);
   $("#valueCard").classList.remove("is-loading");
   $("#valTotal").textContent = "—";
   $("#valRange").textContent = message;
@@ -493,6 +553,202 @@ function renderInvalid(message) {
   $("#scenarioList").replaceChildren();
   $("#factorList").replaceChildren();
 }
+
+/* ---------- Yazdırılabilir rapor ---------- */
+
+function answerText(name) {
+  return document.querySelector(`input[name="${name}"]:checked + span`)?.textContent ?? "—";
+}
+
+function reportAnswers() {
+  const zoned = state.zonedUsages.has($("#selUsage").value);
+  const rows = [
+    ["Alan", `${integer.format(Number($("#inpArea").value) || 0)} m²`],
+    ["İmar durumu", $("#selUsage").selectedOptions[0]?.textContent ?? "—"],
+  ];
+  if (zoned) rows.push(["Emsal (KAKS)", $("#inpKaks").value.trim() || "Bilmiyorum"], ["Köşe parsel", answerText("corner")]);
+  else rows.push(["Sulama", answerText("irrigation")]);
+  rows.push(
+    ["Manzara", answerText("view")],
+    ["Tapu", answerText("deed")],
+    ["Yol cephesi", answerText("road")],
+    ["Elektrik ve su", answerText("utilities")],
+  );
+  if (radioValue("deed") === "hisseli" && $("#inpShare").value.trim()) rows.push(["Hisse payı", `%${$("#inpShare").value.trim()}`]);
+  return rows;
+}
+
+// Harita karosu gerektirmeyen kroki: TKGM poligonu 200×140'lık kutuya ortalanır
+function drawSketch(geometry) {
+  const svg = $("#printSketch");
+  const rings = geometry?.type === "Polygon" ? [geometry.coordinates[0]]
+    : geometry?.type === "MultiPolygon" ? geometry.coordinates.map((polygon) => polygon[0]) : [];
+  const points = rings.flat();
+  if (points.length < 3) {
+    svg.replaceChildren();
+    svg.toggleAttribute("hidden", true);
+    return;
+  }
+  const kx = Math.cos((points[0][1] * Math.PI) / 180); // boylam derecesi enlemde kısalır
+  const xs = points.map(([lng]) => lng * kx);
+  const ys = points.map(([, lat]) => lat);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const width = Math.max(...xs) - minX || 1e-9;
+  const height = Math.max(...ys) - minY || 1e-9;
+  const scale = Math.min(180 / width, 120 / height);
+  const offsetX = (200 - width * scale) / 2;
+  const offsetY = (140 - height * scale) / 2;
+  const d = rings
+    .map((ring) => `${ring.map(([lng, lat], i) => `${i ? "L" : "M"}${(offsetX + (lng * kx - minX) * scale).toFixed(1)},${(offsetY + (minY + height - lat) * scale).toFixed(1)}`).join(" ")} Z`)
+    .join(" ");
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", d);
+  const north = document.createElementNS(SVG_NS, "text"); // kâğıtta yön anlaşılsın
+  north.setAttribute("x", "194");
+  north.setAttribute("y", "13");
+  north.setAttribute("text-anchor", "end");
+  north.textContent = "Kuzey ↑";
+  svg.replaceChildren(path, north);
+  svg.toggleAttribute("hidden", false);
+}
+
+function prepareReport() {
+  if (!state.parcel) return;
+  const date = new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  $("#printMeta").textContent = `${date} · ${location.href}`;
+  drawSketch(state.parcel.geometry);
+  $("#printAnswers").replaceChildren(...reportAnswers().flatMap(([term, value]) => [el("dt", "", term), el("dd", "", value)]));
+}
+
+let breakdownWasOpen = false;
+window.addEventListener("beforeprint", () => {
+  prepareReport();
+  const breakdown = $(".breakdown");
+  breakdownWasOpen = breakdown.open;
+  breakdown.open = true; // raporda dökümün tamamı görünsün
+});
+window.addEventListener("afterprint", () => {
+  $(".breakdown").open = breakdownWasOpen;
+});
+$("#btnPrint").addEventListener("click", () => window.print());
+
+/* ---------- İki parseli karşılaştırma ---------- */
+
+function loadComparisons() {
+  try {
+    return JSON.parse(localStorage.getItem(COMPARE_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveComparisons() {
+  try {
+    localStorage.setItem(COMPARE_KEY, JSON.stringify(comparisons));
+  } catch {
+    // depolama kapalıysa liste yalnızca bu sayfa açıkken tutulur
+  }
+}
+
+let comparisons = loadComparisons();
+
+$("#btnCompare").addEventListener("click", () => {
+  const parcel = state.parcel;
+  const result = state.lastResult;
+  if (!parcel || !result) return;
+  const scenario = (key) => result.scenarios.find((item) => item.key === key)?.value ?? null;
+  const entry = {
+    id: `${parcel.lat.toFixed(5)},${parcel.lng.toFixed(5)}`,
+    query: location.search, // yanıtlarla birlikte yeniden açmak için
+    title: $("#parcelTitle").textContent,
+    place: $("#parcelPlace").textContent,
+    point: state.sharePoint,
+    area: Number($("#inpArea").value),
+    usage: $("#selUsage").selectedOptions[0]?.textContent ?? "",
+    total: result.total,
+    unitPrice: result.unit_price,
+    low: result.low,
+    high: result.high,
+    confidence: result.confidence,
+    urgent: scenario("acil"),
+    patient: scenario("tok"),
+  };
+  // Aynı parsel yeniden eklenirse güncellenir; sınır aşılırsa en eskisi çıkar
+  comparisons = [...comparisons.filter((item) => item.id !== entry.id), entry].slice(-COMPARE_LIMIT);
+  saveComparisons();
+  renderComparisons();
+
+  const button = $("#btnCompare");
+  button.textContent = "Eklendi";
+  setTimeout(() => (button.textContent = "Karşılaştırmaya ekle"), 1500);
+  $("#compareTray").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+
+$("#btnCompareClear").addEventListener("click", () => {
+  comparisons = [];
+  saveComparisons();
+  renderComparisons();
+});
+
+function renderComparisons() {
+  const tray = $("#compareTray");
+  tray.hidden = comparisons.length === 0;
+  if (tray.hidden) return;
+
+  const lowestUnitPrice = Math.min(...comparisons.map((item) => item.unitPrice));
+  const rows = [
+    ["Parsel", (item) => item.title],
+    ["Yer", (item) => item.place],
+    ["Alan", (item) => `${integer.format(item.area)} m²`],
+    ["İmar", (item) => item.usage],
+    ["Piyasa değeri", (item) => money.format(item.total)],
+    ["m² fiyatı", (item) => money.format(item.unitPrice), (item) => comparisons.length > 1 && item.unitPrice === lowestUnitPrice],
+    ["Aralık", (item) => shortRange(item.low, item.high)],
+    ["Acil satış", (item) => (item.urgent ? shortMoney(item.urgent) : "—")],
+    ["Tok satıcı", (item) => (item.patient ? shortMoney(item.patient) : "—")],
+    ["Güven", (item) => item.confidence],
+  ];
+
+  const tableRows = rows.map(([label, value, highlight]) => {
+    const row = el("tr");
+    const heading = el("th", "", label);
+    heading.scope = "row";
+    row.append(heading, ...comparisons.map((item) => el("td", highlight?.(item) ? "is-better" : "", value(item))));
+    return row;
+  });
+
+  const actions = el("tr");
+  actions.append(
+    el("th"),
+    ...comparisons.map((item) => {
+      const cell = el("td");
+      const show = el("button", "link-button", "Haritada göster");
+      show.type = "button";
+      show.addEventListener("click", () => {
+        state.presetAnswers = new URLSearchParams(item.query ?? "");
+        map.setView(item.point, 17);
+        lookupPoint(...item.point);
+      });
+      const remove = el("button", "link-button", "Çıkar");
+      remove.type = "button";
+      remove.addEventListener("click", () => {
+        comparisons = comparisons.filter((other) => other.id !== item.id);
+        saveComparisons();
+        renderComparisons();
+      });
+      cell.append(show, " · ", remove);
+      return cell;
+    }),
+  );
+
+  $("#compareTable").replaceChildren(...tableRows, actions);
+  $("#compareNote").textContent = comparisons.length < COMPARE_LIMIT
+    ? "Başka bir parsel seçip hesapladıktan sonra onu da ekleyin."
+    : "Yeşil: m² fiyatı daha düşük olan. Yeni eklenen parsel en eskisinin yerine geçer.";
+}
+
+renderComparisons();
 
 /* ---------- Bölge analizi (TCMB EVDS) ---------- */
 
@@ -569,10 +825,17 @@ function drawSparkline(points) {
 
 /* ---------- Paylaşım ---------- */
 
+// Hesaplanmış sonuçta bağlantı yanıtları da taşır; açan kişi aynı sonucu görür
 function updateShareUrl() {
   const [lat, lng] = state.sharePoint;
+  const params = new URLSearchParams({ lat: lat.toFixed(6), lng: lng.toFixed(6) });
+  if (state.calculated) {
+    for (const [key, value] of answerParams()) params.set(key, value);
+    params.set("hesapla", "1");
+  }
   const url = new URL(location.href);
-  url.search = new URLSearchParams({ lat: lat.toFixed(6), lng: lng.toFixed(6) }).toString();
+  url.search = params.toString();
+  url.hash = "";
   history.replaceState(null, "", url);
 }
 
@@ -769,11 +1032,12 @@ async function init() {
 
   if (location.hash === "#ada-parsel") selectTab("number"); // tanıtım sayfasındaki "Ada / parsel ile ara"
 
-  // Paylaşılan bağlantı: ?lat=..&lng=..
+  // Paylaşılan bağlantı: ?lat=..&lng=..[&alan=..&imar=..&hesapla=1]
   const params = new URLSearchParams(location.search);
   const lat = Number.parseFloat(params.get("lat"));
   const lng = Number.parseFloat(params.get("lng"));
   if (Number.isFinite(lat) && Number.isFinite(lng) && TURKEY.contains([lat, lng])) {
+    state.presetAnswers = params;
     map.setView([lat, lng], 17);
     lookupPoint(lat, lng);
   }

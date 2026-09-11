@@ -213,8 +213,29 @@
             <ul id="factorList"></ul>
           </details>
 
-          <button class="btn btn-ghost" id="btnShare" type="button">Bağlantıyı kopyala</button>
+          <div class="result-actions">
+            <button class="btn btn-ghost" id="btnPrint" type="button">Raporu yazdır / PDF</button>
+            <button class="btn btn-ghost" id="btnCompare" type="button">Karşılaştırmaya ekle</button>
+            <button class="btn btn-ghost" id="btnShare" type="button">Bağlantıyı kopyala</button>
+          </div>
+
+          <div class="print-extras" aria-hidden="true">
+            <h3>Rapor bilgileri</h3>
+            <p class="print-meta" id="printMeta"></p>
+            <svg class="print-sketch" id="printSketch" viewBox="0 0 200 140" preserveAspectRatio="xMidYMid meet"></svg>
+            <h3>Verilen bilgiler</h3>
+            <dl class="print-answers" id="printAnswers"></dl>
+          </div>
         </div>
+
+        <section class="compare-tray" id="compareTray" aria-labelledby="compareTitle" hidden>
+          <div class="compare-head">
+            <h3 id="compareTitle">Karşılaştırma</h3>
+            <button class="link-button" id="btnCompareClear" type="button">Temizle</button>
+          </div>
+          <div class="compare-scroll"><table class="compare-table" id="compareTable"></table></div>
+          <p class="compare-note" id="compareNote"></p>
+        </section>
 
         <button class="btn btn-ghost mobile-only" id="btnBackToMap" type="button">↑ Haritada başka arsa seç</button>
       </section>

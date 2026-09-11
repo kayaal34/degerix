@@ -20,7 +20,9 @@ senaryolarıyla birlikte hesaplar. Hesabın dökümünü ve **TCMB verisiyle bö
 - **Şeffaf hesap:** değer aralığı, güven düzeyi ve her çarpanın gerekçesi gösterilir. "Bilmiyorum" denen sorular aralığı genişletir.
 - **Telefonda:** arsanın üzerindeyken "Bulunduğum yeri seç" ile parseli GPS'ten bulma, dokunmatik uyumlu arayüz.
 - **Harita / Uydu düğmesi:** parsel seçilince uydu görüntüsü kendiliğinden açılır; kullanıcının kendi seçimi hatırlanır.
-- **Yer arama** (OpenStreetMap) ve **paylaşılabilir bağlantı** (`?lat=..&lng=..`).
+- **Yazdırılabilir / PDF rapor:** parsel krokisi (TKGM sınırından), verilen yanıtlar, değer, senaryolar, bölge analizi ve hesabın tam dökümü tek sayfada.
+- **İki parseli karşılaştırma:** değer, m² fiyatı, aralık ve senaryolar yan yana; liste yalnızca kullanıcının tarayıcısında saklanır.
+- **Yer arama** (OpenStreetMap) ve **paylaşılabilir bağlantı:** bağlantı parselle birlikte yanıtları da taşır (`harita.html?lat=..&lng=..&alan=..&imar=..&hesapla=1`); açan kişi aynı sonucu görür.
 - **Yedek akış:** parsel kaydı olmayan noktalarda il/ilçe OpenStreetMap'ten alınır, alanı kullanıcı girer.
 
 ## Nasıl çalışır?
