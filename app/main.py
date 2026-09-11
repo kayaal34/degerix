@@ -13,21 +13,23 @@ from pathlib import Path
 from typing import Any, Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi import Path as PathParam
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import nominatim, tkgm
+from . import evds, nominatim, tkgm
 from .data import USAGE, DeedKey, RoadKey, UsageKey, UtilitiesKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
 from .valuation import RURAL_USAGES, DistrictArea, Estimate, estimate, guess_usage
 
-load_dotenv()  # .env dosyasındaki yerel ayarlar (ör. EVDS_API_KEY)
+ROOT_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = ROOT_DIR / "static"
 
-STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+# .env dosyasındaki yerel ayarlar (ör. EVDS_API_KEY). Sunucuda tanımlı değişkenler ezilmez.
+load_dotenv(ROOT_DIR / ".env")
 
 # Türkiye'yi kapsayan dikdörtgen
 LAT_MIN, LAT_MAX = 35.8, 42.2
@@ -96,11 +98,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
     await tkgm.close()
     await nominatim.close()
+    await evds.close()
 
 
 app = FastAPI(
     title="Değerix API",
-    version="3.1.0",
+    version="3.2.0",
     description="Haritadan ya da ada/parsel numarasıyla seçilen arsanın tahmini değerini hesaplar.",
     lifespan=lifespan,
 )
@@ -117,8 +120,9 @@ async def upstream_error_handler(_: Request, exc: UpstreamError) -> JSONResponse
 
 
 @app.get("/api/health", tags=["sistem"])
-async def health() -> dict[str, str]:
-    return {"status": "ok", "version": app.version}
+async def health() -> dict[str, Any]:
+    """`stats`: bölge analizi açık mı (EVDS anahtarı tanımlı mı)."""
+    return {"status": "ok", "version": app.version, "stats": evds.is_configured()}
 
 
 @app.get("/api/usages", response_model=list[UsageOption], tags=["değerleme"])
@@ -243,6 +247,16 @@ async def estimate_value(request: EstimateRequest) -> Estimate:
         road=request.road,
         utilities=request.utilities,
     )
+
+
+# ─────────────────────────── Bölge analizi ───────────────────────────
+
+@app.get("/api/stats/{province}", response_model=evds.ProvinceStats, tags=["bölge analizi"])
+async def province_stats(province: str = PathParam(min_length=2, max_length=64)) -> evds.ProvinceStats:
+    """İlin TCMB EVDS konut verileri: birim m² fiyatı, bölge konut fiyat endeksi ve satış sayısı."""
+    if not evds.is_configured():
+        raise HTTPException(status_code=503, detail="Bölge analizi için EVDS_API_KEY tanımlı değil.")
+    return await evds.province_stats(province)
 
 
 # API rotalarından sonra bağlanmalı; aksi halde "/" her isteği yakalar

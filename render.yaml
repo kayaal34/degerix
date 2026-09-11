@@ -10,3 +10,6 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
+      # Bölge analizi için TCMB EVDS anahtarı; değeri Render panelinde girilir, depoya yazılmaz
+      - key: EVDS_API_KEY
+        sync: false

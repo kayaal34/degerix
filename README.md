@@ -3,11 +3,11 @@
 [![Testler](https://github.com/kayaal34/degerix/actions/workflows/tests.yml/badge.svg)](https://github.com/kayaal34/degerix/actions/workflows/tests.yml)
 
 Haritada bir arsaya tıklayın ya da ada/parsel numarasını girin. Değerix, parseli
-**TKGM (Tapu ve Kadastro) kaydından** bulur, sınırını haritada çizer; imar, tapu,
-yol ve altyapı sorularıyla birlikte tahmini değerini **acil satış, piyasa değeri ve
-tok satıcı** senaryoları ve hesabın adım adım dökümüyle gösterir.
+**TKGM (Tapu ve Kadastro) kaydından** bulur ve sınırını haritada çizer. İmar, tapu,
+yol ve altyapı sorularıyla tahmini değeri **acil satış, piyasa değeri ve tok satıcı**
+senaryolarıyla birlikte hesaplar. Hesabın dökümünü ve **TCMB verisiyle bölge analizini** gösterir.
 
-**Teknolojiler:** Python 3.12 · FastAPI · httpx · Leaflet · Vanilla JS · pytest · GitHub Actions
+**Teknolojiler:** Python 3.12 · FastAPI · httpx · Leaflet · Vanilla JS · pytest · GitHub Actions · TCMB EVDS
 
 ## Özellikler
 
@@ -15,6 +15,7 @@ tok satıcı** senaryoları ve hesabın adım adım dökümüyle gösterir.
 - **Ada / parsel ile arama:** il → ilçe → mahalle listeleri de TKGM'den gelir.
 - **Arsa soruları:** imar durumu ve emsal (KAKS, inşaat alanı canlı hesaplanır), müstakil/hisseli tapu (hisse payının değeri ayrıca gösterilir), yol cephesi, elektrik ve su.
 - **Satış süresine göre fiyat:** acil satış (1–2 ay), piyasa değeri (3–6 ay) ve tok satıcı (6 ay+) için ayrı fiyat ve aralık.
+- **Bölge analizi:** TCMB EVDS'den ilin konut m² fiyatı, bölge konut fiyat endeksi (24 aylık grafik) ve son 12 ayın konut satışları.
 - **Şeffaf hesap:** değer aralığı, güven düzeyi ve her çarpanın gerekçesi gösterilir. "Bilmiyorum" denen sorular aralığı genişletir.
 - **Telefonda:** arsanın üzerindeyken "Bulunduğum yeri seç" ile parseli GPS'ten bulma, dokunmatik uyumlu arayüz.
 - **Yer arama** (OpenStreetMap), **harita / uydu görünümü**, **paylaşılabilir bağlantı** (`?lat=..&lng=..`).
@@ -26,15 +27,18 @@ tok satıcı** senaryoları ve hesabın adım adım dökümüyle gösterir.
 flowchart LR
     UI["Tarayıcı<br/>Leaflet + JS"] -->|/api/parcels/at| API["FastAPI"]
     UI -->|/api/estimate| API
+    UI -->|/api/stats/il| API
     API -->|parsel, ilçe sınırı| TKGM["TKGM Parsel Sorgu"]
     API -->|adres, yer arama| OSM["OpenStreetMap Nominatim"]
+    API -->|konut fiyatları, satışlar| EVDS["TCMB EVDS"]
     API --> MODEL["valuation.py<br/>saf fonksiyonlar"]
 ```
 
-Tarayıcı dış servislere doğrudan gitmez; FastAPI araya girer. Böylece TKGM'nin
-tutarsız yanıtları tek yerde düzeltilir (ör. alanın bazen `45,911.00`, bazen
-`45.911,00` biçiminde gelmesi, "Gölbaşi" gibi bozuk ad yazımları), idari listeler
-önbelleğe alınır ve Nominatim'in saniyede bir istek sınırına uyulur.
+Tarayıcı dış servislere doğrudan gitmez; FastAPI araya girer. Bunun üç faydası var:
+
+- **Tutarsız yanıtlar tek yerde düzeltilir.** TKGM alanı bazen `45,911.00`, bazen `45.911,00` biçiminde döndürüyor; bazı adları da "Gölbaşi" gibi bozuk yazıyor.
+- **Anahtar ve önbellek sunucuda kalır.** EVDS API anahtarı tarayıcıya hiç gitmez; idari listeler ve EVDS yanıtları önbelleğe alınır.
+- **Hız sınırlarına uyulur.** Nominatim'in saniyede bir istek sınırı aşılmaz.
 
 ## Değerleme modeli
 
@@ -83,8 +87,32 @@ Model deterministiktir: aynı girdi her zaman aynı sonucu verir.
 
 > **Önemli:** `app/data.py` içindeki referans fiyatlar ve katsayılar gerçek piyasa verisi
 > değil, modelin çalışmasını göstermek için seçilmiş örnek değerlerdir. Parsel bilgileri
-> (konum, alan, nitelik) ise gerçektir. Gerçek bir fiyat kaynağı bağlandığında yalnızca
-> `data.py` dosyasının değişmesi yeterlidir.
+> (konum, alan, nitelik) ve bölge analizi ise gerçek veridir. Gerçek bir arsa fiyatı kaynağı
+> bağlandığında yalnızca `data.py` dosyasının değişmesi yeterlidir.
+
+## Bölge analizi (TCMB EVDS)
+
+Seçilen parselin ili için Merkez Bankası'nın Elektronik Veri Dağıtım Sistemi'nden (EVDS)
+üç resmî seri çekilir:
+
+| Gösterge | EVDS serisi | Sıklık | Kapsam |
+|---|---|---|---|
+| Konut m² fiyatı ve geçen yılın aynı dönemine göre değişim | `TP.BIRIMFIYAT.<il>` | üç aylık | 76 il |
+| Konut fiyat endeksi, son 12 ay değişimi ve 24 aylık grafik | `TP.KFE.<bölge>` | aylık | 19 bölge, 81 il |
+| Son 12 ayın konut satışı ve önceki yıla göre değişim | `TP.AKONUTSAT1.<il>` | aylık | 81 il |
+
+Örnek (Muğla, Eylül 2026):
+
+| Gösterge | Değer |
+|---|---|
+| Konut m² fiyatı (2026 2. çeyrek) | ₺82.290, geçen yıla göre +%4,1 |
+| Konut fiyat endeksi, Aydın–Denizli–Muğla (son 12 ay) | +%17,7 |
+| Konut satışı (son 12 ay) | 23.004 adet, önceki yıla göre −%5,8 |
+
+- **Konut verisidir.** Arsa fiyatını doğrudan göstermez; bölgedeki eğilimi gösterir. Değişimler nominaldir, enflasyon dahildir.
+- **Birim fiyatı olmayan iller:** Ardahan, Bayburt, Gümüşhane, Hakkari ve Tunceli için TCMB konut birim fiyatı yayımlamıyor; bu illerde yalnızca endeks ve satışlar gösterilir.
+- **Bir seri alınamazsa** diğerleri yine gösterilir. Yanıtlar 12 saat önbellekte tutulur.
+- **Anahtar yoksa** uygulama normal çalışır, yalnızca bölge analizi kartı görünmez. Arayüz `/api/health` yanıtındaki `stats` alanına bakar ve anahtar yokken istek atmaz.
 
 ## Çalıştırma
 
@@ -109,8 +137,13 @@ uvicorn app.main:app --reload
 - Arayüz: <http://localhost:8000>
 - API dokümanı (Swagger): <http://localhost:8000/docs>
 
-Yerel ayarlar `.env` dosyasından okunur; örnek için [`.env.example`](.env.example) dosyasına bakın.
-`.env` git'e gönderilmez.
+### EVDS API anahtarı (bölge analizi için, isteğe bağlı)
+
+1. [evds3.tcmb.gov.tr](https://evds3.tcmb.gov.tr) adresinde ücretsiz üye olun ve profil sayfanızdan API anahtarınızı kopyalayın.
+2. [`.env.example`](.env.example) dosyasını `.env` adıyla kopyalayın.
+3. Anahtarı `EVDS_API_KEY=` satırına tırnaksız yapıştırın ve sunucuyu yeniden başlatın.
+
+`.env` git'e gönderilmez. Anahtar yalnızca sunucuda kullanılır, tarayıcıya gönderilmez.
 
 ### Telefondan denemek (aynı Wi-Fi)
 
@@ -132,7 +165,8 @@ Depoda hazır bir [`render.yaml`](render.yaml) bulunur.
 
 1. [render.com](https://render.com)'a GitHub hesabıyla giriş yapın.
 2. **New → Blueprint** seçip bu depoyu bağlayın.
-3. Render servisi kurar ve `https://degerix-xxxx.onrender.com` biçiminde bir adres verir. Her `git push` sonrası otomatik güncellenir.
+3. Render `EVDS_API_KEY` değerini sorar; anahtarınızı buraya girin. Boş bırakırsanız bölge analizi kapalı kalır.
+4. Render servisi kurar ve `https://degerix-xxxx.onrender.com` biçiminde bir adres verir. Her `git push` sonrası otomatik güncellenir.
 
 Ücretsiz planda servis 15 dakika istek almazsa uyur; sonraki ilk açılış yaklaşık bir dakika sürer.
 
@@ -142,12 +176,13 @@ Depoda hazır bir [`render.yaml`](render.yaml) bulunur.
 pytest
 ```
 
-86 test ağa çıkmadan çalışır; TKGM ve Nominatim sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalışır. Kapsanan konular:
+102 test ağa çıkmadan çalışır; TKGM, Nominatim ve EVDS sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalışır. Kapsanan konular:
 
 - **Değerleme modeli:** determinizm, dökümün tutarlılığı, sorulara ve senaryolara göre değer ve aralık, güven düzeyleri
+- **Bölge analizi:** 81 ilin seri eşleştirmesi, dönem hesapları, boş dönemler, kısmi ve tam servis kesintisi, önbellek
 - **Coğrafi hesaplar:** mesafe, poligon merkezi ve alanı
 - **Veri ayrıştırma:** TKGM'nin iki farklı sayı biçimi, nitelik metninden imar durumu tahmini
-- **API:** yedek akışlar (TKGM kapalıyken ya da parsel yokken), 404/422/502 yanıtları
+- **API:** yedek akışlar (TKGM kapalıyken ya da parsel yokken), 404/422/502/503 yanıtları
 
 ## API
 
@@ -156,9 +191,11 @@ pytest
 | GET | `/api/parcels/at?lat=&lng=` | Koordinattaki parsel; kayıt yoksa OSM adresi (`source: "osm"`) |
 | GET | `/api/parcels/{mahalle_id}/{ada}/{parsel}` | Ada/parsel ile parsel |
 | POST | `/api/estimate` | Tahmin, döküm ve satış senaryoları (gövde aşağıda) |
+| GET | `/api/stats/{il}` | Bölge analizi; EVDS anahtarı yoksa 503 |
 | GET | `/api/provinces` · `/api/provinces/{id}/districts` · `/api/districts/{id}/neighborhoods` | İdari listeler |
 | GET | `/api/search?q=` | Yer arama |
 | GET | `/api/usages` | İmar durumları (`zoned`: emsal sorulur mu) |
+| GET | `/api/health` | Servis durumu (`stats`: bölge analizi açık mı) |
 
 `/api/estimate` gövdesi:
 
@@ -170,11 +207,22 @@ pytest
 }
 ```
 
-`deed`: `tam` · `hisseli` · `bilinmiyor` — `road`: `var` · `yok` · `bilinmiyor` —
-`utilities`: `var` · `kismen` · `yok` · `bilinmiyor`. Konum, kimlikler ve sorular isteğe bağlıdır.
+Seçenekli alanların değerleri:
 
-Hata yanıtları `{"detail": "Türkçe açıklama"}` biçimindedir. Kayıt yoksa 404,
-girdi geçersizse 422, dış servise ulaşılamazsa 502 döner.
+- `deed`: `tam` · `hisseli` · `bilinmiyor`
+- `road`: `var` · `yok` · `bilinmiyor`
+- `utilities`: `var` · `kismen` · `yok` · `bilinmiyor`
+
+Konum, kimlikler ve sorular isteğe bağlıdır.
+
+Hata yanıtları `{"detail": "Türkçe açıklama"}` biçimindedir:
+
+| Kod | Durum |
+|---|---|
+| 404 | Kayıt yok |
+| 422 | Girdi geçersiz |
+| 502 | Dış servise ulaşılamadı |
+| 503 | Bölge analizi kapalı (EVDS anahtarı yok) |
 
 ## Proje yapısı
 
@@ -186,6 +234,8 @@ app/
   geo.py           mesafe, poligon merkezi ve alanı
   tkgm.py          TKGM istemcisi + önbellek
   nominatim.py     OpenStreetMap istemcisi (hız sınırlı)
+  evds.py          TCMB EVDS istemcisi ve bölge analizi özetleri
+  evds_series.py   81 il için EVDS seri kodları
   errors.py        ortak hata tipleri
 static/            arayüz (index.html, style.css, app.js)
 tests/             pytest
@@ -197,12 +247,13 @@ render.yaml        Render yayın tanımı
 - **TKGM API'si:** kullanılan TKGM uç noktaları parselsorgu.tkgm.gov.tr'nin herkese açık servisidir, resmî olarak belgelenmemiştir. Biçim değişebilir ve yoğun kullanımda istek sınırına takılabilir.
 - **Konum katsayısı:** ilçenin coğrafi merkezini kullanır. Bu nokta her zaman şehir merkezi değildir; geniş ilçelerde (ör. Çankaya) sapma olabileceği için etki 0,85 – 1,10 bandında tutulur.
 - **Nitelik ≠ imar durumu:** nitelikten tahmin edilen imar durumu yalnızca bir öneridir; gerçek imar durumu ve emsal belediyeden öğrenilmelidir.
+- **Bölge verisi konut içindir:** EVDS arsa fiyatı yayımlamaz. Üç aylık birim fiyatlar küçük illerde az sayıda satışa dayandığı için dönemden döneme dalgalanabilir.
 - **Harita altlıkları:** OpenStreetMap karoları ve Esri uydu görüntüsü API anahtarı gerektirmez ama düşük trafikli kullanım içindir ([OSM karo politikası](https://operations.osmfoundation.org/policies/tiles/)). Yoğun trafikte ücretli bir karo sağlayıcısına geçilmelidir.
 
 ## Yol haritası
 
-- **Bölge analizi:** TCMB EVDS'den il bazında konut birim m² fiyatları ve konut fiyat endeksi
 - **Emsal girişi:** kullanıcının bulduğu ilan fiyatlarından bölge ortalaması
+- **Referans fiyatların güncellenmesi:** EVDS konut fiyat endeksindeki değişimle `data.py` fiyatlarının dönemsel olarak güncellenmesi
 
 ## Yasal uyarı
 

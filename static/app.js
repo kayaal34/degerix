@@ -420,10 +420,16 @@ async function loadAnalysis(province) {
 function renderAnalysis(stats) {
   const rows = [];
   if (stats.unit_price) {
-    rows.push(["Konut m² fiyatı", money.format(stats.unit_price.value), `${stats.unit_price.period} · yıllık ${signedPercent(stats.unit_price.change_pct)}`]);
+    const { value, period, change_pct } = stats.unit_price;
+    rows.push(["Konut m² fiyatı", money.format(value), `${period} · geçen yıla göre ${signedPercent(change_pct)}`]);
   }
   if (stats.price_index) {
-    rows.push([`Konut fiyat endeksi · ${stats.price_index.region}`, signedPercent(stats.price_index.change_pct), `son 12 ay · ${stats.price_index.period}`]);
+    const { region, period, change_pct } = stats.price_index;
+    rows.push(["Konut fiyatlarındaki değişim", signedPercent(change_pct), `son 12 ay (${period}) · ${region}`]);
+  }
+  if (stats.sales) {
+    const { last_12_months, period, change_pct } = stats.sales;
+    rows.push(["Konut satışı", `${integer.format(last_12_months)} adet`, `son 12 ay (${period}) · önceki yıla göre ${signedPercent(change_pct)}`]);
   }
   if (rows.length === 0) return;
 
