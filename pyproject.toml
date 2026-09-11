@@ -1,0 +1,9 @@
+[project]
+name = "degerix"
+version = "3.0.0"
+description = "Haritadan seçilen arsanın TKGM parsel verisiyle tahmini değerini hesaplayan web uygulaması"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

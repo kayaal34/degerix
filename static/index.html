@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Değerix · Arsa Değeri Hesapla</title>
+  <meta name="description" content="Haritada arsanıza tıklayın; TKGM parsel kaydıyla tahmini değerini ve hesabın nasıl yapıldığını görün.">
+  <meta name="theme-color" content="#1d6b47">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231d6b47'/%3E%3Cpath d='M8 21.5 13 9l11 4-2.5 10.5z' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.3' fill='%23ffb84d'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <header class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="9" fill="currentColor"/>
+          <path d="M8 21.5 13 9l11 4-2.5 10.5z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.3" fill="#ffb84d"/>
+        </svg>
+        <div>
+          <h1>Değerix</h1>
+          <p>Arsanızın tahmini değerini haritadan öğrenin</p>
+        </div>
+      </header>
+
+      <div class="tabs" role="tablist">
+        <button class="tab is-active" id="tabbtn-map" type="button" role="tab" aria-selected="true" aria-controls="tab-map" data-tab="map">Haritadan seç</button>
+        <button class="tab" id="tabbtn-number" type="button" role="tab" aria-selected="false" aria-controls="tab-number" data-tab="number">Ada / parsel</button>
+      </div>
+
+      <section class="tab-panel" id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map">
+        <div class="search">
+          <svg class="search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m14 14 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="searchInput" type="search" placeholder="Yer arayın: Yalıkavak, Bodrum" autocomplete="off" aria-label="Yer arayın" aria-controls="searchResults">
+          <ul class="search-results" id="searchResults" hidden></ul>
+        </div>
+        <button class="btn btn-ghost btn-locate" id="btnLocate" type="button">
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="2" fill="currentColor"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Bulunduğum yeri seç
+        </button>
+        <p class="hint">Bölgeye gidin, sonra haritada arsanın üzerine tıklayın. Arsanın üzerindeyseniz konumunuzu kullanın.</p>
+      </section>
+
+      <section class="tab-panel" id="tab-number" role="tabpanel" aria-labelledby="tabbtn-number" hidden>
+        <form class="form-grid" id="numberForm" novalidate>
+          <label class="field span-2"><span>İl</span>
+            <select id="selProvince" disabled><option value="">Yükleniyor…</option></select>
+          </label>
+          <label class="field span-2"><span>İlçe</span>
+            <select id="selDistrict" disabled><option value="">Önce il seçin</option></select>
+          </label>
+          <label class="field span-2"><span>Mahalle</span>
+            <select id="selNeighborhood" disabled><option value="">Önce ilçe seçin</option></select>
+          </label>
+          <label class="field"><span>Ada</span>
+            <input id="inpAda" inputmode="numeric" autocomplete="off" placeholder="1108">
+          </label>
+          <label class="field"><span>Parsel</span>
+            <input id="inpParsel" inputmode="numeric" autocomplete="off" placeholder="6">
+          </label>
+          <button class="btn btn-primary span-2" type="submit">Parseli bul</button>
+        </form>
+      </section>
+
+      <div class="alert" id="alert" role="alert" hidden></div>
+
+      <section class="empty" id="emptyState">
+        <ol class="steps">
+          <li><b>Arsayı seçin</b><span>Haritada tıklayın ya da ada/parsel numarasını girin.</span></li>
+          <li><b>Bilgileri kontrol edin</b><span>Alan ve nitelik tapu kaydından gelir, değiştirebilirsiniz.</span></li>
+          <li><b>Değeri görün</b><span>Tahmini değer, aralığı ve hesabın adım adım dökümü.</span></li>
+        </ol>
+      </section>
+
+      <section class="result" id="result" hidden>
+        <div class="parcel">
+          <div class="parcel-head">
+            <div>
+              <h2 id="parcelTitle"></h2>
+              <p id="parcelPlace"></p>
+            </div>
+            <span class="badge" id="parcelSource"></span>
+          </div>
+          <dl class="parcel-meta" id="parcelMeta"></dl>
+          <p class="note" id="parcelNote" hidden>Bu noktada tapu kaydı bulunamadı; il ve ilçe OpenStreetMap'ten alındı. Arsanın alanını kendiniz girin.</p>
+        </div>
+
+        <div class="form-grid">
+          <label class="field"><span>Alan (m²)</span>
+            <input id="inpArea" type="number" min="1" max="10000000" step="1" inputmode="numeric">
+          </label>
+          <label class="field"><span>Kullanım</span>
+            <select id="selUsage"></select>
+          </label>
+        </div>
+
+        <div class="value" id="valueCard" aria-live="polite">
+          <span class="value-label">Tahmini değer</span>
+          <strong class="value-total" id="valTotal">—</strong>
+          <span class="value-range" id="valRange"></span>
+          <div class="value-foot">
+            <span><b id="valUnit">—</b> / m²</span>
+            <span class="confidence" id="valConfidence"></span>
+          </div>
+        </div>
+
+        <details class="breakdown" open>
+          <summary>Hesap nasıl yapıldı?</summary>
+          <ul id="factorList"></ul>
+        </details>
+
+        <button class="btn btn-ghost" id="btnShare" type="button">Bağlantıyı kopyala</button>
+        <button class="btn btn-ghost mobile-only" id="btnBackToMap" type="button">↑ Haritada başka arsa seç</button>
+      </section>
+
+      <footer class="panel-foot">
+        Tahminler örnek referans fiyatlarla hesaplanır ve yalnızca bilgilendirme amaçlıdır; lisanslı değerleme raporu yerine geçmez.
+        Parsel verisi: TKGM.
+      </footer>
+    </aside>
+
+    <main class="map-wrap">
+      <div id="map" role="application" aria-label="Arsa seçim haritası"></div>
+      <div class="map-status" id="mapStatus" role="status" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="mapStatusText"></span>
+      </div>
+      <div class="map-hint" id="mapHint">Arsanın üzerine tıklayın</div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
