@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Değerix · Arsanın değerini hesabıyla birlikte öğrenin</title>
-  <meta name="description" content="Haritada arsanıza tıklayın ya da ada/parsel girin. Tapu kaydı, parselin çevresi ve Merkez Bankası verileriyle tahmini değer; her rakamın kaynağıyla. Ücretsiz, üyeliksiz.">
+  <meta name="description" content="Haritada arsanıza tıklayın ya da ada/parsel girin. Tapu kaydı, Merkez Bankası konut fiyatları ve Bakanlık inşaat maliyetleriyle tahmini değer; her rakamın kaynağıyla. Ücretsiz, üyeliksiz.">
   <meta name="theme-color" content="#1d6b47">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231d6b47'/%3E%3Cpath d='M8 21.5 13 9l11 4-2.5 10.5z' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.3' fill='%23ffb84d'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +29,7 @@
     </a>
     <nav class="site-nav" aria-label="Sayfa bölümleri">
       <a href="#nasil-calisir">Nasıl çalışır</a>
-      <a href="#farklar">Neden Değerix</a>
+      <a href="#yontem">Yöntem</a>
       <a href="#kaynaklar">Veri kaynakları</a>
       <a class="btn btn-primary" href="harita.html">Haritayı aç</a>
     </nav>
@@ -42,9 +42,10 @@
           <p class="eyebrow">Ücretsiz · Üyelik yok · Her rakamın kaynağı belli</p>
           <h1>Arsanın değerini, nasıl hesaplandığını görerek öğrenin</h1>
           <p class="lead">
-            Haritada arsanıza tıklayın ya da ada/parsel girin. Değerix tapu kaydını, parselin çevresini
-            ve Merkez Bankası istatistiklerini birleştirir; sonucu tek bir sihirli rakam olarak değil,
-            gerekçeleriyle birlikte gösterir.
+            Haritada arsanıza tıklayın ya da ada/parsel girin. Değerix, değerleme uzmanlarının
+            kullandığı yöntemi resmî verilerle kurar: tapu kaydı, Merkez Bankası'nın güncel konut
+            fiyatları ve Bakanlığın inşaat maliyetleri. Sonuç tek bir sihirli rakam değil,
+            gerekçeleriyle birlikte bir hesaptır.
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary btn-lg" href="harita.html">Haritada arsanı bul</a>
@@ -56,22 +57,23 @@
           <figcaption>Örnek sonuç · Mudanya, Ömerbey 1503 ada 17 parsel, 4.683 m²</figcaption>
           <div class="value">
             <span class="value-label">Tahmini piyasa değeri</span>
-            <strong class="value-total">₺35.500.000</strong>
-            <span class="value-range">29,1 – 41,8 milyon ₺ aralığında</span>
+            <strong class="value-total">₺19.500.000</strong>
+            <span class="value-range">17,1 – 21,8 milyon ₺ aralığında</span>
             <div class="value-foot">
-              <span><b>₺7.570</b> / m²</span>
-              <span class="confidence">Güven: orta</span>
+              <span><b>₺4.160</b> / m²</span>
+              <span class="confidence">Güven: yüksek</span>
             </div>
           </div>
           <ul aria-label="Satış süresine göre fiyat">
-            <li class="scenario"><div class="scenario-text"><b>Acil satış</b><span>1–2 ay içinde</span></div><div class="scenario-numbers"><b>30,1 milyon ₺</b></div></li>
-            <li class="scenario is-market"><div class="scenario-text"><b>Piyasa değeri</b><span>3–6 ay</span></div><div class="scenario-numbers"><b>35,5 milyon ₺</b></div></li>
-            <li class="scenario"><div class="scenario-text"><b>Tok satıcı</b><span>6 ay ve üzeri</span></div><div class="scenario-numbers"><b>38,3 milyon ₺</b></div></li>
+            <li class="scenario"><div class="scenario-text"><b>Acil satış</b><span>1–2 ay içinde</span></div><div class="scenario-numbers"><b>16,6 milyon ₺</b></div></li>
+            <li class="scenario is-market"><div class="scenario-text"><b>Piyasa değeri</b><span>3–6 ay</span></div><div class="scenario-numbers"><b>19,5 milyon ₺</b></div></li>
+            <li class="scenario"><div class="scenario-text"><b>Tok satıcı</b><span>6 ay ve üzeri</span></div><div class="scenario-numbers"><b>21,1 milyon ₺</b></div></li>
           </ul>
           <ul aria-label="Hesaptan örnek satırlar">
+            <li class="factor"><div class="factor-text"><b>Geliştirme hesabı</b><span>5.620 m² inşaat hakkı · hasılat − maliyet − geliştirici payı</span></div><span class="factor-value">₺4.860/m²</span></li>
+            <li class="factor"><div class="factor-text"><b>Bölgedeki konut fiyatı</b><span>Bursa · 2026 2. çeyrek · TCMB EVDS</span></div><span class="factor-value">₺41.264/m²</span></li>
+            <li class="factor"><div class="factor-text"><b>İnşaat maliyeti</b><span>III-A sınıfı · Bakanlık 2026 tebliği</span></div><span class="factor-value">₺19.800/m²</span></li>
             <li class="factor"><div class="factor-text"><b>Denize yakınlık</b><span>Kıyıya 180 m · OpenStreetMap</span></div><span class="factor-value up">× 1,15</span></li>
-            <li class="factor"><div class="factor-text"><b>Ana yola erişim</b><span>Ana yola 100 m · OpenStreetMap</span></div><span class="factor-value up">× 1,05</span></li>
-            <li class="factor"><div class="factor-text"><b>Emsal (KAKS)</b><span>Girilmedi, 1,00 varsayıldı</span></div><span class="factor-value">× 1,00</span></li>
           </ul>
         </figure>
       </div>
@@ -97,42 +99,33 @@
           <article class="card">
             <span class="card-step">3</span>
             <h3>Değeri görün</h3>
-            <p>Acil satış, piyasa değeri ve tok satıcı için ayrı fiyat; ilinizin resmî konut fiyatı ve satış istatistikleri. Sonucu PDF rapor olarak kaydedin ya da iki parseli yan yana karşılaştırın.</p>
+            <p>Acil satış, piyasa değeri ve tok satıcı için ayrı fiyat; hesabın tam dökümü ve ilinizin resmî konut istatistikleri. PDF rapor alın ya da iki parseli yan yana karşılaştırın.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="farklar">
+    <section class="section" id="yontem">
       <div class="container">
         <div class="section-head">
-          <h2>Neden Değerix?</h2>
-          <p>Bir arsa için verilecek kararda "yapay zekâ böyle dedi" yetmez. Rakamın nereden geldiğini bilmek gerekir.</p>
+          <h2>Değer nasıl hesaplanıyor?</h2>
+          <p>Arsanın değeri, üzerine yapılabilecek şeyin değerinden geriye kalandır. Lisanslı değerleme uzmanlarının "geliştirme yöntemi" dediği hesap budur.</p>
         </div>
         <div class="card-grid">
           <article class="card">
-            <h3>Hesap açık</h3>
-            <p>Kapalı kutu yok. İlçe, konum, çevre, imar, emsal ve yanıtlarınızın her biri, değeri kaç kat etkilediğiyle birlikte listelenir.</p>
+            <span class="card-step">1</span>
+            <h3>Bölgedeki konut fiyatı</h3>
+            <p>Merkez Bankası'nın ilinize ait güncel konut m² fiyatı, parselin yerleşimine göre indirgenir. Aynı ilde şehir merkezi ile köy aynı fiyattan hesaplanmaz.</p>
           </article>
           <article class="card">
-            <h3>Kaynağı belli</h3>
-            <p>Parsel TKGM'den, çevre ölçümleri OpenStreetMap ve uydu yükselti modelinden, bölge istatistikleri Merkez Bankası'ndan gelir.</p>
+            <span class="card-step">2</span>
+            <h3>İnşaat hakkı ve maliyeti</h3>
+            <p>Emsal (KAKS) ile yapılabilecek inşaat alanı bulunur; maliyeti Bakanlığın 2026 tebliğinden gelir. Köy evi ile şehirdeki apartman farklı sınıflardır.</p>
           </article>
           <article class="card">
-            <h3>Tek rakam değil, üç senaryo</h3>
-            <p>Satmakta acele edip etmemenize göre fiyat değişir. Değerix acil satış, piyasa ve tok satıcı fiyatlarını ayrı gösterir.</p>
-          </article>
-          <article class="card">
-            <h3>Belirsizliği saklamaz</h3>
-            <p>Bilinmeyen her bilgi değer aralığını genişletir ve güven düzeyini düşürür. Ne kadar çok yanıt, o kadar dar aralık.</p>
-          </article>
-          <article class="card">
-            <h3>Üyelik ve sorgu sınırı yok</h3>
-            <p>Ad, telefon, e-posta ya da WhatsApp kaydı istemez. "3 ücretsiz sorgu" gibi bir sınır ya da ücretli paket yoktur.</p>
-          </article>
-          <article class="card">
-            <h3>Açık kaynak</h3>
-            <p>Kodun tamamı GitHub'da. Değerleme modelini, testlerini ve veri kaynaklarını herkes inceleyebilir.</p>
+            <span class="card-step">3</span>
+            <h3>Geriye kalan: arsa</h3>
+            <p>Hasılattan inşaat maliyeti ve geliştirici payı düşülür. Kalan tutar arsanın değeridir. Kırsalda hasılat maliyeti karşılamıyorsa değer, bölgedeki konut fiyatına bağlı bir taban orandan hesaplanır.</p>
           </article>
         </div>
 
@@ -142,8 +135,9 @@
               <tr><th scope="col"></th><th scope="col">Birçok değerleme sitesinde</th><th scope="col">Değerix</th></tr>
             </thead>
             <tbody>
-              <tr><th scope="row">Hesap yöntemi</th><td>"Yapay zekâ" denir, yöntem açıklanmaz</td><td>Her çarpan ve gerekçesi görünür</td></tr>
-              <tr><th scope="row">Veri kaynakları</th><td>Çoğunlukla belirtilmez</td><td>Her bölümde kaynağı yazar</td></tr>
+              <tr><th scope="row">Hesap yöntemi</th><td>"Yapay zekâ" denir, yöntem açıklanmaz</td><td>Geliştirme yöntemi; her adım ve çarpan görünür</td></tr>
+              <tr><th scope="row">Fiyat verisi</th><td>Çoğunlukla belirtilmez</td><td>TCMB'nin güncel il konut fiyatları</td></tr>
+              <tr><th scope="row">Şehir–köy farkı</th><td>Genellikle ilçe ortalaması</td><td>Uydu nüfus verisinden 1 km²'lik yerleşim sınıfı</td></tr>
               <tr><th scope="row">Kayıt</th><td>Üyelik, telefon ya da WhatsApp</td><td>Gerekmez</td></tr>
               <tr><th scope="row">Ücret</th><td>Birkaç ücretsiz sorgu, sonra paket</td><td>Ücretsiz</td></tr>
               <tr><th scope="row">Belirsizlik</th><td>Tek rakam ya da açıklanmayan aralık</td><td>Yanıtlarınıza göre daralan aralık ve güven düzeyi</td></tr>
@@ -172,14 +166,24 @@
             <p>İl bazında konut m² fiyatı, bölge konut fiyat endeksi ve aylık konut satışları.</p>
           </article>
           <article class="card">
+            <span class="card-tag">Resmî Gazete</span>
+            <h3>Yapı birim maliyetleri</h3>
+            <p>Çevre ve Şehircilik Bakanlığının 2026 yapı yaklaşık birim maliyetleri tebliği.</p>
+          </article>
+          <article class="card">
+            <span class="card-tag">Uydu nüfus verisi</span>
+            <h3>WorldPop</h3>
+            <p>1 km²'lik nüfus ızgarasından şehir merkezi, kasaba, köy ve kırsal ayrımı.</p>
+          </article>
+          <article class="card">
+            <span class="card-tag">Yerleşim listesi</span>
+            <h3>GeoNames</h3>
+            <p>İl ve ilçe merkezleri ile köyler; parselin en yakın yerleşime uzaklığı.</p>
+          </article>
+          <article class="card">
             <span class="card-tag">Açık harita</span>
             <h3>OpenStreetMap</h3>
             <p>Kıyıya ve ana yola mesafe, yakındaki okul, sağlık ve market noktaları, yer arama.</p>
-          </article>
-          <article class="card">
-            <span class="card-tag">Uydu yükselti modeli</span>
-            <h3>Open-Meteo</h3>
-            <p>Copernicus yükselti verisinden parselin eğimi.</p>
           </article>
         </div>
       </div>
@@ -193,7 +197,7 @@
         </div>
         <ul>
           <li>Lisanslı değerleme raporu değildir; kredi, teminat ya da resmî işlemlerde kullanılamaz.</li>
-          <li>Arsa referans fiyatları şimdilik örnek değerlerdir. Bursa için gerçek verilerle ayarlama ve hata payı ölçümü çalışması sürüyor.</li>
+          <li>Model katsayıları (yerleşim ve taban oranlar) henüz gerçek satış verisiyle kalibre edilmedi; Bursa pilot çalışması sürüyor.</li>
           <li>Tek tek tapu satış bedelleri kamuya açık olmadığı için "çevrede ne, kaça satıldı" bilgisini göstermez.</li>
           <li>Nitelikten tahmin edilen imar durumu yalnızca bir öneridir; gerçek imar durumu ve emsal belediyeden öğrenilmelidir.</li>
         </ul>

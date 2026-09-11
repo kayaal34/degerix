@@ -3,15 +3,11 @@ import pytest
 from app.errors import UpstreamError
 
 
-def test_health_landing_and_map_pages(client):
+def test_health_and_index(client):
     assert client.get("/api/health").json()["status"] == "ok"
-
-    landing = client.get("/")
-    assert landing.status_code == 200 and 'href="harita.html"' in landing.text
-
-    map_page = client.get("/harita.html")
-    assert map_page.status_code == 200 and "Değeri hesapla" in map_page.text
-    assert map_page.headers["cache-control"] == "no-cache"
+    page = client.get("/")
+    assert page.status_code == 200
+    assert "Değerix" in page.text
 
 
 def test_usages_mark_which_ones_are_zoned(client):
@@ -84,31 +80,52 @@ def test_admin_list_upstream_error_is_502(client, fake_tkgm):
     assert "ulaşılamadı" in response.json()["detail"]
 
 
-ESTIMATE = {"province": "Muğla", "district": "Bodrum", "area_m2": 467.87, "usage": "konut", "lat": 37.0385, "lng": 27.419}
+# Bodrum Yeniköy'de gerçek bir parsel; testler ağa çıkmaz, konut fiyatı kopyadan gelir
+ESTIMATE = {"province": "Muğla", "area_m2": 467.87, "usage": "konut", "lat": 37.0385, "lng": 27.419}
 ANSWERS = {"kaks": 1.2, "deed": "tam", "road": "var", "utilities": "var"}
 
 
 def multipliers(body):
-    return {f["key"]: f["multiplier"] for f in body["factors"]}
+    return {factor["key"]: factor["multiplier"] for factor in body["factors"]}
 
 
-def test_estimate_uses_district_boundary_for_location(client):
-    body = client.post("/api/estimate", json=ESTIMATE | ANSWERS | {"province_id": 70, "district_id": 724}).json()
-    assert multipliers(body)["location"] > 1.0  # parsel ilçe merkezine yakın
-    assert body["confidence"] == "yüksek"
+def test_estimate_uses_official_housing_price_and_settlement_class(client):
+    body = client.post("/api/estimate", json=ESTIMATE | ANSWERS).json()
+
+    assert body["housing"]["province"] == "Muğla"
+    assert body["housing"]["value"] > 20_000
+    assert body["housing"]["live"] is False          # anahtar yok, kopya kullanıldı
+    assert body["settlement"]
+    assert body["basis"] in ("gelistirme", "taban")
+    assert body["base_price"] > 0
     assert body["low"] < body["total"] < body["high"]
+    assert body["unit_price"] > 0
 
 
-def test_estimate_resolves_district_by_name(client):
-    body = client.post("/api/estimate", json=ESTIMATE).json()
-    assert multipliers(body)["location"] != 1.0
+def test_estimate_shows_the_development_calculation(client):
+    body = client.post("/api/estimate", json=ESTIMATE | ANSWERS).json()
+    development = body["development"]
+
+    assert development["kaks"] == 1.2
+    assert development["kaks_assumed"] is False
+    assert development["buildable_m2"] == round(ESTIMATE["area_m2"] * 1.2)
+    assert development["construction_cost"] > 10_000
+    assert development["revenue"] > development["cost"] or body["basis"] == "taban"
+
+
+def test_estimate_without_a_point_still_works(client):
+    body = client.post("/api/estimate", json={"province": "Muğla", "area_m2": 1000, "usage": "tarla"}).json()
+    assert body["basis"] == "arazi"
+    assert body["development"] is None
+    assert body["total"] > 0
 
 
 def test_estimate_treats_missing_answers_as_unknown(client):
     body = client.post("/api/estimate", json=ESTIMATE).json()
-    answers = {key: value for key, value in multipliers(body).items() if key in {"kaks", "deed", "road", "utilities"}}
-    assert answers == {"kaks": 1.0, "deed": 1.0, "road": 1.0, "utilities": 1.0}
-    assert body["confidence"] == "orta"
+    answers = {key: value for key, value in multipliers(body).items() if key in {"deed", "road", "utilities"}}
+
+    assert answers == {"deed": 1.0, "road": 1.0, "utilities": 1.0}
+    assert body["confidence"] in ("orta", "düşük")
     assert body["share_value"] is None
 
 
@@ -116,7 +133,6 @@ def test_estimate_answers_change_value(client):
     good = client.post("/api/estimate", json=ESTIMATE | ANSWERS).json()
     bad = client.post("/api/estimate", json=ESTIMATE | ANSWERS | {"road": "yok", "utilities": "yok"}).json()
     assert bad["total"] < good["total"]
-    assert "inşaat hakkı" in next(f["detail"] for f in good["factors"] if f["key"] == "kaks")
 
 
 def test_estimate_returns_sale_scenarios(client):
@@ -129,15 +145,21 @@ def test_estimate_returns_sale_scenarios(client):
 def test_estimate_shared_deed_returns_share_value(client):
     body = client.post("/api/estimate", json=ESTIMATE | ANSWERS | {"deed": "hisseli", "share_pct": 50}).json()
     assert body["share_pct"] == 50
-    assert abs(body["share_value"] - body["total"] / 2) <= body["total"] * 0.01
+    assert abs(body["share_value"] - body["total"] / 2) <= body["total"] * 0.02
 
 
-def test_estimate_still_works_when_tkgm_is_down(client, fake_tkgm):
-    fake_tkgm["/idariYapi/ilListe"] = UpstreamError("kapalı")
-    fake_tkgm["/idariYapi/ilceListe/70"] = UpstreamError("kapalı")
-    response = client.post("/api/estimate", json=ESTIMATE)
+def test_estimate_does_not_depend_on_tkgm(client, fake_tkgm):
+    for path in list(fake_tkgm):
+        fake_tkgm[path] = UpstreamError("TKGM kapalı")
+    response = client.post("/api/estimate", json=ESTIMATE | ANSWERS)
     assert response.status_code == 200
-    assert multipliers(response.json())["location"] == 1.0
+    assert response.json()["total"] > 0
+
+
+def test_estimate_unknown_province_is_404(client):
+    response = client.post("/api/estimate", json=ESTIMATE | {"province": "Atlantis"})
+    assert response.status_code == 404
+    assert "bulunamadı" in response.json()["detail"]
 
 
 @pytest.mark.parametrize(

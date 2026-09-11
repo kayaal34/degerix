@@ -75,6 +75,10 @@ def client(fake_tkgm, monkeypatch):
     async def fake_search(query: str, limit: int = 5):
         return [{"name": f"{query}, Bodrum, Muğla, Türkiye", "lat": 37.1, "lng": 27.3}]
 
+    # Geliştiricinin .env anahtarı testlere sızmasın: değerleme konut fiyatını
+    # canlı EVDS yerine app/static_data içindeki kopyadan alsın.
+    monkeypatch.delenv("EVDS_API_KEY", raising=False)
+
     async def no_surroundings(lat: float, lng: float):
         return None  # çevre ölçümleri ayrı test ediliyor; burada ağa çıkılmaz
 

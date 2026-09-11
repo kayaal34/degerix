@@ -7,7 +7,6 @@ Değerix API
     Swagger : http://localhost:8000/docs
 """
 
-import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,11 +19,11 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import evds, nearby, nominatim, tkgm
+from . import evds, market, nearby, nominatim, tkgm, urbanity
 from .data import USAGE, CornerKey, DeedKey, IrrigationKey, RoadKey, UsageKey, UtilitiesKey, ViewKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
-from .valuation import RURAL_USAGES, DistrictArea, Estimate, estimate, guess_usage
+from .valuation import RURAL_USAGES, Estimate, estimate, guess_usage
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = ROOT_DIR / "static"
@@ -35,6 +34,9 @@ load_dotenv(ROOT_DIR / ".env")
 # Türkiye'yi kapsayan dikdörtgen
 LAT_MIN, LAT_MAX = 35.8, 42.2
 LNG_MIN, LNG_MAX = 25.6, 44.9
+
+# Çevre ölçümü için beklenecek en uzun süre; yavaş bir dış servis değeri geciktirmesin
+SURROUNDINGS_BUDGET_S = 4.0
 
 
 # ─────────────────────────── Şemalar ───────────────────────────
@@ -77,14 +79,11 @@ class UsageOption(BaseModel):
 
 
 class EstimateRequest(BaseModel):
-    province: str = Field(min_length=2, max_length=64)
-    district: str = Field(min_length=2, max_length=64)
+    province: str = Field(min_length=2, max_length=64, description="Parselin ili; konut fiyatı buradan alınır")
     area_m2: float = Field(gt=0, le=10_000_000)
     usage: UsageKey
     lat: float | None = Field(default=None, ge=LAT_MIN, le=LAT_MAX)
     lng: float | None = Field(default=None, ge=LNG_MIN, le=LNG_MAX)
-    province_id: int | None = None
-    district_id: int | None = None
     kaks: float | None = Field(default=None, gt=0, le=10, description="Emsal (KAKS); yalnızca imarlı arsada kullanılır")
     deed: DeedKey = Field(default="bilinmiyor", description="Tapu türü")
     share_pct: float | None = Field(default=None, gt=0, le=100, description="Hisseli tapuda kullanıcının payı (%)")
@@ -107,7 +106,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Değerix API",
-    version="3.4.0",
+    version="4.0.0",
     description="Haritadan ya da ada/parsel numarasıyla seçilen arsanın tahmini değerini hesaplar.",
     lifespan=lifespan,
 )
@@ -133,7 +132,7 @@ async def health() -> dict[str, Any]:
 async def usages() -> list[UsageOption]:
     return [
         UsageOption(key=key, label=label, zoned=key not in RURAL_USAGES)
-        for key, (label, _) in USAGE.items()
+        for key, label in USAGE.items()
     ]
 
 
@@ -217,39 +216,23 @@ async def parcel_by_number(
 
 # ─────────────────────────── Değerleme ───────────────────────────
 
-async def _district_area(request: EstimateRequest) -> DistrictArea | None:
-    """Konum katsayısı için ilçe sınırı; TKGM'ye ulaşılamazsa katsayı atlanır."""
-    try:
-        geometry = await tkgm.district_geometry(
-            province=request.province,
-            district=request.district,
-            province_id=request.province_id,
-            district_id=request.district_id,
-        )
-    except (NotFound, UpstreamError):
-        return None
-    if geometry is None:
-        return None
-    lat, lng, area_km2 = centroid_and_area(geometry)
-    return DistrictArea(lat=lat, lng=lng, area_km2=area_km2)
-
-
 @app.post("/api/estimate", response_model=Estimate, tags=["değerleme"])
 async def estimate_value(request: EstimateRequest) -> Estimate:
-    district_area, surroundings = None, None
+    """Arsanın tahmini değeri: TCMB konut fiyatı, Bakanlık inşaat maliyeti ve
+    parselin yerleşim sınıfıyla hesaplanır; her adım gerekçesiyle döner."""
+    housing = await market.housing_price(request.province)
+
+    place = None
+    surroundings = None
     if request.lat is not None and request.lng is not None:
-        # Çevre ölçümü en fazla 4 sn beklenir; yavaş bir dış servis değeri geciktirmesin
-        district_area, surroundings = await asyncio.gather(
-            _district_area(request), nearby.fetch_within(request.lat, request.lng, budget_s=4.0)
-        )
+        place = urbanity.describe(request.lat, request.lng)
+        surroundings = await nearby.fetch_within(request.lat, request.lng, budget_s=SURROUNDINGS_BUDGET_S)
+
     return estimate(
-        province=request.province,
-        district=request.district,
         area_m2=request.area_m2,
         usage=request.usage,
-        lat=request.lat,
-        lng=request.lng,
-        district_area=district_area,
+        housing=housing,
+        urban=place,
         surroundings=surroundings,
         kaks=request.kaks,
         deed=request.deed,

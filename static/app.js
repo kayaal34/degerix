@@ -426,9 +426,6 @@ function postEstimate(parcel, inputs) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       province: parcel.province,
-      district: parcel.district,
-      province_id: parcel.province_id,
-      district_id: parcel.district_id,
       lat: parcel.lat,
       lng: parcel.lng,
       area_m2: inputs.area,
@@ -514,8 +511,34 @@ function renderEstimate(result, parcel) {
     }),
   );
 
-  $("#factorList").replaceChildren(
-    factorRow("İl referans fiyatı", `${parcel.province} · konut imarlı, emsal 1,00`, `${money.format(result.base_price)}/m²`),
+  const housing = result.housing;
+  const rows = [
+    factorRow(result.base_label, result.base_detail, `${money.format(result.base_price)}/m²`),
+    factorRow(
+      "Bölgedeki konut fiyatı",
+      `${housing.province} · ${housing.period} · ${housing.live ? "TCMB EVDS" : "TCMB kopyası"}${housing.estimated ? " (bölge ortalaması)" : ""}`,
+      `${money.format(housing.value)}/m²`,
+    ),
+    factorRow("Yerleşim", result.settlement, ""),
+  ];
+
+  if (result.development) {
+    const build = result.development;
+    rows.push(
+      factorRow(
+        "İnşaat hakkı",
+        `Emsal ${twoDecimals.format(build.kaks)}${build.kaks_assumed ? " (varsayıldı)" : ""} · satılabilir ${integer.format(build.sellable_m2)} m²`,
+        `${integer.format(build.buildable_m2)} m²`,
+      ),
+      factorRow(
+        "İnşaat maliyeti",
+        `${build.construction_class} sınıfı · Bakanlık 2026 tebliği`,
+        `${money.format(build.construction_cost)}/m²`,
+      ),
+    );
+  }
+
+  rows.push(
     ...result.factors.map((factor) =>
       factorRow(
         factor.label,
@@ -526,6 +549,8 @@ function renderEstimate(result, parcel) {
     ),
     factorRow("m² fiyatı", "Çarpımın yuvarlanmış sonucu", `${money.format(result.unit_price)}/m²`, "total"),
   );
+
+  $("#factorList").replaceChildren(...rows);
 
   updateShareUrl();
   prepareReport(); // tarayıcının kendi yazdır menüsünden basılsa da rapor hazır olsun

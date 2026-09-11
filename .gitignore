@@ -3,6 +3,12 @@ __pycache__/
 
 # gizli anahtarlar
 .env
+
+# ilan sitelerinden elle derlenen doğrulama verisi: yalnızca yerelde kalır, yayımlanmaz
+data/private/
+
+# indirilen ham kaynak dosyalar; tools/ betikleri gerektiğinde yeniden indirir
+data/source/
 .pytest_cache/
 *.pyc
 

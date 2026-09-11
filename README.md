@@ -2,27 +2,31 @@
 
 [![Testler](https://github.com/kayaal34/degerix/actions/workflows/tests.yml/badge.svg)](https://github.com/kayaal34/degerix/actions/workflows/tests.yml)
 
-Haritada bir arsaya tıklayın ya da ada/parsel numarasını girin. Değerix, parseli
-**TKGM (Tapu ve Kadastro) kaydından** bulur ve sınırını haritada çizer. İmar, tapu,
-yol ve altyapı sorularıyla tahmini değeri **acil satış, piyasa değeri ve tok satıcı**
-senaryolarıyla birlikte hesaplar. Hesabın dökümünü ve **TCMB verisiyle bölge analizini** gösterir.
+Haritada bir arsaya tıklayın ya da ada/parsel numarasını girin. Değerix parseli
+**TKGM kaydından** bulur, sınırını haritada çizer ve değerini **resmî verilerle**
+hesaplar: Merkez Bankası'nın güncel konut fiyatları, Bakanlığın inşaat maliyetleri
+ve uydu nüfus verisinden çıkarılan yerleşim sınıfı. Sonuç tek bir rakam değil;
+**acil satış, piyasa değeri ve tok satıcı** fiyatları, değer aralığı ve hesabın
+adım adım dökümüdür.
 
-**Teknolojiler:** Python 3.12 · FastAPI · httpx · Leaflet · Vanilla JS · pytest · GitHub Actions · TCMB EVDS
+**Teknolojiler:** Python 3.12 · FastAPI · httpx · Leaflet · Vanilla JS · pytest · GitHub Actions
 
 ## Özellikler
 
 - **Haritadan seçim:** tıklanan noktadaki gerçek parsel TKGM'den gelir: ada, parsel, yüzölçümü, nitelik ve sınır poligonu.
 - **Ada / parsel ile arama:** il → ilçe → mahalle listeleri de TKGM'den gelir.
+- **Resmî veriye dayalı model:** değer, lisanslı değerleme uzmanlarının kullandığı geliştirme (artık değer) yöntemiyle hesaplanır; girdiler TCMB, Resmî Gazete ve uydu verisidir.
+- **Şehir ile köyü ayırt eder:** parselin 1 km²'lik hücresi "şehir merkezi · yoğun kentsel küme · kasaba · şehir çeperi · köy · kırsal" olarak sınıflanır.
 - **Arsa soruları:** imar durumu ve emsal (KAKS, inşaat alanı canlı hesaplanır), müstakil/hisseli tapu (hisse payının değeri ayrıca gösterilir), yol cephesi, elektrik ve su, deniz/göl manzarası, köşe parsel (imarlı arsada), sulu/kuru (imarsız arazide). Sorular yalnızca ilgili durumda görünür; zeytinlikte yasal kısıt uyarısı çıkar.
 - **Parsel çevresi:** kıyıya ve ana yola mesafe, 1 km içindeki okul/sağlık/market noktaları ve eğim otomatik ölçülür. Ölçüm 4 saniyede yetişmezse değer beklemeden gösterilir.
 - **Satış süresine göre fiyat:** acil satış (1–2 ay), piyasa değeri (3–6 ay) ve tok satıcı (6 ay+) için ayrı fiyat ve aralık.
 - **Bölge analizi:** TCMB EVDS'den ilin konut m² fiyatı, bölge konut fiyat endeksi (24 aylık grafik) ve son 12 ayın konut satışları.
-- **Şeffaf hesap:** değer aralığı, güven düzeyi ve her çarpanın gerekçesi gösterilir. "Bilmiyorum" denen sorular aralığı genişletir.
+- **Şeffaf hesap:** değer aralığı, güven düzeyi ve her adımın gerekçesi gösterilir. "Bilmiyorum" denen sorular aralığı genişletir.
 - **Telefonda:** arsanın üzerindeyken "Bulunduğum yeri seç" ile parseli GPS'ten bulma, dokunmatik uyumlu arayüz.
 - **Harita / Uydu düğmesi:** parsel seçilince uydu görüntüsü kendiliğinden açılır; kullanıcının kendi seçimi hatırlanır.
-- **Yazdırılabilir / PDF rapor:** parsel krokisi (TKGM sınırından), verilen yanıtlar, değer, senaryolar, bölge analizi ve hesabın tam dökümü tek sayfada.
+- **Yazdırılabilir / PDF rapor:** parsel krokisi, verilen yanıtlar, değer, senaryolar, bölge analizi ve hesabın tam dökümü tek sayfada.
 - **İki parseli karşılaştırma:** değer, m² fiyatı, aralık ve senaryolar yan yana; liste yalnızca kullanıcının tarayıcısında saklanır.
-- **Yer arama** (OpenStreetMap) ve **paylaşılabilir bağlantı:** bağlantı parselle birlikte yanıtları da taşır (`harita.html?lat=..&lng=..&alan=..&imar=..&hesapla=1`); açan kişi aynı sonucu görür.
+- **Yer arama** (OpenStreetMap) ve **paylaşılabilir bağlantı:** bağlantı parselle birlikte yanıtları da taşır; açan kişi aynı sonucu görür.
 - **Yedek akış:** parsel kaydı olmayan noktalarda il/ilçe OpenStreetMap'ten alınır, alanı kullanıcı girer.
 
 ## Nasıl çalışır?
@@ -32,41 +36,86 @@ flowchart LR
     UI["Tarayıcı<br/>Leaflet + JS"] -->|/api/parcels/at| API["FastAPI"]
     UI -->|/api/estimate| API
     UI -->|/api/stats/il| API
-    API -->|parsel, ilçe sınırı| TKGM["TKGM Parsel Sorgu"]
-    API -->|adres, yer arama| OSM["OpenStreetMap Nominatim"]
-    API -->|konut fiyatları, satışlar| EVDS["TCMB EVDS"]
+    API -->|parsel sınırı, idari listeler| TKGM["TKGM Parsel Sorgu"]
+    API -->|adres, yer arama| OSM["OpenStreetMap"]
+    API -->|konut fiyatı, endeks, satışlar| EVDS["TCMB EVDS"]
+    API --> LOCAL["Yerel veri<br/>yerleşim ızgarası · inşaat maliyetleri"]
     API --> MODEL["valuation.py<br/>saf fonksiyonlar"]
 ```
 
 Tarayıcı dış servislere doğrudan gitmez; FastAPI araya girer. Bunun üç faydası var:
 
 - **Tutarsız yanıtlar tek yerde düzeltilir.** TKGM alanı bazen `45,911.00`, bazen `45.911,00` biçiminde döndürüyor; bazı adları da "Gölbaşi" gibi bozuk yazıyor.
-- **Anahtar ve önbellek sunucuda kalır.** EVDS API anahtarı tarayıcıya hiç gitmez; idari listeler ve EVDS yanıtları önbelleğe alınır.
-- **Hız sınırlarına uyulur.** Nominatim'in saniyede bir istek sınırı aşılmaz.
+- **Anahtar ve önbellek sunucuda kalır.** EVDS API anahtarı tarayıcıya hiç gitmez.
+- **Hız sınırlarına uyulur.** Nominatim'in saniyede bir istek sınırı aşılmaz, Overpass sorguları paylaşılır.
 
 ## Değerleme modeli
 
-Referans fiyat, konut imarlı, emsali 1,00 olan, yola cepheli ve müstakil tapulu arsa içindir.
-Diğer her özellik bu fiyatı bir katsayıyla çarpar:
+Model, arsayı satın alacak kişinin mantığını kurar: **arsanın değeri, üzerine
+yapılabilecek şeyin değerinden geriye kalandır.**
+
+### 1. Bölgedeki konut fiyatı
+
+```text
+bölgedeki konut m² fiyatı = TCMB'nin il konut m² fiyatı × yerleşim katsayısı
+```
+
+TCMB'nin il fiyatı ağırlıklı olarak şehir merkezini yansıtır; yerleşim katsayısı bunu
+parselin bulunduğu yere indirger:
+
+| Yerleşim sınıfı | Katsayı | Örnek |
+|---|---|---|
+| Şehir merkezi | 1,05 | Kadıköy, Kızılay, Nilüfer |
+| Yoğun kentsel küme | 0,85 | Mudanya, Bodrum |
+| Şehir çeperi | 0,80 | büyük şehrin kenar mahalleleri |
+| Kasaba | 0,70 | Alaçam ilçe merkezi |
+| Köy | 0,50 | köy yerleşiği |
+| Seyrek kırsal | 0,42 | |
+| Çok seyrek kırsal | 0,36 | dağ köyleri, kırsal parseller |
+
+### 2. İmarlı arsa: geliştirme (artık değer) yöntemi
+
+```text
+hasılat = inşaat hakkı × satılabilir oran (0,80) × bölgedeki konut fiyatı
+maliyet = inşaat hakkı × Bakanlık yapı birim maliyeti
+arsa    = hasılat − maliyet − geliştirici payı (hasılatın %15'i)
+```
+
+İnşaat maliyeti, Çevre ve Şehircilik Bakanlığının 2026 tebliğinden gelir ve yapı
+yerleşime göre seçilir: köy evi **II-C (15.100 ₺/m²)**, apartman **III-A (19.800 ₺/m²)**,
+şehir merkezinde konut **III-B (21.050 ₺/m²)**, ticari **III-C (23.400 ₺/m²)**.
+
+**Hasılat maliyeti karşılamıyorsa** (köylerde çoğu zaman böyledir) geliştirme hesabı
+arsaya değer bırakmaz. O zaman değer "taban orandan" gelir: orada arsayı alan kişi
+müteahhit değil, kendi evini yapacak kişidir. Taban oran, bölgedeki konut fiyatının
+şehirde %10'u, köyde %3'ü, kırsalda %1,8'idir.
+
+### 3. İmarsız arazi
+
+Tarla, bağ-bahçe ve zeytinlik için değer, bölgedeki konut fiyatının yerleşime ve
+kullanıma bağlı oranıdır (kırsalda %0,6 – şehir çeperinde %2; zeytinlikte 1,6 katı).
+
+### 4. Düzeltmeler
+
+Bulunan m² değeri şu çarpanlarla düzeltilir:
 
 | Çarpan | Nasıl belirlenir | Aralık |
 |---|---|---|
-| İlçe | bilinen ilçeler için bölge farkı | 0,77 – 2,30 |
-| Konum | ilçenin coğrafi merkezine uzaklık (TKGM ilçe sınırından) | 0,85 – 1,10 |
 | Denize yakınlık | kıyı çizgisine mesafe (OpenStreetMap); 3 km ötesinde etkisiz | 1,00 – 1,20 |
 | Ana yola erişim | en yakın ana yola mesafe (OpenStreetMap) | 0,90 – 1,05 |
-| Çevre hizmetleri | 1 km içindeki okul, sağlık ve market noktası sayısı (OpenStreetMap) | 0,95 – 1,05 |
-| Eğim | parselin çevresindeki yükselti farkı (Open-Meteo, Copernicus 90 m) | 0,85 – 1,00 |
-| İmar durumu | konut / ticari / sanayi imarlı ya da imarsız bağ-bahçe, zeytinlik, tarla | 0,22 – 1,45 |
-| Emsal (KAKS) | yalnızca imarlı arsada; inşaat hakkı arttıkça değer artar ama orantısız | 0,50 – 1,80 |
+| Çevre hizmetleri | 1 km içindeki okul, sağlık ve market noktası sayısı | 0,95 – 1,05 |
+| Eğim | parselin çevresindeki yükselti farkı (Open-Meteo, Copernicus) | 0,85 – 1,00 |
 | Büyüklük | büyük parselde m² fiyatı düşer | 0,65 – 1,08 |
 | Tapu | hisseli tapuda ortaklık indirimi | 0,80 – 1,00 |
 | Yol cephesi | yola cephesi yoksa geçit hakkı gerekir | 0,75 – 1,00 |
 | Elektrik ve su | eksikse düşer; tarlada etkisi daha az | 0,85 – 1,00 |
+| Manzara / köşe parsel | yalnızca yanıtlanınca uygulanır | 1,00 – 1,12 |
+| Sulama (imarsız) | sulu arazi kuru araziden pahalıdır | 0,90 – 1,20 |
 
-**Değer aralığı ve güven:** her eksik bilgi aralığı genişletir. Tanımsız ilçe, alınamayan
-konum, imarsız arazi, girilmemiş emsal ve "Bilmiyorum" denen her soru aralığa eklenir.
-Kullanıcı yanıtladıkça aralık daralır, güven "düşük → orta → yüksek" olur.
+**Değer aralığı ve güven:** her eksik bilgi aralığı genişletir — yerleşim bilgisi
+alınamaması, TCMB'nin o il için fiyat yayımlamaması, canlı veri yerine kopya
+kullanılması, girilmemiş emsal ve "Bilmiyorum" denen her soru. Kullanıcı yanıtladıkça
+aralık daralır, güven "düşük → orta → yüksek" olur.
 
 **Satış senaryoları:** piyasa değeri 3–6 aylık normal satışı temsil eder. Acil satışta
 imarlı arsa ×0,85, imarsız arazi ×0,78 (arazi daha yavaş satılır); tok satıcıda
@@ -74,53 +123,49 @@ imarlı arsa ×0,85, imarsız arazi ×0,78 (arazi daha yavaş satılır); tok sa
 
 Model deterministiktir: aynı girdi her zaman aynı sonucu verir.
 
-Örnek: Bodrum, Yeniköy, 1108 ada 6 parsel (467,87 m², konut imarlı, sorular yanıtlanmamış)
+### Örnekler (Eylül 2026)
 
-| Adım | Çarpan | m² fiyatı |
-|---|---|---|
-| Muğla referans fiyatı | | ₺8.800 |
-| İlçe: Bodrum | × 2,30 | |
-| Konum: ilçe merkezine 7,8 km | × 0,98 | |
-| İmar durumu: konut imarlı | × 1,00 | |
-| Emsal: girilmedi, 1,00 varsayıldı | × 1,00 | |
-| Büyüklük: 468 m² | × 1,01 | |
-| Tapu, yol cephesi, elektrik-su: yanıtlanmadı | × 1,00 | |
-| **Sonuç** | | **₺19.900** → **₺9.310.000** |
+**Samsun Alaçam, köy içi parsel · 700 m² · konut imarlı · emsal 0,50**
 
-| Senaryo | Fiyat | Aralık |
-|---|---|---|
-| Acil satış (1–2 ay) | 7,9 milyon ₺ | 6,5 – 9,3 milyon ₺ |
-| Piyasa değeri (3–6 ay) | 9,3 milyon ₺ | 7,6 – 11 milyon ₺ |
-| Tok satıcı (6 ay+) | 10,1 milyon ₺ | 8,3 – 11,9 milyon ₺ |
-
-> **Önemli:** `app/data.py` içindeki referans fiyatlar ve katsayılar gerçek piyasa verisi
-> değil, modelin çalışmasını göstermek için seçilmiş örnek değerlerdir. Parsel bilgileri
-> (konum, alan, nitelik) ve bölge analizi ise gerçek veridir. Gerçek bir arsa fiyatı kaynağı
-> bağlandığında yalnızca `data.py` dosyasının değişmesi yeterlidir.
-
-## Bölge analizi (TCMB EVDS)
-
-Seçilen parselin ili için Merkez Bankası'nın Elektronik Veri Dağıtım Sistemi'nden (EVDS)
-üç resmî seri çekilir:
-
-| Gösterge | EVDS serisi | Sıklık | Kapsam |
-|---|---|---|---|
-| Konut m² fiyatı ve geçen yılın aynı dönemine göre değişim | `TP.BIRIMFIYAT.<il>` | üç aylık | 76 il |
-| Konut fiyat endeksi, son 12 ay değişimi ve 24 aylık grafik | `TP.KFE.<bölge>` | aylık | 19 bölge, 81 il |
-| Son 12 ayın konut satışı ve önceki yıla göre değişim | `TP.AKONUTSAT1.<il>` | aylık | 81 il |
-
-Örnek (Muğla, Eylül 2026):
-
-| Gösterge | Değer |
+| Adım | Değer |
 |---|---|
-| Konut m² fiyatı (2026 2. çeyrek) | ₺82.290, geçen yıla göre +%4,1 |
-| Konut fiyat endeksi, Aydın–Denizli–Muğla (son 12 ay) | +%17,7 |
-| Konut satışı (son 12 ay) | 23.004 adet, önceki yıla göre −%5,8 |
+| Samsun konut m² fiyatı (TCMB) | ₺37.326 |
+| Yerleşim: çok seyrek kırsal (10 kişi/km²) | × 0,36 → ₺13.437 |
+| Geliştirme: 350 m² inşaat hakkı | hasılat ₺3,76M − maliyet ₺5,29M → **değer bırakmıyor** |
+| Taban değer (konut fiyatının %1,8'i) | ₺242/m² |
+| **Sonuç** | **₺165.000** (₺236/m²) · aralık ₺144.000 – ₺187.000 |
 
-- **Konut verisidir.** Arsa fiyatını doğrudan göstermez; bölgedeki eğilimi gösterir. Değişimler nominaldir, enflasyon dahildir.
-- **Birim fiyatı olmayan iller:** Ardahan, Bayburt, Gümüşhane, Hakkari ve Tunceli için TCMB konut birim fiyatı yayımlamıyor; bu illerde yalnızca endeks ve satışlar gösterilir.
-- **Bir seri alınamazsa** diğerleri yine gösterilir. Yanıtlar 12 saat önbellekte tutulur.
-- **Anahtar yoksa** uygulama normal çalışır, yalnızca bölge analizi kartı görünmez. Arayüz `/api/health` yanıtındaki `stats` alanına bakar ve anahtar yokken istek atmaz.
+Aynı parselin ilan fiyatı 245.000 ₺ (350 ₺/m²). İlan, satıcının istediği fiyattır;
+tahminin bir miktar altında kalması beklenir.
+
+**Bodrum Yeniköy 1108 ada 6 parsel · 467,87 m² · konut imarlı**
+
+| Adım | Değer |
+|---|---|
+| Muğla konut m² fiyatı (TCMB) | ₺82.290 |
+| Yerleşim: yoğun kentsel küme | × 0,85 → ₺69.947 |
+| Geliştirme: 561 m² inşaat hakkı (III-A) | hasılat ₺31,4M − maliyet ₺11,1M − pay ₺4,7M = ₺15,6M |
+| **Sonuç** | **₺15.700.000** (₺33.500/m²) · güven yüksek |
+
+> **Neyi biliyoruz, neyi varsayıyoruz:** konut fiyatları, inşaat maliyetleri, parsel
+> bilgileri ve nüfus verisi resmîdir. Yerleşim katsayıları, taban oranlar, arazi
+> oranları ve geliştirici payı ise başlangıç varsayımıdır; `app/model_params.py`
+> içinde durur ve gerçek satış verisiyle ayarlanmayı bekler (bkz. [Kalibrasyon](#kalibrasyon)).
+
+## Veri kaynakları
+
+| Kaynak | Ne için | Lisans / not |
+|---|---|---|
+| [TKGM Parsel Sorgu](https://parselsorgu.tkgm.gov.tr) | Parsel sınırı, alan, nitelik, idari listeler | Resmî olarak belgelenmemiş kamuya açık servis |
+| [TCMB EVDS](https://evds3.tcmb.gov.tr) | İl konut m² fiyatı, konut fiyat endeksi, satış sayıları | Ücretsiz API anahtarı |
+| Çevre ve Şehircilik Bakanlığı | 2026 yapı yaklaşık birim maliyetleri | Resmî Gazete, 3/2/2026, sayı 33157 |
+| [WorldPop](https://www.worldpop.org) | 1 km nüfus ızgarası → yerleşim sınıfı | CC BY 4.0 |
+| [GeoNames](https://www.geonames.org) | İl/ilçe merkezleri ve köyler | CC BY 4.0 |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) | Kıyı, yollar, hizmet noktaları, yer arama, harita | ODbL |
+| [Open-Meteo](https://open-meteo.com) | Yükselti (Copernicus DEM) → eğim | CC BY 4.0 |
+
+Yerleşim sınıfları, Birleşmiş Milletler / Eurostat "kentleşme derecesi" (Degree of
+Urbanisation) eşikleriyle üretilir; sınıf kodları GHS-SMOD ile aynıdır.
 
 ## Çalıştırma
 
@@ -146,7 +191,10 @@ uvicorn app.main:app --reload
 - Harita uygulaması: <http://localhost:8000/harita.html>
 - API dokümanı (Swagger): <http://localhost:8000/docs>
 
-### EVDS API anahtarı (bölge analizi için, isteğe bağlı)
+### EVDS API anahtarı (isteğe bağlı)
+
+Anahtar yoksa uygulama çalışır: konut fiyatları `app/static_data/konut_birim_fiyat.json`
+içindeki kopyadan okunur, yalnızca bölge analizi kartı gizlenir.
 
 1. [evds3.tcmb.gov.tr](https://evds3.tcmb.gov.tr) adresinde ücretsiz üye olun ve profil sayfanızdan API anahtarınızı kopyalayın.
 2. [`.env.example`](.env.example) dosyasını `.env` adıyla kopyalayın.
@@ -154,19 +202,38 @@ uvicorn app.main:app --reload
 
 `.env` git'e gönderilmez. Anahtar yalnızca sunucuda kullanılır, tarayıcıya gönderilmez.
 
-### Telefondan denemek (aynı Wi-Fi)
+### Veri dosyalarını yeniden üretmek
 
-Sunucuyu yerel ağa açın:
+Statik veriler depoda hazır gelir. Güncellemek için:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+```bash
+python tools/build_urbanity.py
+```
+
+```bash
+python tools/build_settlements.py
+```
+
+```bash
+python tools/build_housing_prices.py
+```
+
+Sırasıyla yerleşim ızgarasını (WorldPop), yerleşim listesini (GeoNames) ve konut fiyatı
+kopyasını (EVDS, anahtar gerekir) üretirler.
+
+### Telefondan denemek (aynı Wi-Fi)
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Bilgisayarın yerel IP adresini `ipconfig` ile öğrenin (ör. `192.168.1.34`) ve telefonda
-`http://192.168.1.34:8000` adresini açın. Windows güvenlik duvarı izin isteyebilir.
-
-"Bulunduğum yeri seç" düğmesi tarayıcı kuralı gereği yalnızca **https** üzerinde çalışır;
-yerel ağda çalışmaz, yayınlanmış sürümde çalışır.
+`http://192.168.1.34:8000` adresini açın. "Bulunduğum yeri seç" düğmesi tarayıcı kuralı
+gereği yalnızca **https** üzerinde çalışır.
 
 ## Yayınlama (Render)
 
@@ -174,10 +241,20 @@ Depoda hazır bir [`render.yaml`](render.yaml) bulunur.
 
 1. [render.com](https://render.com)'a GitHub hesabıyla giriş yapın.
 2. **New → Blueprint** seçip bu depoyu bağlayın.
-3. Render `EVDS_API_KEY` değerini sorar; anahtarınızı buraya girin. Boş bırakırsanız bölge analizi kapalı kalır.
-4. Render servisi kurar ve `https://degerix-xxxx.onrender.com` biçiminde bir adres verir. Her `git push` sonrası otomatik güncellenir.
+3. Render `EVDS_API_KEY` değerini sorar; boş bırakırsanız bölge analizi kapalı kalır.
+4. Her `git push` sonrası otomatik güncellenir.
 
 Ücretsiz planda servis 15 dakika istek almazsa uyur; sonraki ilk açılış yaklaşık bir dakika sürer.
+
+## Kalibrasyon
+
+Model katsayıları (`app/model_params.py`) başlangıç varsayımıdır. Gerçek kayıtlarla
+ayarlanmaları planlanır:
+
+- `data/pilot/bursa.csv` — belediye ihaleleri, KAP değerleme raporları ve belediye birim değerleri gibi **kaynağı belli, kamuya açık** kayıtlar (depoda).
+- `data/private/` — ilan sitelerinden elle derlenen doğrulama kayıtları. **Git'e gönderilmez**; ham ilan verisi yeniden yayımlanmaz, kişisel veri tutulmaz. İlan fiyatı satış fiyatı olmadığı için ayrı bir pazarlık payı parametresiyle karşılaştırılır.
+
+Kalibrasyon sonucu yalnızca katsayı olarak (`app/static_data/calibration.json`) depoya girer.
 
 ## Testler
 
@@ -185,14 +262,16 @@ Depoda hazır bir [`render.yaml`](render.yaml) bulunur.
 pytest
 ```
 
-Testler ağa çıkmadan çalışır; TKGM, Nominatim, EVDS, OpenStreetMap ve yükselti servisi sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalışır. Kapsanan konular:
+Testler ağa çıkmadan çalışır; TKGM, Nominatim, EVDS, OpenStreetMap ve yükselti servisi
+sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalışır. Kapsananlar:
 
-- **Değerleme modeli:** determinizm, dökümün tutarlılığı, sorulara ve senaryolara göre değer ve aralık, güven düzeyleri
-- **Çevre ölçümleri:** kıyıya ve yola mesafe hesabı, katsayı sınırları, eksik ölçümlerin atlanması, önbellek
-- **Bölge analizi:** 81 ilin seri eşleştirmesi, dönem hesapları, boş dönemler, kısmi ve tam servis kesintisi, önbellek
-- **Coğrafi hesaplar:** mesafe, poligon merkezi ve alanı
-- **Veri ayrıştırma:** TKGM'nin iki farklı sayı biçimi, nitelik metninden imar durumu tahmini
-- **API:** yedek akışlar (TKGM kapalıyken ya da parsel yokken), 404/422/502/503 yanıtları
+- **Değerleme modeli:** geliştirme hesabının tutarlılığı, köy/şehir farkı, taban değere düşme, imarsız arazi, determinizm, güven düzeyleri
+- **Yerleşim verisi:** ızgara okuma, sınıflar, en yakın il/ilçe merkezi ve köy, Türkiye dışı noktalar
+- **Konut fiyatı:** canlı EVDS, kopyaya düşme, fiyat yayımlanmayan iller
+- **İnşaat maliyetleri:** yapı sınıfının kullanım ve yerleşime göre seçilmesi
+- **Çevre ölçümleri:** kıyıya ve yola mesafe, katsayı sınırları, eksik ölçümler, önbellek, süre sınırı
+- **Bölge analizi:** 81 ilin seri eşleştirmesi, dönem hesapları, kısmi ve tam servis kesintisi
+- **API:** yedek akışlar, 404/422/502/503 yanıtları
 
 ## API
 
@@ -211,25 +290,29 @@ Testler ağa çıkmadan çalışır; TKGM, Nominatim, EVDS, OpenStreetMap ve yü
 
 ```json
 {
-  "province": "Muğla", "district": "Bodrum", "area_m2": 467.87, "usage": "konut",
-  "lat": 37.0385, "lng": 27.419, "province_id": 70, "district_id": 724,
+  "province": "Muğla", "area_m2": 467.87, "usage": "konut",
+  "lat": 37.0385, "lng": 27.419,
   "kaks": 1.5, "deed": "hisseli", "share_pct": 25, "road": "var", "utilities": "kismen"
 }
 ```
+
+Yanıt; `base_label` (Geliştirme hesabı · Taban değer · Arazi değeri), `basis`,
+`settlement`, `housing` (kullanılan konut fiyatı ve kaynağı), `development`
+(inşaat hakkı, maliyet, hasılat, geliştirici payı), `factors`, `scenarios` ve
+`confidence` alanlarını içerir.
 
 Seçenekli alanların değerleri:
 
 - `deed`: `tam` · `hisseli` · `bilinmiyor`
 - `road`: `var` · `yok` · `bilinmiyor`
 - `utilities`: `var` · `kismen` · `yok` · `bilinmiyor`
+- `view`: `var` · `yok` · `bilinmiyor` — `corner`: `evet` · `hayir` · `bilinmiyor` — `irrigation`: `sulu` · `kuru` · `bilinmiyor`
 
-Konum, kimlikler ve sorular isteğe bağlıdır.
-
-Hata yanıtları `{"detail": "Türkçe açıklama"}` biçimindedir:
+Konum ve sorular isteğe bağlıdır. Hata yanıtları `{"detail": "Türkçe açıklama"}` biçimindedir:
 
 | Kod | Durum |
 |---|---|
-| 404 | Kayıt yok |
+| 404 | Kayıt yok (parsel, adres ya da tanınmayan il) |
 | 422 | Girdi geçersiz |
 | 502 | Dış servise ulaşılamadı |
 | 503 | Bölge analizi kapalı (EVDS anahtarı yok) |
@@ -238,35 +321,42 @@ Hata yanıtları `{"detail": "Türkçe açıklama"}` biçimindedir:
 
 ```text
 app/
-  main.py          FastAPI uç noktaları ve şemalar
-  valuation.py     değerleme modeli (saf fonksiyonlar)
-  data.py          referans fiyatlar, katsayılar, Türkçe ad eşleştirme
-  geo.py           mesafe, poligon merkezi ve alanı
-  tkgm.py          TKGM istemcisi + önbellek
-  nominatim.py     OpenStreetMap istemcisi (hız sınırlı)
-  evds.py          TCMB EVDS istemcisi ve bölge analizi özetleri
-  evds_series.py   81 il için EVDS seri kodları
-  surroundings.py  çevre katsayıları: kıyı, ana yol, hizmetler, eğim (saf fonksiyonlar)
-  nearby.py        OpenStreetMap Overpass ve Open-Meteo yükselti ölçümleri + önbellek
-  errors.py        ortak hata tipleri
-static/            tanıtım sayfası (index.html, landing.css) ve harita uygulaması (harita.html, app.js, style.css)
-data/pilot/        Bursa pilot veri seti şablonu ve derleme kuralları
-tests/             pytest
-render.yaml        Render yayın tanımı
+  main.py           FastAPI uç noktaları ve şemalar
+  valuation.py      değerleme modeli (saf fonksiyonlar)
+  model_params.py   ayarlanabilir katsayılar; kalibrasyonla güncellenir
+  market.py         il konut m² fiyatı: canlı EVDS, yoksa kopya
+  costs.py          Bakanlık yapı yaklaşık birim maliyetleri
+  urbanity.py       yerleşim sınıfı, yoğunluk, en yakın merkezler
+  surroundings.py   çevre katsayıları: kıyı, ana yol, hizmetler, eğim
+  nearby.py         Overpass ve yükselti ölçümleri + önbellek
+  tkgm.py           TKGM istemcisi + önbellek
+  nominatim.py      OpenStreetMap istemcisi (hız sınırlı)
+  evds.py           TCMB EVDS istemcisi ve bölge analizi
+  evds_series.py    81 il için EVDS seri kodları
+  geo.py            mesafe, poligon merkezi ve alanı
+  data.py           soru seçenekleri, senaryolar, Türkçe ad eşleştirme
+  static_data/      yerleşim ızgarası, yerleşim listesi, konut fiyatı kopyası
+static/             tanıtım sayfası ve harita uygulaması
+tools/              veri hazırlama betikleri (rasterio, numpy, scipy gerekir)
+data/pilot/         Bursa pilot veri seti şablonu ve derleme kuralları
+tests/              pytest
+render.yaml         Render yayın tanımı
 ```
 
 ## Bilinen sınırlamalar
 
-- **TKGM API'si:** kullanılan TKGM uç noktaları parselsorgu.tkgm.gov.tr'nin herkese açık servisidir, resmî olarak belgelenmemiştir. Biçim değişebilir ve yoğun kullanımda istek sınırına takılabilir.
-- **Konum katsayısı:** ilçenin coğrafi merkezini kullanır. Bu nokta her zaman şehir merkezi değildir; geniş ilçelerde (ör. Çankaya) sapma olabileceği için etki 0,85 – 1,10 bandında tutulur.
-- **Nitelik ≠ imar durumu:** nitelikten tahmin edilen imar durumu yalnızca bir öneridir; gerçek imar durumu ve emsal belediyeden öğrenilmelidir.
-- **Bölge verisi konut içindir:** EVDS arsa fiyatı yayımlamaz. Üç aylık birim fiyatlar küçük illerde az sayıda satışa dayandığı için dönemden döneme dalgalanabilir.
-- **Harita altlıkları:** OpenStreetMap karoları ve Esri uydu görüntüsü API anahtarı gerektirmez ama düşük trafikli kullanım içindir ([OSM karo politikası](https://operations.osmfoundation.org/policies/tiles/)). Yoğun trafikte ücretli bir karo sağlayıcısına geçilmelidir.
+- **Katsayılar henüz kalibre edilmedi.** Yerleşim katsayıları, taban oranlar ve arazi oranları varsayımdır; gerçek satış verisiyle ayarlanana kadar sonuçlar bölgeden bölgeye sapabilir.
+- **TKGM API'si** resmî olarak belgelenmemiştir; biçim değişebilir ve yoğun kullanımda istek sınırına takılabilir.
+- **Nüfus ızgarası 2020 yılına aittir.** Hızlı büyüyen yeni yerleşimlerde sınıf gerçeğin gerisinde kalabilir.
+- **Nitelik ≠ imar durumu:** nitelikten tahmin edilen imar durumu bir öneridir; gerçek imar durumu ve emsal belediyeden öğrenilmelidir.
+- **EVDS arsa fiyatı yayımlamaz;** model konut fiyatından yola çıkar. Üç aylık birim fiyatlar küçük illerde az sayıda işleme dayandığı için dalgalanabilir.
+- **Harita altlıkları** (OpenStreetMap karoları, Esri uydu görüntüsü) düşük trafikli kullanım içindir.
 
 ## Yol haritası
 
+- **Kalibrasyon:** pilot ve doğrulama kayıtlarıyla katsayıların ayarlanması, hata payının ölçülüp yayımlanması
+- **Öğrenen katman:** yeterli kayıt biriktiğinde kural katmanının sapmasını düzelten bir model
 - **Emsal girişi:** kullanıcının bulduğu ilan fiyatlarından bölge ortalaması
-- **Referans fiyatların güncellenmesi:** EVDS konut fiyat endeksindeki değişimle `data.py` fiyatlarının dönemsel olarak güncellenmesi
 
 ## Yasal uyarı
 

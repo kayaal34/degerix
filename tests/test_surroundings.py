@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from app import nearby
+from app import nearby, urbanity
 from app.geo import distance_to_line_m
 from app.surroundings import (
     OsmContext,
@@ -14,7 +14,21 @@ from app.surroundings import (
     services_multiplier,
     slope_multiplier,
 )
-from app.valuation import estimate
+from app.valuation import HousingPrice, estimate
+
+BURSA = HousingPrice(province="Bursa", value=41_264, period="2026 2. çeyrek", source="test", live=True, estimated=False)
+
+
+def place(class_code: int) -> urbanity.Urbanity:
+    return urbanity.Urbanity(
+        class_code=class_code,
+        label=urbanity.CLASS_LABELS[class_code],
+        density=0.0,
+        nearby_class=class_code,
+        province_centre=None,
+        district_centre=None,
+        settlement=None,
+    )
 
 
 def test_distance_to_line():
@@ -44,9 +58,11 @@ def test_surroundings_add_explained_factors():
     assert rows["services"][1] == "1 km içinde 3 okul, sağlık ya da market noktası"
     assert rows["slope"][1] == "Yaklaşık %12"
 
-    plain = estimate(province="Bursa", district="Mudanya", area_m2=800, usage="konut")
-    with_surroundings = estimate(province="Bursa", district="Mudanya", area_m2=800, usage="konut", surroundings=measured)
-    assert [f.key for f in with_surroundings.factors][2:6] == ["coast", "main_road", "services", "slope"]
+    arguments = dict(area_m2=800, usage="konut", housing=BURSA, urban=place(urbanity.DENSE_CLUSTER), kaks=1.0)
+    plain = estimate(**arguments)
+    with_surroundings = estimate(**arguments, surroundings=measured)
+
+    assert [f.key for f in with_surroundings.factors][:4] == ["coast", "main_road", "services", "slope"]
     product = math.prod(multiplier for multiplier, _ in rows.values())
     assert with_surroundings.unit_price == pytest.approx(plain.unit_price * product, rel=0.02)
 
@@ -100,7 +116,7 @@ def test_estimate_endpoint_uses_surroundings(client, monkeypatch):
 
     monkeypatch.setattr(nearby, "fetch", fake_fetch)
     body = client.post("/api/estimate", json={
-        "province": "Muğla", "district": "Bodrum", "area_m2": 500, "usage": "konut", "lat": 37.0385, "lng": 27.419,
+        "province": "Muğla", "area_m2": 500, "usage": "konut", "lat": 37.0385, "lng": 27.419,
     }).json()
     assert {"coast", "main_road", "services", "slope"} <= {f["key"] for f in body["factors"]}
 

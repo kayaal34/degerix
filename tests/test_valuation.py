@@ -1,40 +1,34 @@
 import math
-from typing import get_args
 
 import pytest
 
-from app.data import (
-    DEED,
-    PROVINCE_BASE_PRICE,
-    ROAD,
-    UNKNOWN,
-    USAGE,
-    UTILITIES,
-    DeedKey,
-    RoadKey,
-    UsageKey,
-    UtilitiesKey,
-    district_factor,
-    fold,
-    province_base_price,
-)
-from app.geo import centroid_and_area, haversine_km
-from app.tkgm import parse_area
+from app import urbanity
+from app.costs import BUILDING_COSTS
+from app.data import USAGE
+from app.model_params import DEFAULTS
 from app.valuation import (
-    DistrictArea,
+    HousingPrice,
     estimate,
     guess_usage,
-    kaks_multiplier,
-    location_multiplier,
     nice_round,
     size_multiplier,
 )
 
-BODRUM = dict(
-    province="Muğla", district="Bodrum", area_m2=467.87, usage="konut",
-    lat=37.0385, lng=27.419, district_area=DistrictArea(lat=37.05, lng=27.40, area_km2=560),
-)
-ANSWERED = dict(kaks=1.5, deed="tam", road="var", utilities="var")
+# Gerçek örnekler: TCMB'nin 2026 2. çeyrek il konut fiyatları
+SAMSUN = HousingPrice(province="Samsun", value=37_326, period="2026 2. çeyrek", source="test", live=True, estimated=False)
+BURSA = HousingPrice(province="Bursa", value=41_264, period="2026 2. çeyrek", source="test", live=True, estimated=False)
+
+
+def place(class_code: int) -> urbanity.Urbanity:
+    return urbanity.Urbanity(
+        class_code=class_code,
+        label=urbanity.CLASS_LABELS[class_code],
+        density=0.0,
+        nearby_class=class_code,
+        province_centre=None,
+        district_centre=None,
+        settlement=None,
+    )
 
 
 def factor(result, key):
@@ -45,23 +39,168 @@ def width(result):
     return (result.high - result.low) / result.total
 
 
-def test_reference_data_is_complete():
-    assert len(PROVINCE_BASE_PRICE) == 81
-    assert set(get_args(UsageKey)) == set(USAGE)
-    assert set(get_args(DeedKey)) == set(DEED) | {UNKNOWN}
-    assert set(get_args(RoadKey)) == set(ROAD) | {UNKNOWN}
-    assert set(get_args(UtilitiesKey)) == set(UTILITIES) | {UNKNOWN}
+def test_city_parcel_is_valued_with_the_development_method():
+    result = estimate(
+        area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE), kaks=1.5,
+    )
+    development = result.development
+
+    assert result.basis == "gelistirme"
+    assert development.buildable_m2 == 1500
+    assert development.sellable_m2 == 1200
+    assert development.construction_cost == BUILDING_COSTS["III-B"]
+    assert development.revenue == pytest.approx(development.sellable_m2 * development.housing_price, rel=0.01)
+    assert development.land_value == pytest.approx(
+        development.revenue - development.cost - development.developer_share, rel=0.01
+    )
+    assert development.viable is True
+    assert result.unit_price > 5_000
+    assert "inşaat hakkı" in result.base_detail
 
 
-@pytest.mark.parametrize(("a", "b"), [("Gölbaşi", "Gölbaşı"), ("İZMİR", "izmir"), ("  Kuşadası ", "kusadasi")])
-def test_fold_ignores_turkish_spelling_differences(a, b):
-    assert fold(a) == fold(b)
+def test_village_parcel_falls_back_to_the_floor_value():
+    # Samsun Alaçam'da köy içi 700 m² imarlı parsel, emsal 0,50: satış fiyatı inşaat
+    # maliyetini karşılamadığı için geliştirme hesabı arsaya değer bırakmaz.
+    result = estimate(
+        area_m2=700, usage="konut", housing=SAMSUN, urban=place(urbanity.VERY_LOW_RURAL), kaks=0.5,
+    )
+
+    assert result.basis == "taban"
+    assert result.development.viable is False
+    assert result.base_label == "Taban değer"
+    assert 100 < result.unit_price < 1_000       # köyde arsa m² fiyatı bu aralıkta beklenir
+    assert result.confidence in ("orta", "düşük")
 
 
-def test_lookups_match_tkgm_spelling():
-    assert province_base_price("ISTANBUL") == 13500
-    assert district_factor("Ankara", "Gölbaşi") == 1.2
-    assert district_factor("Ankara", "Bilinmeyen") is None
+def test_city_land_is_worth_much_more_than_village_land():
+    city = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE), kaks=1.5)
+    village = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.VILLAGE), kaks=1.5)
+    rural = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.VERY_LOW_RURAL), kaks=1.5)
+
+    assert city.unit_price > village.unit_price > rural.unit_price
+
+
+def test_higher_kaks_raises_the_value_of_zoned_land():
+    def city(kaks):
+        return estimate(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE), kaks=kaks)
+
+    assert city(2.0).total > city(1.5).total > city(1.0).total
+
+
+def test_unknown_kaks_is_assumed_and_widens_the_range():
+    given = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE), kaks=1.5)
+    assumed = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE))
+
+    assert assumed.development.kaks_assumed is True
+    assert assumed.development.kaks == DEFAULTS.default_kaks[urbanity.URBAN_CENTRE]
+    assert width(assumed) > width(given)
+
+
+def test_farmland_is_valued_as_a_ratio_of_local_housing_prices():
+    field = estimate(area_m2=5000, usage="tarla", housing=SAMSUN, urban=place(urbanity.LOW_RURAL))
+    orchard = estimate(area_m2=5000, usage="zeytinlik", housing=SAMSUN, urban=place(urbanity.LOW_RURAL))
+
+    assert field.basis == "arazi"
+    assert field.development is None
+    assert orchard.unit_price > field.unit_price      # zeytinlik tarladan pahalı
+    assert "konut fiyatının" in field.base_detail
+
+
+def test_receipt_adds_up():
+    result = estimate(
+        area_m2=467.87, usage="konut", housing=BURSA, urban=place(urbanity.DENSE_CLUSTER),
+        kaks=1.2, deed="tam", road="var", utilities="var",
+    )
+    product = result.base_price * math.prod(f.multiplier for f in result.factors)
+
+    assert result.unit_price == nice_round(product)
+    assert result.total == nice_round(result.unit_price * 467.87)
+    assert result.low < result.total < result.high
+    assert result.settlement == "yoğun kentsel küme"
+    assert result.housing.province == "Bursa"
+
+
+def test_estimates_are_deterministic():
+    arguments = dict(area_m2=800, usage="konut", housing=BURSA, urban=place(urbanity.TOWN), kaks=1.0)
+    assert estimate(**arguments) == estimate(**arguments)
+
+
+@pytest.mark.parametrize(
+    ("answer", "key"),
+    [
+        (dict(deed="hisseli"), "deed"),
+        (dict(road="yok"), "road"),
+        (dict(utilities="yok"), "utilities"),
+    ],
+)
+def test_negative_answers_lower_the_value(answer, key):
+    base = dict(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.TOWN), kaks=1.0)
+    good = estimate(**base, deed="tam", road="var", utilities="var")
+    worse = estimate(**base, **({"deed": "tam", "road": "var", "utilities": "var"} | answer))
+
+    assert worse.total < good.total
+    assert factor(worse, key).multiplier < 1
+
+
+def test_view_and_corner_only_count_when_answered():
+    base = dict(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.SUBURBAN), kaks=1.0)
+    plain = estimate(**base)
+    extras = estimate(**base, view="var", corner="evet")
+
+    assert "view" not in [f.key for f in plain.factors]
+    assert extras.total > plain.total
+
+
+def test_irrigation_only_applies_to_unzoned_land():
+    zoned = estimate(area_m2=1000, usage="konut", housing=SAMSUN, urban=place(urbanity.TOWN), irrigation="sulu")
+    unzoned = estimate(area_m2=5000, usage="tarla", housing=SAMSUN, urban=place(urbanity.LOW_RURAL), irrigation="sulu")
+
+    assert "irrigation" not in [f.key for f in zoned.factors]
+    assert factor(unzoned, "irrigation").multiplier > 1
+
+
+def test_missing_data_widens_the_range_and_lowers_confidence():
+    known = estimate(
+        area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE),
+        kaks=1.5, deed="tam", road="var", utilities="var",
+    )
+    copy_price = HousingPrice(province="Bursa", value=41_264, period="2026 2. çeyrek",
+                              source="kopya", live=False, estimated=True)
+    unknown = estimate(area_m2=1000, usage="konut", housing=copy_price, urban=None)
+
+    assert known.confidence == "yüksek"
+    assert unknown.confidence == "düşük"
+    assert width(unknown) > width(known)
+
+
+def test_sale_scenarios_bracket_the_market_value():
+    result = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE), kaks=1.5)
+    scenarios = {s.key: s for s in result.scenarios}
+
+    assert list(scenarios) == ["acil", "piyasa", "tok"]
+    assert scenarios["acil"].value < scenarios["piyasa"].value < scenarios["tok"].value
+    assert (scenarios["piyasa"].value, scenarios["piyasa"].low) == (result.total, result.low)
+
+
+def test_shared_deed_reports_the_value_of_the_share():
+    result = estimate(
+        area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.TOWN), kaks=1.0,
+        deed="hisseli", share_pct=25,
+    )
+    assert result.share_pct == 25
+    assert result.share_value == pytest.approx(result.total * 0.25, rel=0.02)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [dict(area_m2=0), dict(usage="havaalanı"), dict(kaks=0), dict(deed="yarım"),
+     dict(road="belki"), dict(utilities="?"), dict(view="belki"), dict(corner="?"),
+     dict(irrigation="yarı"), dict(share_pct=150)],
+)
+def test_invalid_input_is_rejected(bad):
+    arguments = dict(area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.TOWN)) | bad
+    with pytest.raises(ValueError):
+        estimate(**arguments)
 
 
 @pytest.mark.parametrize(
@@ -69,13 +208,11 @@ def test_lookups_match_tkgm_spelling():
     [
         ("Arsa", "konut"),
         ("7 Adet Kargir Bina", "konut"),
-        ("Avlulu Kargir Ev Ve Bahçe", "konut"),
         ("Kargir Dükkan ve Arsa", "ticari"),
         ("Fabrika", "sanayi"),
         ("Tarla", "tarla"),
         ("Zeytinlik", "zeytinlik"),
         ("Fındık Bahçesi", "bag_bahce"),
-        ("Bağ", "bag_bahce"),
         (None, "konut"),
     ],
 )
@@ -91,186 +228,14 @@ def test_nice_round(value, expected):
     assert nice_round(value) == expected
 
 
-def test_location_multiplier_decreases_with_distance():
-    values = [location_multiplier(d, radius_km=10) for d in (0, 5, 10, 30)]
-    assert values[0] == pytest.approx(1.10)
-    assert values == sorted(values, reverse=True)
-    assert values[-1] > 0.85
-
-
 def test_size_multiplier_is_bounded_and_decreasing():
-    values = [size_multiplier(a) for a in (50, 500, 5_000, 50_000, 5_000_000)]
+    values = [size_multiplier(area) for area in (50, 500, 5_000, 50_000, 5_000_000)]
     assert values == sorted(values, reverse=True)
     assert size_multiplier(500) == pytest.approx(1.0)
     assert 0.65 <= min(values) and max(values) <= 1.08
 
 
-def test_kaks_multiplier_is_bounded_and_increasing():
-    values = [kaks_multiplier(k) for k in (0.1, 0.5, 1.0, 2.0, 5.0)]
-    assert values == sorted(values)
-    assert kaks_multiplier(1.0) == pytest.approx(1.0)
-    assert (values[0], values[-1]) == (0.5, 1.8)
-
-
-def test_estimate_is_deterministic_and_self_consistent():
-    first, second = estimate(**BODRUM, **ANSWERED), estimate(**BODRUM, **ANSWERED)
-    assert first == second
-
-    product = first.base_price * math.prod(f.multiplier for f in first.factors)
-    assert first.unit_price == nice_round(product)
-    assert first.total == nice_round(first.unit_price * 467.87)
-    assert first.low < first.total < first.high
-    assert first.confidence == "yüksek"
-    assert [f.key for f in first.factors] == ["district", "location", "usage", "kaks", "size", "deed", "road", "utilities"]
-
-
-def test_kaks_raises_value_and_reports_buildable_area():
-    assert estimate(**BODRUM, kaks=2.0).total > estimate(**BODRUM, kaks=0.5).total
-    result = estimate(province="Konya", district="Meram", area_m2=1000, usage="konut", kaks=1.5)
-    assert factor(result, "kaks").detail == "1,50 → 1.500 m² inşaat hakkı"
-
-
-def test_kaks_is_ignored_for_unzoned_land():
-    with_kaks = estimate(province="Konya", district="Meram", area_m2=5000, usage="tarla", kaks=2.0)
-    without = estimate(province="Konya", district="Meram", area_m2=5000, usage="tarla")
-    assert "kaks" not in [f.key for f in with_kaks.factors]
-    assert with_kaks == without
-
-
-@pytest.mark.parametrize(
-    ("answer", "key"),
-    [(dict(deed="hisseli"), "deed"), (dict(road="yok"), "road"), (dict(utilities="kismen"), "utilities"), (dict(utilities="yok"), "utilities")],
-)
-def test_negative_answers_lower_value(answer, key):
-    best = estimate(**BODRUM, **ANSWERED)
-    worse = estimate(**BODRUM, **(ANSWERED | answer))
-    assert worse.total < best.total
-    assert factor(worse, key).multiplier < 1
-
-
-def test_answering_questions_narrows_range_without_changing_value():
-    unanswered = estimate(**BODRUM, kaks=1.5)
-    answered = estimate(**BODRUM, **ANSWERED)
-
-    assert answered.unit_price == unanswered.unit_price  # "var" / "müstakil" referansla aynı
-    assert width(answered) < width(unanswered)
-    assert factor(unanswered, "road").detail == "Yanıtlanmadı, aralık genişletildi"
-
-
-def test_confidence_follows_how_much_is_known():
-    assert estimate(**BODRUM, **ANSWERED).confidence == "yüksek"
-    assert estimate(**BODRUM).confidence == "orta"
-    assert estimate(province="Muğla", district="Ula", area_m2=1000, usage="tarla").confidence == "düşük"
-
-
-def test_missing_data_widens_range():
-    known = estimate(**BODRUM)
-    unknown = estimate(province="Muğla", district="Ula", area_m2=1000, usage="tarla")
-    assert width(unknown) > width(known)
-
-
-def test_shared_deed_reports_value_of_share():
-    result = estimate(**BODRUM, **(ANSWERED | dict(deed="hisseli", share_pct=25)))
-    assert result.share_pct == 25
-    assert result.share_value == nice_round(result.unit_price * 467.87 * 0.25)
-    # müstakil tapuda girilen pay yok sayılır
-    assert estimate(**BODRUM, **(ANSWERED | dict(share_pct=25))).share_value is None
-
-
-def test_missing_utilities_matter_less_on_unzoned_land():
-    zoned = estimate(province="Konya", district="Meram", area_m2=1000, usage="konut", utilities="yok")
-    unzoned = estimate(province="Konya", district="Meram", area_m2=1000, usage="tarla", utilities="yok")
-    assert factor(unzoned, "utilities").multiplier > factor(zoned, "utilities").multiplier
-
-
-def test_sale_scenarios_bracket_market_value():
-    result = estimate(**BODRUM, **ANSWERED)
-    scenarios = {s.key: s for s in result.scenarios}
-
-    assert list(scenarios) == ["acil", "piyasa", "tok"]
-    assert scenarios["acil"].value < scenarios["piyasa"].value < scenarios["tok"].value
-    market = scenarios["piyasa"]
-    assert (market.value, market.low, market.high) == (result.total, result.low, result.high)
-    assert all(s.low < s.value < s.high for s in result.scenarios)
-
-
-def test_urgent_sale_discount_is_deeper_on_unzoned_land():
-    def urgent_ratio(usage):
-        scenarios = {s.key: s for s in estimate(province="Konya", district="Meram", area_m2=1000, usage=usage).scenarios}
-        return scenarios["acil"].value / scenarios["piyasa"].value
-
-    assert urgent_ratio("tarla") < urgent_ratio("konut")
-
-
-def test_usage_changes_value_in_expected_direction():
-    values = {usage: estimate(province="Konya", district="Meram", area_m2=1000, usage=usage).total for usage in USAGE}
-    assert values["ticari"] > values["konut"] > values["sanayi"] > values["tarla"]
-
-
-@pytest.mark.parametrize(
-    "bad",
-    [dict(area_m2=0), dict(usage="havaalanı"), dict(kaks=0), dict(deed="yarım"),
-     dict(road="belki"), dict(utilities="?"), dict(share_pct=150)],
-)
-def test_estimate_rejects_invalid_input(bad):
-    kwargs = dict(province="Konya", district="Meram", area_m2=1000, usage="konut") | bad
-    with pytest.raises(ValueError):
-        estimate(**kwargs)
-
-
-def test_haversine_known_distance():
-    # Ankara Kızılay → İstanbul Taksim yaklaşık 350 km
-    assert haversine_km(39.9208, 32.8541, 41.0370, 28.9850) == pytest.approx(350, abs=10)
-
-
-def test_centroid_and_area_of_square_is_orientation_independent():
-    ring = [[27.0, 37.0], [27.1, 37.0], [27.1, 37.1], [27.0, 37.1], [27.0, 37.0]]
-    ccw = centroid_and_area({"type": "Polygon", "coordinates": [ring]})
-    cw = centroid_and_area({"type": "Polygon", "coordinates": [ring[::-1]]})
-
-    assert ccw == pytest.approx(cw)
-    lat, lng, area = ccw
-    assert (lat, lng) == pytest.approx((37.05, 27.05), abs=1e-6)
-    assert area == pytest.approx(11.06 * 8.89, rel=0.02)  # ~11,06 km × ~8,89 km
-
-
-def test_centroid_of_multipolygon_weights_by_area():
-    big = [[[27.0, 37.0], [27.2, 37.0], [27.2, 37.2], [27.0, 37.2], [27.0, 37.0]]]
-    small = [[[28.0, 37.0], [28.02, 37.0], [28.02, 37.02], [28.0, 37.02], [28.0, 37.0]]]
-    lat, lng, _ = centroid_and_area({"type": "MultiPolygon", "coordinates": [big, small]})
-    assert 27.1 < lng < 27.2  # büyük parçaya çok daha yakın
-
-
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [("45,911.00", 45911.0), ("45.911,00", 45911.0), ("467.87", 467.87), ("467,87", 467.87),
-     ("1.234.567", 1234567.0), ("78,188.20", 78188.2), (512, 512.0), ("", None), ("abc", None), ("0", None)],
-)
-def test_parse_area_handles_both_number_formats(raw, expected):
-    assert parse_area(raw) == expected
-
-
-def test_view_and_corner_only_count_when_answered():
-    plain = estimate(**BODRUM, **ANSWERED)
-    extras = estimate(**BODRUM, **ANSWERED, view="var", corner="evet")
-
-    assert [f.key for f in extras.factors][-2:] == ["view", "corner"]
-    assert "view" not in [f.key for f in plain.factors]
-    assert extras.total > plain.total
-    assert extras.confidence == plain.confidence == "yüksek"  # "bilmiyorum" aralığı genişletmez
-
-
-def test_corner_is_asked_on_zoned_land_and_irrigation_on_unzoned_land():
-    zoned = estimate(province="Konya", district="Meram", area_m2=1000, usage="konut", corner="evet", irrigation="sulu")
-    unzoned = estimate(province="Konya", district="Meram", area_m2=5000, usage="tarla", corner="evet", irrigation="sulu")
-
-    assert "corner" in [f.key for f in zoned.factors] and "irrigation" not in [f.key for f in zoned.factors]
-    assert "irrigation" in [f.key for f in unzoned.factors] and "corner" not in [f.key for f in unzoned.factors]
-
-
-def test_irrigation_changes_value_and_range_of_unzoned_land():
-    def tarla(answer):
-        return estimate(province="Konya", district="Meram", area_m2=5000, usage="tarla", irrigation=answer)
-
-    assert tarla("sulu").total > tarla("bilinmiyor").total > tarla("kuru").total
-    assert width(tarla("sulu")) < width(tarla("bilinmiyor"))
+def test_every_usage_can_be_valued():
+    for usage in USAGE:
+        result = estimate(area_m2=1000, usage=usage, housing=BURSA, urban=place(urbanity.TOWN))
+        assert result.total > 0

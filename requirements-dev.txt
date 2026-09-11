@@ -1,0 +1,7 @@
+# Yalnızca tools/ altındaki veri hazırlama ve kalibrasyon betikleri için.
+# Uygulama çalışırken bunlara ihtiyaç yoktur; Render kurulumuna girmez.
+-r requirements.txt
+
+rasterio>=1.4
+numpy>=2.0
+scipy>=1.14

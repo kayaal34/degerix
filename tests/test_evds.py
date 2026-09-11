@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from app import evds
-from app.data import PROVINCE_BASE_PRICE, fold
+from app.data import fold
 from app.errors import NotFound, UpstreamError
 from app.evds_series import PRICE_INDEX_REGIONS, SALES_SERIES, UNIT_PRICE_SERIES
 
@@ -70,7 +70,7 @@ def stats_for(province: str) -> evds.ProvinceStats:
 
 
 def test_series_tables_cover_every_province_once():
-    provinces = sorted(fold(p) for p in PROVINCE_BASE_PRICE)
+    provinces = sorted(fold(p) for p in SALES_SERIES)  # 81 ilin resmî listesi
     assert sorted(fold(p) for members in PRICE_INDEX_REGIONS.values() for p in members) == provinces
     assert sorted(fold(p) for p in SALES_SERIES) == provinces
     assert {fold(p) for p in UNIT_PRICE_SERIES} <= set(provinces)

@@ -19,7 +19,6 @@ from typing import Any
 
 import httpx
 
-from .data import fold
 from .errors import NotFound, UpstreamError
 
 BASE_URL = "https://cbsapi.tkgm.gov.tr/megsiswebapi.v3/api"
@@ -131,33 +130,6 @@ async def parcel_by_number(neighborhood_id: int, ada: str, parsel: str) -> dict[
     except NotFound as exc:
         raise NotFound(f"{ada} ada {parsel} parsel bu mahallede bulunamadı.") from exc
     return _parcel_feature(data)
-
-
-async def district_geometry(
-    *,
-    province: str,
-    district: str,
-    province_id: int | None = None,
-    district_id: int | None = None,
-) -> dict[str, Any] | None:
-    """İlçe sınır poligonu. Kimlik verilmezse ad üzerinden eşleştirilir."""
-    if province_id is None:
-        key = fold(province)
-        province_id = next((p["id"] for p in await list_provinces() if fold(p["name"]) == key), None)
-        if province_id is None:
-            return None
-
-    district_key = fold(district)
-    for feature in _features(await _cached(f"/idariYapi/ilceListe/{province_id}", ADMIN_TTL_S)):
-        props = feature.get("properties") or {}
-        matches = (
-            props.get("id") == district_id
-            if district_id is not None
-            else fold(str(props.get("text", ""))) == district_key
-        )
-        if matches and isinstance(feature.get("geometry"), dict):
-            return feature["geometry"]
-    return None
 
 
 async def official_names(props: dict[str, Any]) -> tuple[str, str, str | None]:

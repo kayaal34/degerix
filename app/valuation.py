@@ -1,47 +1,39 @@
 """
 Arsa değer tahmini.
 
-Yalnızca saf fonksiyonlardan oluşur: ağ, veritabanı ya da rastgelelik yoktur.
-Aynı girdi her zaman aynı sonucu verir ve her çarpan gerekçesiyle birlikte
-döndürülür; böylece arayüz hesabın nasıl yapıldığını adım adım gösterebilir.
+Model, lisanslı değerleme uzmanlarının kullandığı iki yaklaşımı resmî verilerle kurar:
 
-    m² fiyatı = il referans fiyatı   (konut imarlı, emsal 1,00, yola cepheli arsa)
-              × ilçe katsayısı       (bilinen ilçeler için bölge farkı)
-              × konum katsayısı      (ilçenin coğrafi merkezine uzaklık)
-              × çevre katsayıları    (denize ve ana yola mesafe, hizmetler, eğim)
-              × imar katsayısı       (konut / ticari / sanayi imarlı ya da imarsız)
-              × emsal katsayısı      (KAKS; yalnızca imarlı arsada)
-              × büyüklük katsayısı   (büyük parselde m² fiyatı düşer)
-              × tapu, yol cephesi, elektrik-su katsayıları
-              × manzara, köşe parsel (imarlı), sulama (imarsız) katsayıları
+  1. Geliştirme (artık değer) yöntemi — imarlı arsa:
+         hasılat  = inşaat hakkı × satılabilir oran × bölgedeki konut m² fiyatı
+         maliyet  = inşaat hakkı × Bakanlık yapı birim maliyeti
+         arsa     = hasılat − maliyet − geliştirici payı
+     Hasılat maliyeti karşılamıyorsa (köy, kırsal) değer "taban orandan" gelir:
+     orada arsayı alan kişi müteahhit değil, ev yapacak kişidir.
 
-"Bilmiyorum" denen sorular değeri değiştirmez ama değer aralığını genişletir;
-kullanıcı yanıtladıkça aralık daralır ve güven düzeyi yükselir. Sonuç, satış
-süresine göre üç senaryo (acil satış, piyasa değeri, tok satıcı) olarak da verilir.
+  2. Kullanım oranı — imarsız arazi: bölgedeki konut fiyatının, kullanım türüne ve
+     yerleşime bağlı oranı.
+
+Girdiler:
+    bölgedeki konut m² fiyatı → app/market.py       (TCMB EVDS, güncel)
+    inşaat maliyeti           → app/costs.py        (Resmî Gazete tebliği)
+    yerleşim sınıfı           → app/urbanity.py     (WorldPop + kentleşme derecesi)
+    ayarlanabilir katsayılar  → app/model_params.py (kalibrasyonla güncellenir)
+
+Saf fonksiyonlardan oluşur: ağ erişimi, veritabanı ya da rastgelelik yoktur. Aynı girdi
+her zaman aynı sonucu verir ve her adım gerekçesiyle döner; arayüz hesabı adım adım
+gösterebilir. "Bilmiyorum" denen sorular değeri değiştirmez ama değer aralığını
+genişletir. Sonuç, satış süresine göre üç senaryo olarak da verilir.
 """
 
 import math
 import re
 from dataclasses import dataclass
 
-from .data import (
-    CORNER,
-    DEED,
-    DEFAULT_BASE_PRICE,
-    IRRIGATION,
-    REFERENCE_KAKS,
-    ROAD,
-    SALE_SCENARIOS,
-    UNKNOWN,
-    USAGE,
-    UTILITIES,
-    VIEW,
-    district_factor,
-    fold,
-    province_base_price,
-)
-from .geo import haversine_km
+from .costs import construction_cost
+from .data import CORNER, DEED, IRRIGATION, ROAD, SALE_SCENARIOS, UNKNOWN, USAGE, UTILITIES, VIEW, fold
+from .model_params import Parameters, load as load_parameters
 from .surroundings import Surroundings, factor_rows
+from .urbanity import LOW_RURAL, Urbanity
 
 RURAL_USAGES = frozenset({"tarla", "bag_bahce", "zeytinlik"})
 
@@ -57,17 +49,15 @@ _USAGE_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
 
 
 @dataclass(frozen=True)
-class DistrictArea:
-    """İlçenin coğrafi merkezi ve yüzölçümü (TKGM ilçe sınırından hesaplanır)."""
+class HousingPrice:
+    """İl geneli konut satış fiyatı (TL/m²). app/market.py üretir."""
 
-    lat: float
-    lng: float
-    area_km2: float
-
-    @property
-    def radius_km(self) -> float:
-        """Aynı alana sahip dairenin yarıçapı; çok küçük ilçelerde 1,5 km'de sabitlenir."""
-        return max(1.5, math.sqrt(self.area_km2 / math.pi))
+    province: str
+    value: int
+    period: str
+    source: str
+    live: bool          # canlı EVDS'ten mi geldi
+    estimated: bool     # TCMB bu il için fiyat yayımlamıyor, bölge ortalaması kullanıldı
 
 
 @dataclass(frozen=True)
@@ -76,6 +66,24 @@ class Factor:
     label: str
     multiplier: float
     detail: str
+
+
+@dataclass(frozen=True)
+class Development:
+    """Geliştirme (artık değer) hesabının ara adımları; raporda gösterilir."""
+
+    kaks: float
+    kaks_assumed: bool           # emsal girilmediği için varsayıldı mı
+    buildable_m2: int            # brüt inşaat hakkı
+    sellable_m2: int             # satılabilir alan
+    housing_price: int           # bölgedeki konut m² satış fiyatı
+    construction_class: str      # Bakanlık tebliğindeki yapı sınıfı
+    construction_cost: int       # TL/m²
+    revenue: int
+    cost: int
+    developer_share: int
+    land_value: int              # artık değer (negatifse 0)
+    viable: bool                 # geliştirme hesabı arsaya değer bırakıyor mu
 
 
 @dataclass(frozen=True)
@@ -90,36 +98,27 @@ class Scenario:
 
 @dataclass(frozen=True)
 class Estimate:
-    base_price: int
+    base_price: int              # düzeltmeler öncesi arsa m² değeri
+    base_label: str
+    base_detail: str
+    basis: str                   # "gelistirme" · "taban" · "arazi"
     unit_price: int
     total: int
     low: int
     high: int
     confidence: str
+    settlement: str              # yerleşim sınıfı etiketi
+    housing: HousingPrice
     factors: list[Factor]
     scenarios: list[Scenario]
-    share_pct: float | None = None    # hisseli tapuda kullanıcının payı
-    share_value: int | None = None    # o paya düşen değer
-
-
-def location_multiplier(distance_km: float, radius_km: float) -> float:
-    """Merkezde 1,10; bir yarıçap uzakta ~0,93; çok uzakta 0,85'e yaklaşır.
-
-    İlçenin coğrafi merkezi her zaman şehir merkezi olmadığından (ör. Kızılay,
-    Çankaya'nın coğrafi merkezine ~12 km uzakta) etki bilinçli olarak dar tutulur.
-    """
-    return 0.85 + 0.25 * math.exp(-1.2 * distance_km / radius_km)
+    development: Development | None = None
+    share_pct: float | None = None
+    share_value: int | None = None
 
 
 def size_multiplier(area_m2: float) -> float:
     """500 m² referans alınır; 5.000 m²'de ~0,85, 50.000 m²'de ~0,72."""
     return min(1.08, max(0.65, (area_m2 / 500) ** -0.07))
-
-
-def kaks_multiplier(kaks: float) -> float:
-    """Emsal 1,00 referans alınır. İnşaat hakkı arttıkça değer artar ama orantısız:
-    0,50 → ~0,66 · 2,00 → ~1,52; 0,50–1,80 bandında sınırlanır."""
-    return min(1.8, max(0.5, (kaks / REFERENCE_KAKS) ** 0.6))
 
 
 def nice_round(value: float, digits: int = 3) -> int:
@@ -148,15 +147,53 @@ def _decimal(value: float) -> str:
     return f"{value:.2f}".replace(".", ",")
 
 
-def estimate(
+def _money(value: float) -> str:
+    return f"₺{_thousands(value)}"
+
+
+def develop(
     *,
-    province: str,
-    district: str,
     area_m2: float,
     usage: str,
-    lat: float | None = None,
-    lng: float | None = None,
-    district_area: DistrictArea | None = None,
+    class_code: int,
+    local_housing_price: float,
+    kaks: float | None,
+    parameters: Parameters,
+) -> Development:
+    """İmarlı arsada geliştirme (artık değer) hesabı."""
+    effective_kaks = kaks if kaks is not None else parameters.default_kaks[class_code]
+    buildable = area_m2 * effective_kaks
+    sellable = buildable * parameters.sellable_ratio
+    sale_price = local_housing_price * parameters.usage_price_ratio.get(usage, 1.0)
+    revenue = sellable * sale_price
+
+    building_class, cost_per_m2 = construction_cost(usage, class_code)
+    cost = buildable * cost_per_m2
+    developer_share = revenue * parameters.developer_margin
+    land_value = revenue - cost - developer_share
+
+    return Development(
+        kaks=round(effective_kaks, 2),
+        kaks_assumed=kaks is None,
+        buildable_m2=round(buildable),
+        sellable_m2=round(sellable),
+        housing_price=round(sale_price),
+        construction_class=building_class,
+        construction_cost=cost_per_m2,
+        revenue=round(revenue),
+        cost=round(cost),
+        developer_share=round(developer_share),
+        land_value=max(round(land_value), 0),
+        viable=land_value > 0,
+    )
+
+
+def estimate(
+    *,
+    area_m2: float,
+    usage: str,
+    housing: HousingPrice,
+    urban: Urbanity | None = None,
     surroundings: Surroundings | None = None,
     kaks: float | None = None,
     deed: str = UNKNOWN,
@@ -166,6 +203,7 @@ def estimate(
     view: str = UNKNOWN,
     corner: str = UNKNOWN,
     irrigation: str = UNKNOWN,
+    parameters: Parameters | None = None,
 ) -> Estimate:
     if area_m2 <= 0:
         raise ValueError("Alan sıfırdan büyük olmalı.")
@@ -182,51 +220,64 @@ def estimate(
         if answer != UNKNOWN and answer not in options:
             raise ValueError(f"Geçersiz {name} yanıtı: {answer}")
 
+    parameters = parameters or load_parameters()
     spread = 0.08  # değer aralığının yarı genişliği; her eksik bilgi büyütür
     factors: list[Factor] = []
 
-    base_price = province_base_price(province)
-    if base_price is None:
-        base_price = DEFAULT_BASE_PRICE
-        spread += 0.08
-
-    known_district = district_factor(province, district)
-    if known_district is None:
-        factors.append(Factor("district", "İlçe", 1.0, f"{district} için ayrı katsayı yok, il ortalaması"))
-        spread += 0.05
-    else:
-        factors.append(Factor("district", "İlçe", known_district, f"{district} bölge farkı"))
-
-    if district_area is not None and lat is not None and lng is not None:
-        distance = haversine_km(lat, lng, district_area.lat, district_area.lng)
-        factors.append(Factor(
-            "location", "Konum",
-            round(location_multiplier(distance, district_area.radius_km), 3),
-            f"İlçenin coğrafi merkezine {distance:.1f} km".replace(".", ","),
-        ))
-    else:
-        factors.append(Factor("location", "Konum", 1.0, "İlçe sınırı alınamadı, konum etkisi yok"))
+    class_code = urban.class_code if urban is not None else LOW_RURAL
+    settlement_label = urban.label if urban is not None else "yerleşim bilinmiyor"
+    if urban is None:
         spread += 0.04
+    if housing.estimated:
+        spread += 0.05
+    if not housing.live:
+        spread += 0.03
+
+    locality = parameters.locality[class_code]
+    local_housing_price = housing.value * locality
+    zoned = usage not in RURAL_USAGES
+    development: Development | None = None
+
+    if zoned:
+        development = develop(
+            area_m2=area_m2, usage=usage, class_code=class_code,
+            local_housing_price=local_housing_price, kaks=kaks, parameters=parameters,
+        )
+        floor_price = local_housing_price * parameters.floor_ratio[class_code]
+        development_price = development.land_value / area_m2
+        if development.viable and development_price >= floor_price:
+            basis = "gelistirme"
+            base_price = development_price
+            base_label = "Geliştirme hesabı"
+            base_detail = (
+                f"{_thousands(development.buildable_m2)} m² inşaat hakkı · "
+                f"hasılat {_money(development.revenue)} − maliyet {_money(development.cost)} "
+                f"({development.construction_class}) − geliştirici payı {_money(development.developer_share)}"
+            )
+        else:
+            basis = "taban"
+            base_price = floor_price
+            base_detail = (
+                f"{settlement_label} · bölgedeki konut fiyatının "
+                f"%{_decimal(parameters.floor_ratio[class_code] * 100)}'i"
+            )
+            base_label = "Taban değer"
+            spread += 0.05
+        if development.kaks_assumed:
+            spread += 0.04
+    else:
+        basis = "arazi"
+        ratio = parameters.farmland_ratio[class_code] * parameters.farmland_usage_ratio.get(usage, 1.0)
+        base_price = local_housing_price * ratio
+        base_label = "Arazi değeri"
+        base_detail = (
+            f"{USAGE[usage]} · {settlement_label} · bölgedeki konut fiyatının "
+            f"%{_decimal(ratio * 100)}'i"
+        )
+        spread += 0.06
 
     if surroundings is not None:
         factors.extend(Factor(*row) for row in factor_rows(surroundings))
-
-    zoned = usage not in RURAL_USAGES
-    usage_label, usage_multiplier = USAGE[usage]
-    factors.append(Factor("usage", "İmar durumu", usage_multiplier, usage_label))
-    if not zoned:
-        spread += 0.06
-
-    if zoned:  # imarsız arazide emsal sorulmaz
-        if kaks is None:
-            factors.append(Factor("kaks", "Emsal (KAKS)", 1.0, f"Girilmedi, {_decimal(REFERENCE_KAKS)} varsayıldı"))
-            spread += 0.04
-        else:
-            factors.append(Factor(
-                "kaks", "Emsal (KAKS)",
-                round(kaks_multiplier(kaks), 3),
-                f"{_decimal(kaks)} → {_thousands(area_m2 * kaks)} m² inşaat hakkı",
-            ))
 
     factors.append(Factor("size", "Büyüklük", round(size_multiplier(area_m2), 3), f"{_thousands(area_m2)} m² parsel"))
 
@@ -263,6 +314,8 @@ def estimate(
             detail, multiplier = IRRIGATION[irrigation]
             factors.append(Factor("irrigation", "Sulama", multiplier, detail))
 
+    # Döküm yuvarlanmış başlangıç fiyatını gösterdiği için hesap da onunla yapılır
+    base_price = nice_round(base_price)
     unit_price = nice_round(base_price * math.prod(factor.multiplier for factor in factors))
     total = unit_price * area_m2
 
@@ -285,14 +338,20 @@ def estimate(
 
     has_share = deed == "hisseli" and share_pct is not None
     return Estimate(
-        base_price=base_price,
+        base_price=nice_round(base_price),
+        base_label=base_label,
+        base_detail=base_detail,
+        basis=basis,
         unit_price=unit_price,
         total=nice_round(total),
         low=nice_round(total * (1 - spread)),
         high=nice_round(total * (1 + spread)),
         confidence=confidence,
+        settlement=settlement_label,
+        housing=housing,
         factors=factors,
         scenarios=scenarios,
+        development=development,
         share_pct=share_pct if has_share else None,
         share_value=nice_round(total * share_pct / 100) if has_share else None,
     )
