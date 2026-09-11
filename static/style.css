@@ -360,6 +360,12 @@ button, input, select { font: inherit; color: inherit; }
 .sparkline-area { fill: var(--brand-soft); }
 .analysis-note { margin: 0; font-size: 12px; color: var(--muted); }
 
+/* ---------- Değeri hesapla ---------- */
+
+.calc-actions { display: grid; gap: 8px; }
+.calc-actions p { margin: 0; font-size: 13px; color: var(--muted); text-align: center; }
+.result-output { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 12px; }
+
 /* ---------- Harita / uydu düğmesi ---------- */
 
 .olive-note { margin-top: 0; }

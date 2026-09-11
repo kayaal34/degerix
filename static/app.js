@@ -279,7 +279,14 @@ function showParcel(parcel, point, fit) {
 
 /* ---------- Arsa soruları ---------- */
 
+let calculated = false;       // "Değeri hesapla"ya basıldı mı; basılana kadar fiyat istenmez
+let prewarmedParcel = null;  // çevre ölçümleri arka planda hazırlanan parsel
+
 function resetQuestions() {
+  // Yeni parselde önce bilgiler tamamlanır, sonra fiyat hesaplanır
+  calculated = false;
+  $("#resultOutput").hidden = true;
+  $("#calcActions").hidden = false;
   $("#inpKaks").value = "";
   $("#inpShare").value = "";
   document.querySelectorAll('#questions input[value="bilinmiyor"]').forEach((radio) => (radio.checked = true));
@@ -360,12 +367,53 @@ $("#questions").addEventListener("change", (event) => {
   runEstimate();
 });
 
+function postEstimate(parcel, inputs) {
+  return api("/api/estimate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      province: parcel.province,
+      district: parcel.district,
+      province_id: parcel.province_id,
+      district_id: parcel.district_id,
+      lat: parcel.lat,
+      lng: parcel.lng,
+      area_m2: inputs.area,
+      usage: inputs.usage,
+      kaks: inputs.kaks,
+      deed: inputs.deed,
+      share_pct: inputs.sharePct,
+      road: inputs.road,
+      utilities: inputs.utilities,
+      view: inputs.view,
+      corner: inputs.corner,
+      irrigation: inputs.irrigation,
+    }),
+  });
+}
+
+$("#btnCalculate").addEventListener("click", () => {
+  calculated = true;
+  $("#calcActions").hidden = true;
+  $("#resultOutput").hidden = false;
+  runEstimate();
+  $("#resultOutput").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 async function runEstimate() {
   const parcel = state.parcel;
   if (!parcel) return;
 
   document.querySelectorAll(".is-invalid").forEach((input) => input.classList.remove("is-invalid"));
   const inputs = readInputs();
+  if (!calculated) {
+    // Kullanıcı soruları yanıtlarken ilçe sınırı ve çevre ölçümleri sunucuda hazırlansın
+    if (!inputs.error && prewarmedParcel !== parcel) {
+      prewarmedParcel = parcel;
+      postEstimate(parcel, inputs).catch(() => {});
+    }
+    return;
+  }
   if (inputs.error) {
     inputs.field.classList.add("is-invalid");
     renderInvalid(inputs.error);
@@ -375,28 +423,7 @@ async function runEstimate() {
   const seq = ++state.estimateSeq;
   $("#valueCard").classList.add("is-loading");
   try {
-    const result = await api("/api/estimate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        province: parcel.province,
-        district: parcel.district,
-        province_id: parcel.province_id,
-        district_id: parcel.district_id,
-        lat: parcel.lat,
-        lng: parcel.lng,
-        area_m2: inputs.area,
-        usage: inputs.usage,
-        kaks: inputs.kaks,
-        deed: inputs.deed,
-        share_pct: inputs.sharePct,
-        road: inputs.road,
-        utilities: inputs.utilities,
-        view: inputs.view,
-        corner: inputs.corner,
-        irrigation: inputs.irrigation,
-      }),
-    });
+    const result = await postEstimate(parcel, inputs);
     if (seq !== state.estimateSeq) return;
     hideAlert();
     renderEstimate(result, parcel);

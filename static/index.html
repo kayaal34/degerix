@@ -72,8 +72,8 @@
       <section class="empty" id="emptyState">
         <ol class="steps">
           <li><b>Arsayı seçin</b><span>Haritada tıklayın ya da ada/parsel numarasını girin.</span></li>
-          <li><b>Bilgileri kontrol edin</b><span>Alan ve nitelik tapu kaydından gelir; imar, tapu, yol ve altyapıyı siz yanıtlayın.</span></li>
-          <li><b>Değeri görün</b><span>Acil satış, piyasa ve tok satıcı fiyatları, hesabın dökümü ve bölge analizi.</span></li>
+          <li><b>Bilgileri tamamlayın</b><span>Alan ve nitelik tapu kaydından gelir; imar, tapu, yol ve altyapıyı siz yanıtlayın.</span></li>
+          <li><b>Değeri hesaplayın</b><span>Acil satış, piyasa ve tok satıcı fiyatları ile bölge analizi.</span></li>
         </ol>
       </section>
 
@@ -90,22 +90,6 @@
           <p class="note" id="parcelNote" hidden>Bu noktada tapu kaydı bulunamadı; il ve ilçe OpenStreetMap'ten alındı. Arsanın alanını kendiniz girin.</p>
         </div>
 
-        <div class="value" id="valueCard" aria-live="polite">
-          <span class="value-label">Tahmini piyasa değeri</span>
-          <strong class="value-total" id="valTotal">—</strong>
-          <span class="value-range" id="valRange"></span>
-          <span class="value-share" id="valShare" hidden></span>
-          <div class="value-foot">
-            <span><b id="valUnit">—</b> / m²</span>
-            <span class="confidence" id="valConfidence"></span>
-          </div>
-        </div>
-
-        <section class="scenarios" aria-labelledby="scenariosTitle">
-          <h3 id="scenariosTitle">Satış süresine göre fiyat</h3>
-          <ul id="scenarioList"></ul>
-        </section>
-
         <div class="form-grid">
           <label class="field"><span>Alan (m²)</span>
             <input id="inpArea" type="number" min="1" max="10000000" step="1" inputmode="numeric">
@@ -118,7 +102,7 @@
         <section class="questions" id="questions" aria-labelledby="questionsTitle">
           <div class="questions-head">
             <h3 id="questionsTitle">Arsanın durumu</h3>
-            <p>Yanıtladıkça değer aralığı daralır. Emin değilseniz "Bilmiyorum" kalsın.</p>
+            <p>Bildiklerinizi yanıtlayın, emin olmadıklarınızı "Bilmiyorum" bırakın. Ne kadar çok yanıt, o kadar dar değer aralığı.</p>
           </div>
 
           <div class="question field" id="kaksQuestion">
@@ -192,22 +176,46 @@
           </fieldset>
         </section>
 
-        <section class="analysis" id="analysis" aria-labelledby="analysisTitle" hidden>
-          <div class="analysis-head">
-            <h3 id="analysisTitle">Bölge analizi</h3>
-            <span class="analysis-source">Kaynak: TCMB EVDS</span>
+        <div class="calc-actions" id="calcActions">
+          <button class="btn btn-primary" id="btnCalculate" type="button">Değeri hesapla</button>
+          <p>Yanıtları sonradan değiştirirseniz değer anında güncellenir.</p>
+        </div>
+
+        <div class="result-output" id="resultOutput" hidden>
+          <div class="value" id="valueCard" aria-live="polite">
+            <span class="value-label">Tahmini piyasa değeri</span>
+            <strong class="value-total" id="valTotal">—</strong>
+            <span class="value-range" id="valRange"></span>
+            <span class="value-share" id="valShare" hidden></span>
+            <div class="value-foot">
+              <span><b id="valUnit">—</b> / m²</span>
+              <span class="confidence" id="valConfidence"></span>
+            </div>
           </div>
-          <dl class="analysis-stats" id="analysisStats"></dl>
-          <svg class="sparkline" id="analysisChart" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" hidden></svg>
-          <p class="analysis-note">Grafik: bölge konut fiyat endeksinin son 24 ayı. Konut verisidir, arsa fiyatını doğrudan göstermez; bölgedeki eğilimi gösterir. Değişimler enflasyon dahildir (nominal).</p>
-        </section>
 
-        <details class="breakdown" open>
-          <summary>Hesap nasıl yapıldı?</summary>
-          <ul id="factorList"></ul>
-        </details>
+          <section class="scenarios" aria-labelledby="scenariosTitle">
+            <h3 id="scenariosTitle">Satış süresine göre fiyat</h3>
+            <ul id="scenarioList"></ul>
+          </section>
 
-        <button class="btn btn-ghost" id="btnShare" type="button">Bağlantıyı kopyala</button>
+          <section class="analysis" id="analysis" aria-labelledby="analysisTitle" hidden>
+            <div class="analysis-head">
+              <h3 id="analysisTitle">Bölge analizi</h3>
+              <span class="analysis-source">Kaynak: TCMB EVDS</span>
+            </div>
+            <dl class="analysis-stats" id="analysisStats"></dl>
+            <svg class="sparkline" id="analysisChart" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" hidden></svg>
+            <p class="analysis-note">Grafik: bölge konut fiyat endeksinin son 24 ayı. Konut verisidir, arsa fiyatını doğrudan göstermez; bölgedeki eğilimi gösterir. Değişimler enflasyon dahildir (nominal).</p>
+          </section>
+
+          <details class="breakdown">
+            <summary>Hesap nasıl yapıldı?</summary>
+            <ul id="factorList"></ul>
+          </details>
+
+          <button class="btn btn-ghost" id="btnShare" type="button">Bağlantıyı kopyala</button>
+        </div>
+
         <button class="btn btn-ghost mobile-only" id="btnBackToMap" type="button">↑ Haritada başka arsa seç</button>
       </section>
 
