@@ -248,3 +248,29 @@ def test_centroid_of_multipolygon_weights_by_area():
 )
 def test_parse_area_handles_both_number_formats(raw, expected):
     assert parse_area(raw) == expected
+
+
+def test_view_and_corner_only_count_when_answered():
+    plain = estimate(**BODRUM, **ANSWERED)
+    extras = estimate(**BODRUM, **ANSWERED, view="var", corner="evet")
+
+    assert [f.key for f in extras.factors][-2:] == ["view", "corner"]
+    assert "view" not in [f.key for f in plain.factors]
+    assert extras.total > plain.total
+    assert extras.confidence == plain.confidence == "yüksek"  # "bilmiyorum" aralığı genişletmez
+
+
+def test_corner_is_asked_on_zoned_land_and_irrigation_on_unzoned_land():
+    zoned = estimate(province="Konya", district="Meram", area_m2=1000, usage="konut", corner="evet", irrigation="sulu")
+    unzoned = estimate(province="Konya", district="Meram", area_m2=5000, usage="tarla", corner="evet", irrigation="sulu")
+
+    assert "corner" in [f.key for f in zoned.factors] and "irrigation" not in [f.key for f in zoned.factors]
+    assert "irrigation" in [f.key for f in unzoned.factors] and "corner" not in [f.key for f in unzoned.factors]
+
+
+def test_irrigation_changes_value_and_range_of_unzoned_land():
+    def tarla(answer):
+        return estimate(province="Konya", district="Meram", area_m2=5000, usage="tarla", irrigation=answer)
+
+    assert tarla("sulu").total > tarla("bilinmiyor").total > tarla("kuru").total
+    assert width(tarla("sulu")) < width(tarla("bilinmiyor"))

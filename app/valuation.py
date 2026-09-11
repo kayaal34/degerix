@@ -13,6 +13,7 @@ döndürülür; böylece arayüz hesabın nasıl yapıldığını adım adım g�
               × emsal katsayısı      (KAKS; yalnızca imarlı arsada)
               × büyüklük katsayısı   (büyük parselde m² fiyatı düşer)
               × tapu, yol cephesi, elektrik-su katsayıları
+              × manzara, köşe parsel (imarlı), sulama (imarsız) katsayıları
 
 "Bilmiyorum" denen sorular değeri değiştirmez ama değer aralığını genişletir;
 kullanıcı yanıtladıkça aralık daralır ve güven düzeyi yükselir. Sonuç, satış
@@ -24,14 +25,17 @@ import re
 from dataclasses import dataclass
 
 from .data import (
+    CORNER,
     DEED,
     DEFAULT_BASE_PRICE,
+    IRRIGATION,
     REFERENCE_KAKS,
     ROAD,
     SALE_SCENARIOS,
     UNKNOWN,
     USAGE,
     UTILITIES,
+    VIEW,
     district_factor,
     fold,
     province_base_price,
@@ -159,6 +163,9 @@ def estimate(
     share_pct: float | None = None,
     road: str = UNKNOWN,
     utilities: str = UNKNOWN,
+    view: str = UNKNOWN,
+    corner: str = UNKNOWN,
+    irrigation: str = UNKNOWN,
 ) -> Estimate:
     if area_m2 <= 0:
         raise ValueError("Alan sıfırdan büyük olmalı.")
@@ -168,7 +175,10 @@ def estimate(
         raise ValueError("Emsal sıfırdan büyük olmalı.")
     if share_pct is not None and not 0 < share_pct <= 100:
         raise ValueError("Hisse payı 0 ile 100 arasında olmalı.")
-    for name, answer, options in (("tapu", deed, DEED), ("yol cephesi", road, ROAD), ("elektrik-su", utilities, UTILITIES)):
+    for name, answer, options in (
+        ("tapu", deed, DEED), ("yol cephesi", road, ROAD), ("elektrik-su", utilities, UTILITIES),
+        ("manzara", view, VIEW), ("köşe parsel", corner, CORNER), ("sulama", irrigation, IRRIGATION),
+    ):
         if answer != UNKNOWN and answer not in options:
             raise ValueError(f"Geçersiz {name} yanıtı: {answer}")
 
@@ -237,6 +247,21 @@ def estimate(
             factors.append(Factor(key, label, multiplier, detail))
     if deed == "hisseli":
         spread += 0.04
+
+    # Manzara ve köşe parsel yalnızca yanıtlanınca eklenir (referans: yok / hayır)
+    if view != UNKNOWN:
+        detail, multiplier = VIEW[view]
+        factors.append(Factor("view", "Manzara", multiplier, detail))
+    if zoned and corner != UNKNOWN:
+        detail, multiplier = CORNER[corner]
+        factors.append(Factor("corner", "Köşe parsel", multiplier, detail))
+    if not zoned:  # sulama yalnızca imarsız arazide sorulur
+        if irrigation == UNKNOWN:
+            factors.append(Factor("irrigation", "Sulama", 1.0, "Yanıtlanmadı, aralık genişletildi"))
+            spread += 0.02
+        else:
+            detail, multiplier = IRRIGATION[irrigation]
+            factors.append(Factor("irrigation", "Sulama", multiplier, detail))
 
     unit_price = nice_round(base_price * math.prod(factor.multiplier for factor in factors))
     total = unit_price * area_m2

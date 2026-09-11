@@ -58,6 +58,28 @@ async def fetch(lat: float, lng: float) -> Surroundings:
     return result
 
 
+_inflight: dict[str, asyncio.Task[Surroundings]] = {}
+
+
+async def fetch_within(lat: float, lng: float, budget_s: float) -> Surroundings | None:
+    """Ölçümü en fazla budget_s saniye bekler; yetişmezse None döner.
+
+    Ölçüm iptal edilmez, arka planda sürer ve bitince önbelleğe yazılır; böylece
+    değer tahmini yavaş bir dış servisi beklemez. Aynı nokta için eşzamanlı
+    istekler tek ölçümü paylaşır.
+    """
+    key = f"{lat:.5f},{lng:.5f}"
+    task = _inflight.get(key)
+    if task is None:
+        task = asyncio.create_task(fetch(lat, lng))
+        _inflight[key] = task
+        task.add_done_callback(lambda _: _inflight.pop(key, None))
+    try:
+        return await asyncio.wait_for(asyncio.shield(task), budget_s)
+    except TimeoutError:
+        return None
+
+
 def parse_overpass(data: dict[str, Any], lat: float, lng: float) -> OsmContext:
     coast = road = math.inf
     services = 0

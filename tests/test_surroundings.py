@@ -103,3 +103,26 @@ def test_estimate_endpoint_uses_surroundings(client, monkeypatch):
         "province": "Muğla", "district": "Bodrum", "area_m2": 500, "usage": "konut", "lat": 37.0385, "lng": 27.419,
     }).json()
     assert {"coast", "main_road", "services", "slope"} <= {f["key"] for f in body["factors"]}
+
+
+def test_fetch_within_does_not_wait_for_slow_services_and_shares_requests(monkeypatch):
+    calls = []
+    measured = Surroundings(osm=None, slope_pct=2.0)
+
+    async def slow_fetch(lat, lng):
+        calls.append((lat, lng))
+        await asyncio.sleep(0.2)
+        return measured
+
+    monkeypatch.setattr(nearby, "fetch", slow_fetch)
+
+    async def two_estimates_for_same_parcel():
+        return await asyncio.gather(
+            nearby.fetch_within(40.2, 28.9, budget_s=0.01),
+            nearby.fetch_within(40.2, 28.9, budget_s=1.0),
+        )
+
+    impatient, patient = asyncio.run(two_estimates_for_same_parcel())
+    assert impatient is None        # süre aşıldı, değer beklemeden hesaplanır
+    assert patient is measured      # ölçüm iptal edilmedi, arka planda tamamlandı
+    assert len(calls) == 1          # eşzamanlı istekler tek ölçümü paylaştı

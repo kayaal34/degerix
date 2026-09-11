@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import evds, nearby, nominatim, tkgm
-from .data import USAGE, DeedKey, RoadKey, UsageKey, UtilitiesKey
+from .data import USAGE, CornerKey, DeedKey, IrrigationKey, RoadKey, UsageKey, UtilitiesKey, ViewKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
 from .valuation import RURAL_USAGES, DistrictArea, Estimate, estimate, guess_usage
@@ -90,6 +90,9 @@ class EstimateRequest(BaseModel):
     share_pct: float | None = Field(default=None, gt=0, le=100, description="Hisseli tapuda kullanıcının payı (%)")
     road: RoadKey = Field(default="bilinmiyor", description="Yola cephesi var mı?")
     utilities: UtilitiesKey = Field(default="bilinmiyor", description="Elektrik ve su var mı?")
+    view: ViewKey = Field(default="bilinmiyor", description="Deniz ya da göl manzarası var mı?")
+    corner: CornerKey = Field(default="bilinmiyor", description="Köşe parsel mi? Yalnızca imarlı arsada kullanılır")
+    irrigation: IrrigationKey = Field(default="bilinmiyor", description="Sulu mu, kuru mu? Yalnızca imarsız arazide kullanılır")
 
 
 # ─────────────────────────── Uygulama ───────────────────────────
@@ -104,7 +107,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Değerix API",
-    version="3.3.0",
+    version="3.4.0",
     description="Haritadan ya da ada/parsel numarasıyla seçilen arsanın tahmini değerini hesaplar.",
     lifespan=lifespan,
 )
@@ -235,8 +238,9 @@ async def _district_area(request: EstimateRequest) -> DistrictArea | None:
 async def estimate_value(request: EstimateRequest) -> Estimate:
     district_area, surroundings = None, None
     if request.lat is not None and request.lng is not None:
+        # Çevre ölçümü en fazla 4 sn beklenir; yavaş bir dış servis değeri geciktirmesin
         district_area, surroundings = await asyncio.gather(
-            _district_area(request), nearby.fetch(request.lat, request.lng)
+            _district_area(request), nearby.fetch_within(request.lat, request.lng, budget_s=4.0)
         )
     return estimate(
         province=request.province,
@@ -252,6 +256,9 @@ async def estimate_value(request: EstimateRequest) -> Estimate:
         share_pct=request.share_pct,
         road=request.road,
         utilities=request.utilities,
+        view=request.view,
+        corner=request.corner,
+        irrigation=request.irrigation,
     )
 
 
@@ -263,6 +270,18 @@ async def province_stats(province: str = PathParam(min_length=2, max_length=64))
     if not evds.is_configured():
         raise HTTPException(status_code=503, detail="Bölge analizi için EVDS_API_KEY tanımlı değil.")
     return await evds.province_stats(province)
+
+
+@app.middleware("http")
+async def revalidate_static_files(request: Request, call_next):
+    """Tarayıcı arayüz dosyalarını her açılışta doğrulasın; yeni sürümden sonra eski app.js kalmasın.
+
+    Dosya değişmediyse ETag sayesinde 304 döner, yani yeniden indirme olmaz.
+    """
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-cache")
+    return response
 
 
 # API rotalarından sonra bağlanmalı; aksi halde "/" her isteği yakalar

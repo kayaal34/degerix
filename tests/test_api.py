@@ -139,7 +139,8 @@ def test_estimate_still_works_when_tkgm_is_down(client, fake_tkgm):
 @pytest.mark.parametrize(
     "bad",
     [{"usage": "havaalanı"}, {"area_m2": 0}, {"kaks": 0}, {"kaks": 25},
-     {"deed": "yarım"}, {"share_pct": 0}, {"share_pct": 150}, {"road": "belki"}, {"utilities": "?"}],
+     {"deed": "yarım"}, {"share_pct": 0}, {"share_pct": 150}, {"road": "belki"}, {"utilities": "?"},
+     {"view": "belki"}, {"corner": "?"}, {"irrigation": "yarı"}],
 )
 def test_estimate_validation(client, bad):
     assert client.post("/api/estimate", json=ESTIMATE | bad).status_code == 422

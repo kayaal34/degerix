@@ -360,6 +360,25 @@ button, input, select { font: inherit; color: inherit; }
 .sparkline-area { fill: var(--brand-soft); }
 .analysis-note { margin: 0; font-size: 12px; color: var(--muted); }
 
+/* ---------- Harita / uydu düğmesi ---------- */
+
+.olive-note { margin-top: 0; }
+
+.basemap-toggle { display: flex; padding: 3px; background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); }
+.basemap-toggle button {
+  min-height: 36px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.basemap-toggle button:hover { color: var(--ink); }
+.basemap-toggle button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+
 /* ---------- Harita üstü ---------- */
 
 #map.leaflet-grab { cursor: crosshair; }

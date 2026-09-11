@@ -7,6 +7,7 @@ const TURKEY = L.latLngBounds([35.8, 25.6], [42.2, 44.9]);
 const MAX_AREA = 10_000_000;
 const MOBILE = window.matchMedia("(max-width: 860px)");
 const SVG_NS = "http://www.w3.org/2000/svg";
+const BASEMAP_KEY = "degerix-basemap";
 const PARCEL_CASING = { color: "#fff", weight: 7, opacity: 0.9, fill: false };
 const PARCEL_STYLE = { color: "#e8590c", weight: 3, fillColor: "#e8590c", fillOpacity: 0.18 };
 const POINT_STYLE = { radius: 7, color: "#fff", weight: 2, fillColor: "#e8590c", fillOpacity: 1, interactive: false };
@@ -21,8 +22,9 @@ const state = {
   sharePoint: null,         // paylaşım bağlantısına yazılan [enlem, boylam]
   selection: null,          // haritadaki parsel poligonu ya da nokta
   pending: null,            // sorgu sürerken tıklanan noktanın işareti
-  zonedUsages: new Set(),   // emsal sorulan (imarlı) imar durumları
+  zonedUsages: new Set(),   // emsal ve köşe parsel sorulan (imarlı) imar durumları
   analysisProvince: null,   // bölge analizi gösterilen il
+  basemapChosen: false,     // kullanıcı altlığı kendisi seçtiyse parsel seçiminde değiştirilmez
   lookupSeq: 0,             // geç gelen eski yanıtların yenisini ezmesini önler
   estimateSeq: 0,
   searchSeq: 0,
@@ -114,16 +116,61 @@ L.control.zoom({ position: "bottomright" }).addTo(map);
 
 // API anahtarı gerektirmeyen altlıklar. OSM karoları düşük trafikli kullanım içindir:
 // https://operations.osmfoundation.org/policies/tiles/
-const streets = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları',
+const basemaps = {
+  streets: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları',
+  }),
+  satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 19,
+    attribution: "Görüntü &copy; Esri, Maxar, Earthstar Geographics",
+  }),
+};
+
+function setBasemap(name) {
+  for (const [key, layer] of Object.entries(basemaps)) {
+    if (key === name) layer.addTo(map);
+    else layer.remove();
+  }
+  document.querySelectorAll("[data-basemap]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.basemap === name));
+  });
+}
+
+const BasemapToggle = L.Control.extend({
+  onAdd() {
+    const container = L.DomUtil.create("div", "basemap-toggle");
+    container.setAttribute("role", "group");
+    container.setAttribute("aria-label", "Harita görünümü");
+    for (const [key, label] of [["streets", "Harita"], ["satellite", "Uydu"]]) {
+      const button = L.DomUtil.create("button", "", container);
+      button.type = "button";
+      button.textContent = label;
+      button.dataset.basemap = key;
+      L.DomEvent.on(button, "click", () => {
+        state.basemapChosen = true;
+        setBasemap(key);
+        try {
+          localStorage.setItem(BASEMAP_KEY, key);
+        } catch {
+          // depolama kapalıysa tercih yalnızca bu oturumda geçerli
+        }
+      });
+    }
+    L.DomEvent.disableClickPropagation(container); // düğmeye basmak parsel sorgulamasın
+    return container;
+  },
 });
-const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-  maxZoom: 19,
-  attribution: "Görüntü &copy; Esri, Maxar, Earthstar Geographics",
-});
-streets.addTo(map);
-L.control.layers({ Harita: streets, Uydu: satellite }, null, { position: "topright" }).addTo(map);
+new BasemapToggle({ position: "topright" }).addTo(map);
+
+let storedBasemap = null;
+try {
+  storedBasemap = localStorage.getItem(BASEMAP_KEY);
+} catch {
+  // depolamaya erişilemiyor
+}
+state.basemapChosen = storedBasemap in basemaps;
+setBasemap(state.basemapChosen ? storedBasemap : "streets");
 
 map.on("click", (event) => lookupPoint(event.latlng.lat, event.latlng.lng));
 
@@ -137,6 +184,8 @@ function clearLayer(key) {
 function drawSelection(parcel, point, fit) {
   clearLayer("selection");
   if (parcel.geometry) {
+    // Arsaya bakan çoğu kişi uyduyu görmek ister; kullanıcı tercih yaptıysa ona dokunulmaz
+    if (!state.basemapChosen) setBasemap("satellite");
     // Beyaz kontur, turuncu çizgiyi hem sokak haritasında hem uyduda seçilir kılar
     state.selection = L.featureGroup([
       L.geoJSON(parcel.geometry, { style: PARCEL_CASING, interactive: false }),
@@ -237,9 +286,14 @@ function resetQuestions() {
   document.querySelectorAll(".is-invalid").forEach((input) => input.classList.remove("is-invalid"));
 }
 
-// Emsal yalnızca imarlı arsada, hisse payı yalnızca hisseli tapuda sorulur
+// Emsal ve köşe parsel imarlı arsada, sulama imarsız arazide, hisse payı hisseli tapuda sorulur
 function updateQuestions() {
-  $("#kaksQuestion").hidden = !state.zonedUsages.has($("#selUsage").value);
+  const usage = $("#selUsage").value;
+  const zoned = state.zonedUsages.has(usage);
+  $("#kaksQuestion").hidden = !zoned;
+  $("#cornerQuestion").hidden = !zoned;
+  $("#irrigationQuestion").hidden = zoned;
+  $("#oliveNote").hidden = usage !== "zeytinlik";
   $("#shareField").hidden = radioValue("deed") !== "hisseli";
 
   const kaks = parseDecimal($("#inpKaks").value);
@@ -254,8 +308,9 @@ function readInputs() {
   if (!(area > 0 && area <= MAX_AREA)) return { error: "Alan 1 ile 10.000.000 m² arasında olmalı", field: $("#inpArea") };
 
   const usage = $("#selUsage").value;
+  const zoned = state.zonedUsages.has(usage);
   let kaks = null;
-  if (state.zonedUsages.has(usage) && $("#inpKaks").value.trim()) {
+  if (zoned && $("#inpKaks").value.trim()) {
     kaks = parseDecimal($("#inpKaks").value);
     if (!(kaks >= 0.05 && kaks <= 10)) return { error: "Emsal 0,05 ile 10 arasında olmalı (ör. 1,50)", field: $("#inpKaks") };
   }
@@ -267,7 +322,18 @@ function readInputs() {
     if (!(sharePct > 0 && sharePct <= 100)) return { error: "Hisse payı 0 ile 100 arasında olmalı", field: $("#inpShare") };
   }
 
-  return { area, usage, kaks, deed, sharePct, road: radioValue("road"), utilities: radioValue("utilities") };
+  return {
+    area,
+    usage,
+    kaks,
+    deed,
+    sharePct,
+    road: radioValue("road"),
+    utilities: radioValue("utilities"),
+    view: radioValue("view"),
+    corner: zoned ? radioValue("corner") : "bilinmiyor",
+    irrigation: zoned ? "bilinmiyor" : radioValue("irrigation"),
+  };
 }
 
 /* ---------- Değer tahmini ---------- */
@@ -326,6 +392,9 @@ async function runEstimate() {
         share_pct: inputs.sharePct,
         road: inputs.road,
         utilities: inputs.utilities,
+        view: inputs.view,
+        corner: inputs.corner,
+        irrigation: inputs.irrigation,
       }),
     });
     if (seq !== state.estimateSeq) return;

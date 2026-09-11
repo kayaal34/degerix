@@ -121,6 +121,27 @@ SALE_SCENARIOS: list[tuple[str, str, str, float, float]] = [
     ("tok", "Tok satıcı", "Acelesi yok, 6 ay ve üzeri", 1.08, 1.10),
 ]
 
+IrrigationKey = Literal["sulu", "kuru", "bilinmiyor"]
+ViewKey = Literal["var", "yok", "bilinmiyor"]
+CornerKey = Literal["evet", "hayir", "bilinmiyor"]
+
+# İmarsız arazide sulama imkânı; tarla referans katsayısı ikisinin ortalamasıdır
+IRRIGATION: dict[str, tuple[str, float]] = {
+    "sulu": ("Sulu arazi", 1.20),
+    "kuru": ("Kuru arazi", 0.90),
+}
+
+# Referans fiyat manzarasız ve köşe olmayan parsel içindir; bu yüzden bu iki soruda
+# "bilmiyorum" yanıtı aralığı genişletmez, "yok / hayır" gibi değerlendirilir.
+VIEW: dict[str, tuple[str, float]] = {
+    "var": ("Deniz ya da göl manzarası var", 1.12),
+    "yok": ("Manzara yok", 1.00),
+}
+CORNER: dict[str, tuple[str, float]] = {
+    "evet": ("Köşe parsel, iki yola cephe", 1.08),
+    "hayir": ("Köşe parsel değil", 1.00),
+}
+
 
 _FOLD_TABLE = str.maketrans({
     "İ": "i", "I": "i", "ı": "i", "Ş": "s", "ş": "s", "Ğ": "g", "ğ": "g",
