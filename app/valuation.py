@@ -8,6 +8,7 @@ döndürülür; böylece arayüz hesabın nasıl yapıldığını adım adım g�
     m² fiyatı = il referans fiyatı   (konut imarlı, emsal 1,00, yola cepheli arsa)
               × ilçe katsayısı       (bilinen ilçeler için bölge farkı)
               × konum katsayısı      (ilçenin coğrafi merkezine uzaklık)
+              × çevre katsayıları    (denize ve ana yola mesafe, hizmetler, eğim)
               × imar katsayısı       (konut / ticari / sanayi imarlı ya da imarsız)
               × emsal katsayısı      (KAKS; yalnızca imarlı arsada)
               × büyüklük katsayısı   (büyük parselde m² fiyatı düşer)
@@ -36,6 +37,7 @@ from .data import (
     province_base_price,
 )
 from .geo import haversine_km
+from .surroundings import Surroundings, factor_rows
 
 RURAL_USAGES = frozenset({"tarla", "bag_bahce", "zeytinlik"})
 
@@ -151,6 +153,7 @@ def estimate(
     lat: float | None = None,
     lng: float | None = None,
     district_area: DistrictArea | None = None,
+    surroundings: Surroundings | None = None,
     kaks: float | None = None,
     deed: str = UNKNOWN,
     share_pct: float | None = None,
@@ -194,6 +197,9 @@ def estimate(
     else:
         factors.append(Factor("location", "Konum", 1.0, "İlçe sınırı alınamadı, konum etkisi yok"))
         spread += 0.04
+
+    if surroundings is not None:
+        factors.extend(Factor(*row) for row in factor_rows(surroundings))
 
     zoned = usage not in RURAL_USAGES
     usage_label, usage_multiplier = USAGE[usage]

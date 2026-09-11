@@ -75,8 +75,12 @@ def client(fake_tkgm, monkeypatch):
     async def fake_search(query: str, limit: int = 5):
         return [{"name": f"{query}, Bodrum, Muğla, Türkiye", "lat": 37.1, "lng": 27.3}]
 
+    async def no_surroundings(lat: float, lng: float):
+        return None  # çevre ölçümleri ayrı test ediliyor; burada ağa çıkılmaz
+
     monkeypatch.setattr(nominatim, "reverse", fake_reverse)
     monkeypatch.setattr(nominatim, "search", fake_search)
+    monkeypatch.setattr("app.nearby.fetch", no_surroundings)
 
     with TestClient(main.app) as test_client:
         yield test_client

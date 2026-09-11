@@ -49,6 +49,10 @@ Diğer her özellik bu fiyatı bir katsayıyla çarpar:
 |---|---|---|
 | İlçe | bilinen ilçeler için bölge farkı | 0,77 – 2,30 |
 | Konum | ilçenin coğrafi merkezine uzaklık (TKGM ilçe sınırından) | 0,85 – 1,10 |
+| Denize yakınlık | kıyı çizgisine mesafe (OpenStreetMap); 3 km ötesinde etkisiz | 1,00 – 1,20 |
+| Ana yola erişim | en yakın ana yola mesafe (OpenStreetMap) | 0,90 – 1,05 |
+| Çevre hizmetleri | 1 km içindeki okul, sağlık ve market noktası sayısı (OpenStreetMap) | 0,95 – 1,05 |
+| Eğim | parselin çevresindeki yükselti farkı (Open-Meteo, Copernicus 90 m) | 0,85 – 1,00 |
 | İmar durumu | konut / ticari / sanayi imarlı ya da imarsız bağ-bahçe, zeytinlik, tarla | 0,22 – 1,45 |
 | Emsal (KAKS) | yalnızca imarlı arsada; inşaat hakkı arttıkça değer artar ama orantısız | 0,50 – 1,80 |
 | Büyüklük | büyük parselde m² fiyatı düşer | 0,65 – 1,08 |
@@ -176,9 +180,10 @@ Depoda hazır bir [`render.yaml`](render.yaml) bulunur.
 pytest
 ```
 
-102 test ağa çıkmadan çalışır; TKGM, Nominatim ve EVDS sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalışır. Kapsanan konular:
+Testler ağa çıkmadan çalışır; TKGM, Nominatim, EVDS, OpenStreetMap ve yükselti servisi sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalışır. Kapsanan konular:
 
 - **Değerleme modeli:** determinizm, dökümün tutarlılığı, sorulara ve senaryolara göre değer ve aralık, güven düzeyleri
+- **Çevre ölçümleri:** kıyıya ve yola mesafe hesabı, katsayı sınırları, eksik ölçümlerin atlanması, önbellek
 - **Bölge analizi:** 81 ilin seri eşleştirmesi, dönem hesapları, boş dönemler, kısmi ve tam servis kesintisi, önbellek
 - **Coğrafi hesaplar:** mesafe, poligon merkezi ve alanı
 - **Veri ayrıştırma:** TKGM'nin iki farklı sayı biçimi, nitelik metninden imar durumu tahmini
@@ -236,8 +241,11 @@ app/
   nominatim.py     OpenStreetMap istemcisi (hız sınırlı)
   evds.py          TCMB EVDS istemcisi ve bölge analizi özetleri
   evds_series.py   81 il için EVDS seri kodları
+  surroundings.py  çevre katsayıları: kıyı, ana yol, hizmetler, eğim (saf fonksiyonlar)
+  nearby.py        OpenStreetMap Overpass ve Open-Meteo yükselti ölçümleri + önbellek
   errors.py        ortak hata tipleri
 static/            arayüz (index.html, style.css, app.js)
+data/pilot/        Bursa pilot veri seti şablonu ve derleme kuralları
 tests/             pytest
 render.yaml        Render yayın tanımı
 ```

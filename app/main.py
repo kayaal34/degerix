@@ -7,6 +7,7 @@ Değerix API
     Swagger : http://localhost:8000/docs
 """
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -19,7 +20,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import evds, nominatim, tkgm
+from . import evds, nearby, nominatim, tkgm
 from .data import USAGE, DeedKey, RoadKey, UsageKey, UtilitiesKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
@@ -103,7 +104,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Değerix API",
-    version="3.2.0",
+    version="3.3.0",
     description="Haritadan ya da ada/parsel numarasıyla seçilen arsanın tahmini değerini hesaplar.",
     lifespan=lifespan,
 )
@@ -232,7 +233,11 @@ async def _district_area(request: EstimateRequest) -> DistrictArea | None:
 
 @app.post("/api/estimate", response_model=Estimate, tags=["değerleme"])
 async def estimate_value(request: EstimateRequest) -> Estimate:
-    has_point = request.lat is not None and request.lng is not None
+    district_area, surroundings = None, None
+    if request.lat is not None and request.lng is not None:
+        district_area, surroundings = await asyncio.gather(
+            _district_area(request), nearby.fetch(request.lat, request.lng)
+        )
     return estimate(
         province=request.province,
         district=request.district,
@@ -240,7 +245,8 @@ async def estimate_value(request: EstimateRequest) -> Estimate:
         usage=request.usage,
         lat=request.lat,
         lng=request.lng,
-        district_area=await _district_area(request) if has_point else None,
+        district_area=district_area,
+        surroundings=surroundings,
         kaks=request.kaks,
         deed=request.deed,
         share_pct=request.share_pct,

@@ -62,3 +62,25 @@ def centroid_and_area(geometry: dict[str, Any]) -> tuple[float, float, float]:
         return ref_lat, mean_lng, 0.0
 
     return weighted_y / total_area / ky, weighted_x / total_area / kx, total_area
+
+
+def distance_to_line_m(lat: float, lng: float, line: list[tuple[float, float]]) -> float:
+    """Noktanın (enlem, boylam) çiftlerinden oluşan bir çizgiye en kısa mesafesi, metre.
+
+    Birkaç kilometrelik ölçekte yerel eş dikdörtgen projeksiyon yeterince hassastır.
+    """
+    if not line:
+        return math.inf
+    kx = KM_PER_DEG_LNG_AT_EQUATOR * 1000 * math.cos(math.radians(lat))
+    ky = KM_PER_DEG_LAT * 1000
+    points = [((point_lng - lng) * kx, (point_lat - lat) * ky) for point_lat, point_lng in line]
+    if len(points) == 1:
+        return math.hypot(*points[0])
+
+    best = math.inf
+    for (x1, y1), (x2, y2) in zip(points, points[1:]):
+        dx, dy = x2 - x1, y2 - y1
+        length_sq = dx * dx + dy * dy
+        t = 0.0 if length_sq == 0 else max(0.0, min(1.0, -(x1 * dx + y1 * dy) / length_sq))
+        best = min(best, math.hypot(x1 + t * dx, y1 + t * dy))
+    return best
