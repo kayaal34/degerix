@@ -767,6 +767,8 @@ async function init() {
     showAlert(error.message);
   }
 
+  if (location.hash === "#ada-parsel") selectTab("number"); // tanıtım sayfasındaki "Ada / parsel ile ara"
+
   // Paylaşılan bağlantı: ?lat=..&lng=..
   const params = new URLSearchParams(location.search);
   const lat = Number.parseFloat(params.get("lat"));

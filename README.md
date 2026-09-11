@@ -140,7 +140,8 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-- Arayüz: <http://localhost:8000>
+- Tanıtım sayfası: <http://localhost:8000>
+- Harita uygulaması: <http://localhost:8000/harita.html>
 - API dokümanı (Swagger): <http://localhost:8000/docs>
 
 ### EVDS API anahtarı (bölge analizi için, isteğe bağlı)
@@ -246,7 +247,7 @@ app/
   surroundings.py  çevre katsayıları: kıyı, ana yol, hizmetler, eğim (saf fonksiyonlar)
   nearby.py        OpenStreetMap Overpass ve Open-Meteo yükselti ölçümleri + önbellek
   errors.py        ortak hata tipleri
-static/            arayüz (index.html, style.css, app.js)
+static/            tanıtım sayfası (index.html, landing.css) ve harita uygulaması (harita.html, app.js, style.css)
 data/pilot/        Bursa pilot veri seti şablonu ve derleme kuralları
 tests/             pytest
 render.yaml        Render yayın tanımı

@@ -3,11 +3,15 @@ import pytest
 from app.errors import UpstreamError
 
 
-def test_health_and_index(client):
+def test_health_landing_and_map_pages(client):
     assert client.get("/api/health").json()["status"] == "ok"
-    page = client.get("/")
-    assert page.status_code == 200
-    assert "Değerix" in page.text
+
+    landing = client.get("/")
+    assert landing.status_code == 200 and 'href="harita.html"' in landing.text
+
+    map_page = client.get("/harita.html")
+    assert map_page.status_code == 200 and "Değeri hesapla" in map_page.text
+    assert map_page.headers["cache-control"] == "no-cache"
 
 
 def test_usages_mark_which_ones_are_zoned(client):
