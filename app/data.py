@@ -73,15 +73,53 @@ DISTRICT_FACTOR: dict[str, dict[str, float]] = {
 
 UsageKey = Literal["konut", "ticari", "sanayi", "bag_bahce", "zeytinlik", "tarla"]
 
-# Kullanım türü → (etiket, katsayı). Referans fiyatlar konut imarlı arsaya göredir.
+# İmar durumu → (etiket, katsayı). Referans fiyatlar konut imarlı arsaya göredir.
 USAGE: dict[str, tuple[str, float]] = {
-    "konut": ("Konut imarlı arsa", 1.00),
-    "ticari": ("Ticari imarlı arsa", 1.45),
-    "sanayi": ("Sanayi imarlı arsa", 0.80),
-    "bag_bahce": ("Bağ / bahçe", 0.32),
-    "zeytinlik": ("Zeytinlik", 0.36),
-    "tarla": ("Tarla", 0.22),
+    "konut": ("Konut imarlı", 1.00),
+    "ticari": ("Ticari imarlı", 1.45),
+    "sanayi": ("Sanayi imarlı", 0.80),
+    "bag_bahce": ("İmarsız · bağ / bahçe", 0.32),
+    "zeytinlik": ("İmarsız · zeytinlik", 0.36),
+    "tarla": ("İmarsız · tarla", 0.22),
 }
+
+# Referans fiyatların varsaydığı emsal (KAKS)
+REFERENCE_KAKS = 1.0
+
+# Kullanıcının "bilmiyorum" dediği sorular bu değeri alır
+UNKNOWN = "bilinmiyor"
+
+DeedKey = Literal["tam", "hisseli", "bilinmiyor"]
+RoadKey = Literal["var", "yok", "bilinmiyor"]
+UtilitiesKey = Literal["var", "kismen", "yok", "bilinmiyor"]
+
+# Hisseli tapuda ortaklık ve satış güçlüğü nedeniyle piyasa indirimi uygulanır
+DEED: dict[str, tuple[str, float]] = {
+    "tam": ("Müstakil tapu", 1.00),
+    "hisseli": ("Hisseli tapu, ortaklık indirimi", 0.80),
+}
+
+# Referans fiyatlar yola cepheli parsel içindir
+ROAD: dict[str, tuple[str, float]] = {
+    "var": ("Yola cephesi var", 1.00),
+    "yok": ("Yola cephesi yok, geçit hakkı gerekir", 0.75),
+}
+
+# (etiket, imarlı arsada katsayı, imarsız arazide katsayı). Tarlada altyapı
+# beklentisi zaten düşük olduğundan eksikliğin etkisi daha azdır.
+UTILITIES: dict[str, tuple[str, float, float]] = {
+    "var": ("Elektrik ve su var", 1.00, 1.00),
+    "kismen": ("Elektrik ya da sudan yalnızca biri var", 0.93, 0.98),
+    "yok": ("Elektrik ve su yok", 0.85, 0.95),
+}
+
+# Satış süresine göre fiyat: (anahtar, etiket, süre, imarlı arsada katsayı, imarsız arazide katsayı).
+# Arazi daha yavaş el değiştirdiğinden acele satışta indirim daha derindir.
+SALE_SCENARIOS: list[tuple[str, str, str, float, float]] = [
+    ("acil", "Acil satış", "1–2 ay içinde", 0.85, 0.78),
+    ("piyasa", "Piyasa değeri", "3–6 ay", 1.00, 1.00),
+    ("tok", "Tok satıcı", "Acelesi yok, 6 ay ve üzeri", 1.08, 1.10),
+]
 
 
 _FOLD_TABLE = str.maketrans({

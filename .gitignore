@@ -1,5 +1,8 @@
 .venv/
 __pycache__/
+
+# gizli anahtarlar
+.env
 .pytest_cache/
 *.pyc
 

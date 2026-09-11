@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Query, Request
 from fastapi import Path as PathParam
 from fastapi.responses import JSONResponse
@@ -19,10 +20,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import nominatim, tkgm
-from .data import USAGE, UsageKey
+from .data import USAGE, DeedKey, RoadKey, UsageKey, UtilitiesKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
-from .valuation import DistrictArea, Estimate, estimate, guess_usage
+from .valuation import RURAL_USAGES, DistrictArea, Estimate, estimate, guess_usage
+
+load_dotenv()  # .env dosyasındaki yerel ayarlar (ör. EVDS_API_KEY)
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -52,7 +55,7 @@ class Parcel(BaseModel):
     parsel: str | None = None
     area_m2: float | None = None
     nitelik: str | None = None
-    usage: UsageKey = Field(description="Nitelikten tahmin edilen kullanım türü")
+    usage: UsageKey = Field(description="Nitelikten tahmin edilen imar durumu")
     lat: float
     lng: float
     geometry: dict[str, Any] | None = None
@@ -67,6 +70,7 @@ class SearchResult(BaseModel):
 class UsageOption(BaseModel):
     key: UsageKey
     label: str
+    zoned: bool = Field(description="İmarlı mı? İmarlıysa emsal (KAKS) sorulur")
 
 
 class EstimateRequest(BaseModel):
@@ -78,6 +82,11 @@ class EstimateRequest(BaseModel):
     lng: float | None = Field(default=None, ge=LNG_MIN, le=LNG_MAX)
     province_id: int | None = None
     district_id: int | None = None
+    kaks: float | None = Field(default=None, gt=0, le=10, description="Emsal (KAKS); yalnızca imarlı arsada kullanılır")
+    deed: DeedKey = Field(default="bilinmiyor", description="Tapu türü")
+    share_pct: float | None = Field(default=None, gt=0, le=100, description="Hisseli tapuda kullanıcının payı (%)")
+    road: RoadKey = Field(default="bilinmiyor", description="Yola cephesi var mı?")
+    utilities: UtilitiesKey = Field(default="bilinmiyor", description="Elektrik ve su var mı?")
 
 
 # ─────────────────────────── Uygulama ───────────────────────────
@@ -91,7 +100,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Değerix API",
-    version="3.0.0",
+    version="3.1.0",
     description="Haritadan ya da ada/parsel numarasıyla seçilen arsanın tahmini değerini hesaplar.",
     lifespan=lifespan,
 )
@@ -114,7 +123,10 @@ async def health() -> dict[str, str]:
 
 @app.get("/api/usages", response_model=list[UsageOption], tags=["değerleme"])
 async def usages() -> list[UsageOption]:
-    return [UsageOption(key=key, label=label) for key, (label, _) in USAGE.items()]
+    return [
+        UsageOption(key=key, label=label, zoned=key not in RURAL_USAGES)
+        for key, (label, _) in USAGE.items()
+    ]
 
 
 # ─────────────────────────── İdari yapı ───────────────────────────
@@ -225,6 +237,11 @@ async def estimate_value(request: EstimateRequest) -> Estimate:
         lat=request.lat,
         lng=request.lng,
         district_area=await _district_area(request) if has_point else None,
+        kaks=request.kaks,
+        deed=request.deed,
+        share_pct=request.share_pct,
+        road=request.road,
+        utilities=request.utilities,
     )
 
 

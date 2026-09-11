@@ -6,6 +6,7 @@ const $ = (selector) => document.querySelector(selector);
 const TURKEY = L.latLngBounds([35.8, 25.6], [42.2, 44.9]);
 const MAX_AREA = 10_000_000;
 const MOBILE = window.matchMedia("(max-width: 860px)");
+const SVG_NS = "http://www.w3.org/2000/svg";
 const PARCEL_CASING = { color: "#fff", weight: 7, opacity: 0.9, fill: false };
 const PARCEL_STYLE = { color: "#e8590c", weight: 3, fillColor: "#e8590c", fillOpacity: 0.18 };
 const POINT_STYLE = { radius: 7, color: "#fff", weight: 2, fillColor: "#e8590c", fillOpacity: 1, interactive: false };
@@ -16,13 +17,16 @@ const upToOneDecimal = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 1
 const twoDecimals = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const state = {
-  parcel: null,      // son seçilen parsel (API yanıtı)
-  sharePoint: null,  // paylaşım bağlantısına yazılan [enlem, boylam]
-  selection: null,   // haritadaki parsel poligonu ya da nokta
-  pending: null,     // sorgu sürerken tıklanan noktanın işareti
-  lookupSeq: 0,      // geç gelen eski yanıtların yenisini ezmesini önler
+  parcel: null,             // son seçilen parsel (API yanıtı)
+  sharePoint: null,         // paylaşım bağlantısına yazılan [enlem, boylam]
+  selection: null,          // haritadaki parsel poligonu ya da nokta
+  pending: null,            // sorgu sürerken tıklanan noktanın işareti
+  zonedUsages: new Set(),   // emsal sorulan (imarlı) imar durumları
+  analysisProvince: null,   // bölge analizi gösterilen il
+  lookupSeq: 0,             // geç gelen eski yanıtların yenisini ezmesini önler
   estimateSeq: 0,
   searchSeq: 0,
+  analysisSeq: 0,
 };
 
 /* ---------- Yardımcılar ---------- */
@@ -39,6 +43,29 @@ function shortMoney(value) {
   if (value >= 1e9) return `${upToOneDecimal.format(value / 1e9)} milyar ₺`;
   if (value >= 1e6) return `${upToOneDecimal.format(value / 1e6)} milyon ₺`;
   return money.format(value);
+}
+
+// 7,3 – 8,6 milyon ₺
+function shortRange(low, high) {
+  for (const [size, unit] of [[1e9, "milyar"], [1e6, "milyon"]]) {
+    if (low >= size) return `${upToOneDecimal.format(low / size)} – ${upToOneDecimal.format(high / size)} ${unit} ₺`;
+  }
+  return `${money.format(low)} – ${money.format(high)}`;
+}
+
+// +%28,4 · −%3,1
+function signedPercent(value) {
+  if (value == null) return "—";
+  return `${value < 0 ? "−" : "+"}%${upToOneDecimal.format(Math.abs(value))}`;
+}
+
+// "1,5" ve "1.5" ikisi de kabul edilir; boş metin 0 döner
+function parseDecimal(text) {
+  return Number(text.trim().replace(",", "."));
+}
+
+function radioValue(name) {
+  return document.querySelector(`input[name="${name}"]:checked`).value;
 }
 
 async function api(path, options) {
@@ -185,34 +212,97 @@ function showParcel(parcel, point, fit) {
     }),
   );
 
+  // Sorular parsele özgüdür; yeni parselde baştan başlanır
+  resetQuestions();
   $("#inpArea").value = parcel.area_m2 ? Math.round(parcel.area_m2) : 500;
   $("#selUsage").value = parcel.usage;
+  updateQuestions();
 
   $("#emptyState").hidden = true;
   $("#mapHint").hidden = true;
   $("#result").hidden = false;
   updateShareUrl();
   runEstimate();
+  if (parcel.province !== state.analysisProvince) loadAnalysis(parcel.province);
 
   if (MOBILE.matches) $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ---------- Arsa soruları ---------- */
+
+function resetQuestions() {
+  $("#inpKaks").value = "";
+  $("#inpShare").value = "";
+  document.querySelectorAll('#questions input[value="bilinmiyor"]').forEach((radio) => (radio.checked = true));
+  document.querySelectorAll(".is-invalid").forEach((input) => input.classList.remove("is-invalid"));
+}
+
+// Emsal yalnızca imarlı arsada, hisse payı yalnızca hisseli tapuda sorulur
+function updateQuestions() {
+  $("#kaksQuestion").hidden = !state.zonedUsages.has($("#selUsage").value);
+  $("#shareField").hidden = radioValue("deed") !== "hisseli";
+
+  const kaks = parseDecimal($("#inpKaks").value);
+  const area = Number($("#inpArea").value);
+  $("#kaksResult").textContent =
+    kaks > 0 && area > 0 ? `≈ ${integer.format(area * kaks)} m² inşaat alanı` : "Boş bırakırsanız 1,00 varsayılır.";
+}
+
+// Formu API alanlarına çevirir; geçersiz bir alan varsa { error, field } döner
+function readInputs() {
+  const area = Number($("#inpArea").value);
+  if (!(area > 0 && area <= MAX_AREA)) return { error: "Alan 1 ile 10.000.000 m² arasında olmalı", field: $("#inpArea") };
+
+  const usage = $("#selUsage").value;
+  let kaks = null;
+  if (state.zonedUsages.has(usage) && $("#inpKaks").value.trim()) {
+    kaks = parseDecimal($("#inpKaks").value);
+    if (!(kaks >= 0.05 && kaks <= 10)) return { error: "Emsal 0,05 ile 10 arasında olmalı (ör. 1,50)", field: $("#inpKaks") };
+  }
+
+  const deed = radioValue("deed");
+  let sharePct = null;
+  if (deed === "hisseli" && $("#inpShare").value.trim()) {
+    sharePct = parseDecimal($("#inpShare").value);
+    if (!(sharePct > 0 && sharePct <= 100)) return { error: "Hisse payı 0 ile 100 arasında olmalı", field: $("#inpShare") };
+  }
+
+  return { area, usage, kaks, deed, sharePct, road: radioValue("road"), utilities: radioValue("utilities") };
 }
 
 /* ---------- Değer tahmini ---------- */
 
 let estimateTimer;
-$("#inpArea").addEventListener("input", () => {
+function scheduleEstimate() {
   clearTimeout(estimateTimer);
   estimateTimer = setTimeout(runEstimate, 350);
+}
+
+["#inpArea", "#inpKaks", "#inpShare"].forEach((selector) =>
+  $(selector).addEventListener("input", () => {
+    updateQuestions();
+    scheduleEstimate();
+  }),
+);
+$("#selUsage").addEventListener("change", () => {
+  updateQuestions();
+  runEstimate();
 });
-$("#selUsage").addEventListener("change", runEstimate);
+$("#questions").addEventListener("change", (event) => {
+  if (event.target.type !== "radio") return;
+  updateQuestions();
+  runEstimate();
+});
 
 async function runEstimate() {
   const parcel = state.parcel;
   if (!parcel) return;
 
-  const area = Number($("#inpArea").value);
-  if (!(area > 0 && area <= MAX_AREA)) {
-    renderInvalidArea();
+  document.querySelectorAll(".is-invalid").forEach((input) => input.classList.remove("is-invalid"));
+  const inputs = readInputs();
+  if (inputs.error) {
+    inputs.field.classList.add("is-invalid");
+    renderInvalid(inputs.error);
     return;
   }
 
@@ -229,8 +319,13 @@ async function runEstimate() {
         district_id: parcel.district_id,
         lat: parcel.lat,
         lng: parcel.lng,
-        area_m2: area,
-        usage: $("#selUsage").value,
+        area_m2: inputs.area,
+        usage: inputs.usage,
+        kaks: inputs.kaks,
+        deed: inputs.deed,
+        share_pct: inputs.sharePct,
+        road: inputs.road,
+        utilities: inputs.utilities,
       }),
     });
     if (seq !== state.estimateSeq) return;
@@ -245,14 +340,32 @@ async function runEstimate() {
 
 function renderEstimate(result, parcel) {
   $("#valTotal").textContent = money.format(result.total);
-  $("#valRange").textContent = `${shortMoney(result.low)} – ${shortMoney(result.high)} aralığında`;
+  $("#valRange").textContent = `${shortRange(result.low, result.high)} aralığında`;
   $("#valUnit").textContent = money.format(result.unit_price);
   const confidence = $("#valConfidence");
   confidence.textContent = `Güven: ${result.confidence}`;
   confidence.dataset.level = result.confidence;
 
+  const share = $("#valShare");
+  share.hidden = result.share_value == null;
+  if (!share.hidden) {
+    share.textContent = `%${upToOneDecimal.format(result.share_pct)} payınızın değeri: ${money.format(result.share_value)}`;
+  }
+
+  $("#scenarioList").replaceChildren(
+    ...result.scenarios.map((scenario) => {
+      const row = el("li", scenario.key === "piyasa" ? "scenario is-market" : "scenario");
+      const text = el("div", "scenario-text");
+      text.append(el("b", "", scenario.label), el("span", "", scenario.timeframe));
+      const numbers = el("div", "scenario-numbers");
+      numbers.append(el("b", "", shortMoney(scenario.value)), el("span", "", shortRange(scenario.low, scenario.high)));
+      row.append(text, numbers);
+      return row;
+    }),
+  );
+
   $("#factorList").replaceChildren(
-    factorRow("İl referans fiyatı", `${parcel.province} · konut imarlı arsa`, `${money.format(result.base_price)}/m²`),
+    factorRow("İl referans fiyatı", `${parcel.province} · konut imarlı, emsal 1,00`, `${money.format(result.base_price)}/m²`),
     ...result.factors.map((factor) =>
       factorRow(
         factor.label,
@@ -273,14 +386,83 @@ function factorRow(title, detail, value, tone = "") {
   return row;
 }
 
-function renderInvalidArea() {
+function renderInvalid(message) {
   state.estimateSeq++; // yoldaki isteğin sonucunu yok say
   $("#valueCard").classList.remove("is-loading");
   $("#valTotal").textContent = "—";
-  $("#valRange").textContent = "Alan 1 ile 10.000.000 m² arasında olmalı";
+  $("#valRange").textContent = message;
   $("#valUnit").textContent = "—";
   $("#valConfidence").textContent = "";
+  $("#valShare").hidden = true;
+  $("#scenarioList").replaceChildren();
   $("#factorList").replaceChildren();
+}
+
+/* ---------- Bölge analizi (TCMB EVDS) ---------- */
+
+let statsEnabled; // /api/health "stats" alanı: sunucuda EVDS anahtarı yoksa analiz hiç istenmez
+
+async function loadAnalysis(province) {
+  statsEnabled ??= await api("/api/health").then((health) => health.stats === true, () => false);
+  if (!statsEnabled) return;
+  const seq = ++state.analysisSeq;
+  $("#analysis").hidden = true;
+  try {
+    const stats = await api(`/api/stats/${encodeURIComponent(province)}`);
+    if (seq !== state.analysisSeq) return;
+    state.analysisProvince = province;
+    renderAnalysis(stats);
+  } catch {
+    // Bölge analizi ek bilgidir; alınamazsa (anahtar yok, veri yok) kart gizli kalır
+  }
+}
+
+function renderAnalysis(stats) {
+  const rows = [];
+  if (stats.unit_price) {
+    rows.push(["Konut m² fiyatı", money.format(stats.unit_price.value), `${stats.unit_price.period} · yıllık ${signedPercent(stats.unit_price.change_pct)}`]);
+  }
+  if (stats.price_index) {
+    rows.push([`Konut fiyat endeksi · ${stats.price_index.region}`, signedPercent(stats.price_index.change_pct), `son 12 ay · ${stats.price_index.period}`]);
+  }
+  if (rows.length === 0) return;
+
+  $("#analysisTitle").textContent = `Bölge analizi · ${stats.province}`;
+  $("#analysisStats").replaceChildren(
+    ...rows.map(([term, value, detail]) => {
+      const row = el("div");
+      row.append(el("dt", "", term), el("dd", "", value), el("span", "analysis-detail", detail));
+      return row;
+    }),
+  );
+  drawSparkline(stats.price_index?.history ?? []);
+  $("#analysis").hidden = false;
+}
+
+function drawSparkline(points) {
+  const svg = $("#analysisChart");
+  if (points.length < 2) {
+    svg.replaceChildren();
+    svg.toggleAttribute("hidden", true);
+    return;
+  }
+  const values = points.map((point) => point.value);
+  const min = Math.min(...values);
+  const range = Math.max(...values) - min || 1;
+  const d = points
+    .map((point, i) => `${i ? "L" : "M"}${((i / (points.length - 1)) * 300).toFixed(1)},${(56 - ((point.value - min) / range) * 52).toFixed(1)}`)
+    .join(" ");
+
+  const area = document.createElementNS(SVG_NS, "path");
+  area.setAttribute("class", "sparkline-area");
+  area.setAttribute("d", `${d} L300,60 L0,60 Z`);
+  const line = document.createElementNS(SVG_NS, "path");
+  line.setAttribute("class", "sparkline-line");
+  line.setAttribute("d", d);
+
+  svg.replaceChildren(area, line);
+  svg.setAttribute("aria-label", `Konut fiyat endeksi, ${points[0].period} – ${points.at(-1).period}`);
+  svg.toggleAttribute("hidden", false);
 }
 
 /* ---------- Paylaşım ---------- */
@@ -478,6 +660,7 @@ async function init() {
   try {
     const usages = await api("/api/usages");
     $("#selUsage").replaceChildren(...usages.map((usage) => new Option(usage.label, usage.key)));
+    state.zonedUsages = new Set(usages.filter((usage) => usage.zoned).map((usage) => usage.key));
   } catch (error) {
     showAlert(error.message);
   }

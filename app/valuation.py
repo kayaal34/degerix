@@ -5,18 +5,36 @@ Yalnızca saf fonksiyonlardan oluşur: ağ, veritabanı ya da rastgelelik yoktur
 Aynı girdi her zaman aynı sonucu verir ve her çarpan gerekçesiyle birlikte
 döndürülür; böylece arayüz hesabın nasıl yapıldığını adım adım gösterebilir.
 
-    m² fiyatı = il referans fiyatı
-              × ilçe katsayısı      (bilinen ilçeler için bölge farkı)
-              × konum katsayısı     (ilçenin coğrafi merkezine uzaklık)
-              × kullanım katsayısı  (konut / ticari / tarla …)
-              × büyüklük katsayısı  (büyük parselde m² fiyatı düşer)
+    m² fiyatı = il referans fiyatı   (konut imarlı, emsal 1,00, yola cepheli arsa)
+              × ilçe katsayısı       (bilinen ilçeler için bölge farkı)
+              × konum katsayısı      (ilçenin coğrafi merkezine uzaklık)
+              × imar katsayısı       (konut / ticari / sanayi imarlı ya da imarsız)
+              × emsal katsayısı      (KAKS; yalnızca imarlı arsada)
+              × büyüklük katsayısı   (büyük parselde m² fiyatı düşer)
+              × tapu, yol cephesi, elektrik-su katsayıları
+
+"Bilmiyorum" denen sorular değeri değiştirmez ama değer aralığını genişletir;
+kullanıcı yanıtladıkça aralık daralır ve güven düzeyi yükselir. Sonuç, satış
+süresine göre üç senaryo (acil satış, piyasa değeri, tok satıcı) olarak da verilir.
 """
 
 import math
 import re
 from dataclasses import dataclass
 
-from .data import DEFAULT_BASE_PRICE, USAGE, district_factor, fold, province_base_price
+from .data import (
+    DEED,
+    DEFAULT_BASE_PRICE,
+    REFERENCE_KAKS,
+    ROAD,
+    SALE_SCENARIOS,
+    UNKNOWN,
+    USAGE,
+    UTILITIES,
+    district_factor,
+    fold,
+    province_base_price,
+)
 from .geo import haversine_km
 
 RURAL_USAGES = frozenset({"tarla", "bag_bahce", "zeytinlik"})
@@ -55,6 +73,16 @@ class Factor:
 
 
 @dataclass(frozen=True)
+class Scenario:
+    key: str
+    label: str
+    timeframe: str
+    value: int
+    low: int
+    high: int
+
+
+@dataclass(frozen=True)
 class Estimate:
     base_price: int
     unit_price: int
@@ -63,6 +91,9 @@ class Estimate:
     high: int
     confidence: str
     factors: list[Factor]
+    scenarios: list[Scenario]
+    share_pct: float | None = None    # hisseli tapuda kullanıcının payı
+    share_value: int | None = None    # o paya düşen değer
 
 
 def location_multiplier(distance_km: float, radius_km: float) -> float:
@@ -79,6 +110,12 @@ def size_multiplier(area_m2: float) -> float:
     return min(1.08, max(0.65, (area_m2 / 500) ** -0.07))
 
 
+def kaks_multiplier(kaks: float) -> float:
+    """Emsal 1,00 referans alınır. İnşaat hakkı arttıkça değer artar ama orantısız:
+    0,50 → ~0,66 · 2,00 → ~1,52; 0,50–1,80 bandında sınırlanır."""
+    return min(1.8, max(0.5, (kaks / REFERENCE_KAKS) ** 0.6))
+
+
 def nice_round(value: float, digits: int = 3) -> int:
     """Sahte hassasiyet vermemek için anlamlı basamağa yuvarlar (57.432.100 → 57.400.000)."""
     if value <= 0:
@@ -88,7 +125,7 @@ def nice_round(value: float, digits: int = 3) -> int:
 
 
 def guess_usage(nitelik: str | None) -> str:
-    """TKGM nitelik metninden kullanım türü önerisi; kullanıcı arayüzde değiştirebilir."""
+    """TKGM nitelik metninden imar durumu önerisi; kullanıcı arayüzde değiştirebilir."""
     tokens = re.findall(r"[a-z]+", fold(nitelik or ""))
     for usage, keywords in _USAGE_KEYWORDS:
         for keyword in keywords:
@@ -101,6 +138,10 @@ def _thousands(value: float) -> str:
     return f"{round(value):,}".replace(",", ".")
 
 
+def _decimal(value: float) -> str:
+    return f"{value:.2f}".replace(".", ",")
+
+
 def estimate(
     *,
     province: str,
@@ -110,13 +151,25 @@ def estimate(
     lat: float | None = None,
     lng: float | None = None,
     district_area: DistrictArea | None = None,
+    kaks: float | None = None,
+    deed: str = UNKNOWN,
+    share_pct: float | None = None,
+    road: str = UNKNOWN,
+    utilities: str = UNKNOWN,
 ) -> Estimate:
     if area_m2 <= 0:
         raise ValueError("Alan sıfırdan büyük olmalı.")
     if usage not in USAGE:
-        raise ValueError(f"Bilinmeyen kullanım türü: {usage}")
+        raise ValueError(f"Bilinmeyen imar durumu: {usage}")
+    if kaks is not None and kaks <= 0:
+        raise ValueError("Emsal sıfırdan büyük olmalı.")
+    if share_pct is not None and not 0 < share_pct <= 100:
+        raise ValueError("Hisse payı 0 ile 100 arasında olmalı.")
+    for name, answer, options in (("tapu", deed, DEED), ("yol cephesi", road, ROAD), ("elektrik-su", utilities, UTILITIES)):
+        if answer != UNKNOWN and answer not in options:
+            raise ValueError(f"Geçersiz {name} yanıtı: {answer}")
 
-    spread = 0.10  # değer aralığının yarı genişliği; veri eksildikçe büyür
+    spread = 0.08  # değer aralığının yarı genişliği; her eksik bilgi büyütür
     factors: list[Factor] = []
 
     base_price = province_base_price(province)
@@ -142,23 +195,64 @@ def estimate(
         factors.append(Factor("location", "Konum", 1.0, "İlçe sınırı alınamadı, konum etkisi yok"))
         spread += 0.04
 
+    zoned = usage not in RURAL_USAGES
     usage_label, usage_multiplier = USAGE[usage]
-    factors.append(Factor("usage", "Kullanım", usage_multiplier, usage_label))
-    if usage in RURAL_USAGES:
+    factors.append(Factor("usage", "İmar durumu", usage_multiplier, usage_label))
+    if not zoned:
         spread += 0.06
 
+    if zoned:  # imarsız arazide emsal sorulmaz
+        if kaks is None:
+            factors.append(Factor("kaks", "Emsal (KAKS)", 1.0, f"Girilmedi, {_decimal(REFERENCE_KAKS)} varsayıldı"))
+            spread += 0.04
+        else:
+            factors.append(Factor(
+                "kaks", "Emsal (KAKS)",
+                round(kaks_multiplier(kaks), 3),
+                f"{_decimal(kaks)} → {_thousands(area_m2 * kaks)} m² inşaat hakkı",
+            ))
+
     factors.append(Factor("size", "Büyüklük", round(size_multiplier(area_m2), 3), f"{_thousands(area_m2)} m² parsel"))
+
+    utility_options = {
+        key: (label, zoned_multiplier if zoned else rural_multiplier)
+        for key, (label, zoned_multiplier, rural_multiplier) in UTILITIES.items()
+    }
+    for key, label, answer, options in (
+        ("deed", "Tapu", deed, DEED),
+        ("road", "Yol cephesi", road, ROAD),
+        ("utilities", "Elektrik ve su", utilities, utility_options),
+    ):
+        if answer == UNKNOWN:
+            factors.append(Factor(key, label, 1.0, "Yanıtlanmadı, aralık genişletildi"))
+            spread += 0.02
+        else:
+            detail, multiplier = options[answer]
+            factors.append(Factor(key, label, multiplier, detail))
+    if deed == "hisseli":
+        spread += 0.04
 
     unit_price = nice_round(base_price * math.prod(factor.multiplier for factor in factors))
     total = unit_price * area_m2
 
-    if spread <= 0.10 + 1e-9:
+    if spread <= 0.12 + 1e-9:
         confidence = "yüksek"
-    elif spread <= 0.20 + 1e-9:
+    elif spread <= 0.22 + 1e-9:
         confidence = "orta"
     else:
         confidence = "düşük"
 
+    scenarios = []
+    for key, label, timeframe, zoned_multiplier, rural_multiplier in SALE_SCENARIOS:
+        value = total * (zoned_multiplier if zoned else rural_multiplier)
+        scenarios.append(Scenario(
+            key=key, label=label, timeframe=timeframe,
+            value=nice_round(value),
+            low=nice_round(value * (1 - spread)),
+            high=nice_round(value * (1 + spread)),
+        ))
+
+    has_share = deed == "hisseli" and share_pct is not None
     return Estimate(
         base_price=base_price,
         unit_price=unit_price,
@@ -167,4 +261,7 @@ def estimate(
         high=nice_round(total * (1 + spread)),
         confidence=confidence,
         factors=factors,
+        scenarios=scenarios,
+        share_pct=share_pct if has_share else None,
+        share_value=nice_round(total * share_pct / 100) if has_share else None,
     )

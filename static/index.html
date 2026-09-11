@@ -72,8 +72,8 @@
       <section class="empty" id="emptyState">
         <ol class="steps">
           <li><b>Arsayı seçin</b><span>Haritada tıklayın ya da ada/parsel numarasını girin.</span></li>
-          <li><b>Bilgileri kontrol edin</b><span>Alan ve nitelik tapu kaydından gelir, değiştirebilirsiniz.</span></li>
-          <li><b>Değeri görün</b><span>Tahmini değer, aralığı ve hesabın adım adım dökümü.</span></li>
+          <li><b>Bilgileri kontrol edin</b><span>Alan ve nitelik tapu kaydından gelir; imar, tapu, yol ve altyapıyı siz yanıtlayın.</span></li>
+          <li><b>Değeri görün</b><span>Acil satış, piyasa ve tok satıcı fiyatları, hesabın dökümü ve bölge analizi.</span></li>
         </ol>
       </section>
 
@@ -90,24 +90,87 @@
           <p class="note" id="parcelNote" hidden>Bu noktada tapu kaydı bulunamadı; il ve ilçe OpenStreetMap'ten alındı. Arsanın alanını kendiniz girin.</p>
         </div>
 
-        <div class="form-grid">
-          <label class="field"><span>Alan (m²)</span>
-            <input id="inpArea" type="number" min="1" max="10000000" step="1" inputmode="numeric">
-          </label>
-          <label class="field"><span>Kullanım</span>
-            <select id="selUsage"></select>
-          </label>
-        </div>
-
         <div class="value" id="valueCard" aria-live="polite">
-          <span class="value-label">Tahmini değer</span>
+          <span class="value-label">Tahmini piyasa değeri</span>
           <strong class="value-total" id="valTotal">—</strong>
           <span class="value-range" id="valRange"></span>
+          <span class="value-share" id="valShare" hidden></span>
           <div class="value-foot">
             <span><b id="valUnit">—</b> / m²</span>
             <span class="confidence" id="valConfidence"></span>
           </div>
         </div>
+
+        <section class="scenarios" aria-labelledby="scenariosTitle">
+          <h3 id="scenariosTitle">Satış süresine göre fiyat</h3>
+          <ul id="scenarioList"></ul>
+        </section>
+
+        <div class="form-grid">
+          <label class="field"><span>Alan (m²)</span>
+            <input id="inpArea" type="number" min="1" max="10000000" step="1" inputmode="numeric">
+          </label>
+          <label class="field"><span>İmar durumu</span>
+            <select id="selUsage"></select>
+          </label>
+        </div>
+
+        <section class="questions" id="questions" aria-labelledby="questionsTitle">
+          <div class="questions-head">
+            <h3 id="questionsTitle">Arsanın durumu</h3>
+            <p>Yanıtladıkça değer aralığı daralır. Emin değilseniz "Bilmiyorum" kalsın.</p>
+          </div>
+
+          <div class="question field" id="kaksQuestion">
+            <label class="question-label" for="inpKaks">Emsal (KAKS)</label>
+            <p class="question-help">Parsel alanının kaç katı inşaat yapılabileceği. Belediyeden alınan imar durumu belgesinde yazar.</p>
+            <div class="kaks-row">
+              <input id="inpKaks" type="text" inputmode="decimal" autocomplete="off" placeholder="Ör. 1,50" aria-describedby="kaksResult">
+              <span class="kaks-result" id="kaksResult"></span>
+            </div>
+          </div>
+
+          <fieldset class="question">
+            <legend class="question-label">Tapu türü</legend>
+            <div class="choices">
+              <label><input type="radio" name="deed" value="tam"><span>Müstakil</span></label>
+              <label><input type="radio" name="deed" value="hisseli"><span>Hisseli</span></label>
+              <label><input type="radio" name="deed" value="bilinmiyor" checked><span>Bilmiyorum</span></label>
+            </div>
+            <label class="field share-field" id="shareField" hidden><span>Hisse payınız (%)</span>
+              <input id="inpShare" type="text" inputmode="decimal" autocomplete="off" placeholder="Ör. 25">
+            </label>
+          </fieldset>
+
+          <fieldset class="question">
+            <legend class="question-label">Yola cephesi var mı?</legend>
+            <div class="choices">
+              <label><input type="radio" name="road" value="var"><span>Var</span></label>
+              <label><input type="radio" name="road" value="yok"><span>Yok</span></label>
+              <label><input type="radio" name="road" value="bilinmiyor" checked><span>Bilmiyorum</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="question">
+            <legend class="question-label">Elektrik ve su var mı?</legend>
+            <div class="choices choices-4">
+              <label><input type="radio" name="utilities" value="var"><span>İkisi de var</span></label>
+              <label><input type="radio" name="utilities" value="kismen"><span>Yalnızca biri</span></label>
+              <label><input type="radio" name="utilities" value="yok"><span>İkisi de yok</span></label>
+              <label><input type="radio" name="utilities" value="bilinmiyor" checked><span>Bilmiyorum</span></label>
+            </div>
+          </fieldset>
+        </section>
+
+        <section class="analysis" id="analysis" aria-labelledby="analysisTitle" hidden>
+          <div class="analysis-head">
+            <h3 id="analysisTitle">Bölge analizi</h3>
+            <span class="analysis-source">Kaynak: TCMB EVDS</span>
+          </div>
+          <dl class="analysis-stats" id="analysisStats"></dl>
+          <svg class="sparkline" id="analysisChart" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" hidden></svg>
+          <p class="analysis-note">Konut verisidir; arsa fiyatını doğrudan göstermez, bölgedeki fiyat eğilimini gösterir.</p>
+        </section>
 
         <details class="breakdown" open>
           <summary>Hesap nasıl yapıldı?</summary>
