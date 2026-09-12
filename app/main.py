@@ -23,7 +23,7 @@ from . import evds, market, nearby, nominatim, tkgm, urbanity
 from .data import USAGE, CornerKey, DeedKey, IrrigationKey, RoadKey, UsageKey, UtilitiesKey, ViewKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
-from .valuation import RURAL_USAGES, Estimate, estimate, guess_usage
+from .valuation import Comparable, Estimate, RURAL_USAGES, estimate, guess_usage
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = ROOT_DIR / "static"
@@ -78,6 +78,15 @@ class UsageOption(BaseModel):
     zoned: bool = Field(description="İmarlı mı? İmarlıysa emsal (KAKS) sorulur")
 
 
+class ComparableIn(BaseModel):
+    """Kullanıcının girdiği emsal. Sunucuda saklanmaz, yalnızca hesap için kullanılır."""
+
+    price_tl: float = Field(gt=0, le=10_000_000_000, description="Emsalin toplam fiyatı (TL)")
+    area_m2: float = Field(gt=0, le=10_000_000)
+    kind: Literal["ilan", "satis"] = Field(default="ilan", description="ilan: istek fiyatı · satis: gerçekleşen satış")
+    label: str = Field(default="", max_length=80)
+
+
 class EstimateRequest(BaseModel):
     province: str = Field(min_length=2, max_length=64, description="Parselin ili; konut fiyatı buradan alınır")
     area_m2: float = Field(gt=0, le=10_000_000)
@@ -92,6 +101,10 @@ class EstimateRequest(BaseModel):
     view: ViewKey = Field(default="bilinmiyor", description="Deniz ya da göl manzarası var mı?")
     corner: CornerKey = Field(default="bilinmiyor", description="Köşe parsel mi? Yalnızca imarlı arsada kullanılır")
     irrigation: IrrigationKey = Field(default="bilinmiyor", description="Sulu mu, kuru mu? Yalnızca imarsız arazide kullanılır")
+    comparables: list[ComparableIn] = Field(
+        default_factory=list, max_length=10,
+        description="Yakındaki emsaller; hesaba ağırlıklı olarak katılır, kaydedilmez",
+    )
 
 
 # ─────────────────────────── Uygulama ───────────────────────────
@@ -242,6 +255,7 @@ async def estimate_value(request: EstimateRequest) -> Estimate:
         view=request.view,
         corner=request.corner,
         irrigation=request.irrigation,
+        comparables=[Comparable(**comparable.model_dump()) for comparable in request.comparables],
     )
 
 

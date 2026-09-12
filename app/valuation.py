@@ -27,6 +27,7 @@ genişletir. Sonuç, satış süresine göre üç senaryo olarak da verilir.
 
 import math
 import re
+import statistics
 from dataclasses import dataclass
 
 from .costs import construction_cost
@@ -58,6 +59,27 @@ class HousingPrice:
     source: str
     live: bool          # canlı EVDS'ten mi geldi
     estimated: bool     # TCMB bu il için fiyat yayımlamıyor, bölge ortalaması kullanıldı
+
+
+@dataclass(frozen=True)
+class Comparable:
+    """Kullanıcının girdiği emsal: yakındaki bir ilan ya da bilinen bir satış."""
+
+    price_tl: float
+    area_m2: float
+    kind: str = "ilan"        # "ilan": istek fiyatı · "satis": gerçekleşen satış
+    label: str = ""
+
+
+@dataclass(frozen=True)
+class ComparableSummary:
+    """Emsallerin hesaba nasıl yansıdığı."""
+
+    count: int
+    market_unit_price: int    # emsallerin düzeltilmiş ortancası (TL/m²)
+    model_unit_price: int     # emsaller hesaba katılmadan önceki değer
+    weight: float             # emsallerin sonuca etkisi (0-1)
+    spread_pct: float         # emsaller arasındaki dağılım
 
 
 @dataclass(frozen=True)
@@ -112,8 +134,52 @@ class Estimate:
     factors: list[Factor]
     scenarios: list[Scenario]
     development: Development | None = None
+    comparables: ComparableSummary | None = None
     share_pct: float | None = None
     share_value: int | None = None
+
+
+def adjusted_comparable_price(comparable: Comparable, area_m2: float, parameters: Parameters) -> float:
+    """Emsali konu parselle karşılaştırılabilir hale getirir.
+
+    İlan fiyatı satış fiyatı olmadığı için pazarlık payı düşülür; emsalin büyüklüğü
+    farklıysa m² fiyatı büyüklük eğrisiyle konu parselin ölçeğine taşınır.
+    """
+    unit_price = comparable.price_tl / comparable.area_m2
+    if comparable.kind == "ilan":
+        unit_price *= 1 - parameters.asking_discount
+    return unit_price * size_multiplier(area_m2) / size_multiplier(comparable.area_m2)
+
+
+def blend_comparables(
+    comparables: list[Comparable], area_m2: float, model_unit_price: float, spread: float,
+    parameters: Parameters,
+) -> tuple[ComparableSummary | None, float]:
+    """Emsallerin ortancasını çıkarır ve değer aralığını dağılıma göre günceller."""
+    prices = sorted(adjusted_comparable_price(comparable, area_m2, parameters) for comparable in comparables)
+    if not prices or model_unit_price <= 0:
+        return None, spread
+
+    market_price = statistics.median(prices)
+    dispersion = (prices[-1] - prices[0]) / market_price if len(prices) > 1 else 0.0
+    weight = min(parameters.comparable_weight_cap, parameters.comparable_weight_per_record * len(prices))
+
+    # Emsaller birbirini tutuyorsa aralık daralır, dağınıksa genişler
+    if dispersion > 0.5:
+        spread += 0.04
+    elif len(prices) > 1:
+        spread -= 0.03
+    else:
+        spread -= 0.01
+
+    summary = ComparableSummary(
+        count=len(prices),
+        market_unit_price=nice_round(market_price),
+        model_unit_price=nice_round(model_unit_price),
+        weight=round(weight, 2),
+        spread_pct=round(dispersion * 100, 1),
+    )
+    return summary, max(0.05, spread)
 
 
 def size_multiplier(area_m2: float) -> float:
@@ -203,6 +269,7 @@ def estimate(
     view: str = UNKNOWN,
     corner: str = UNKNOWN,
     irrigation: str = UNKNOWN,
+    comparables: list[Comparable] | None = None,
     parameters: Parameters | None = None,
 ) -> Estimate:
     if area_m2 <= 0:
@@ -213,6 +280,11 @@ def estimate(
         raise ValueError("Emsal sıfırdan büyük olmalı.")
     if share_pct is not None and not 0 < share_pct <= 100:
         raise ValueError("Hisse payı 0 ile 100 arasında olmalı.")
+    for comparable in comparables or ():
+        if comparable.price_tl <= 0 or comparable.area_m2 <= 0:
+            raise ValueError("Emsal fiyatı ve alanı sıfırdan büyük olmalı.")
+        if comparable.kind not in ("ilan", "satis"):
+            raise ValueError(f"Geçersiz emsal türü: {comparable.kind}")
     for name, answer, options in (
         ("tapu", deed, DEED), ("yol cephesi", road, ROAD), ("elektrik-su", utilities, UTILITIES),
         ("manzara", view, VIEW), ("köşe parsel", corner, CORNER), ("sulama", irrigation, IRRIGATION),
@@ -316,6 +388,24 @@ def estimate(
 
     # Döküm yuvarlanmış başlangıç fiyatını gösterdiği için hesap da onunla yapılır
     base_price = nice_round(base_price)
+    model_unit_price = base_price * math.prod(factor.multiplier for factor in factors)
+
+    # Emsaller hesabın sonuna bir çarpan olarak girer: sonuç, modelin değeri ile
+    # emsallerin ortancasının ağırlıklı geometrik ortalamasıdır.
+    comparable_summary: ComparableSummary | None = None
+    if comparables:
+        comparable_summary, spread = blend_comparables(
+            comparables, area_m2, model_unit_price, spread, parameters
+        )
+        if comparable_summary is not None:
+            factors.append(Factor(
+                "comparables", "Emsaller",
+                round((comparable_summary.market_unit_price / model_unit_price) ** comparable_summary.weight, 3),
+                f"{comparable_summary.count} emsalin ortancası "
+                f"{_money(comparable_summary.market_unit_price)}/m² · "
+                f"ağırlık %{round(comparable_summary.weight * 100)}",
+            ))
+
     unit_price = nice_round(base_price * math.prod(factor.multiplier for factor in factors))
     total = unit_price * area_m2
 
@@ -352,6 +442,7 @@ def estimate(
         factors=factors,
         scenarios=scenarios,
         development=development,
+        comparables=comparable_summary,
         share_pct=share_pct if has_share else None,
         share_value=nice_round(total * share_pct / 100) if has_share else None,
     )

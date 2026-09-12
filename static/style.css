@@ -501,3 +501,20 @@ button, input, select { font: inherit; color: inherit; }
   .breakdown summary { break-after: avoid; } /* döküm sayfalar arasında bölünebilir, başlığı yalnız kalmaz */
   .print-sketch text { fill: var(--muted); font-size: 9px; }
 }
+
+
+/* ---------- Emsaller ---------- */
+
+.comparables { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); }
+.comparables-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.comparables-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.comparables-note { margin: 0; font-size: 12px; color: var(--muted); }
+.comparable-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.comparable-form .field:nth-of-type(3), .comparable-form button { grid-column: span 2; }
+.comparable-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.comparable-list:empty { display: none; }
+.comparable { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--surface-2); border-radius: 9px; }
+.comparable-text { display: grid; font-variant-numeric: tabular-nums; }
+.comparable-text b { font-size: 14px; }
+.comparable-text span { font-size: 12px; color: var(--muted); }
+.comparable-summary { margin: 0; padding: 8px 12px; background: var(--brand-soft); border-radius: 9px; font-size: 13px; color: var(--brand); }

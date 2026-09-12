@@ -198,6 +198,31 @@
             <ul id="scenarioList"></ul>
           </section>
 
+          <section class="comparables" id="comparables" aria-labelledby="comparablesTitle">
+            <div class="comparables-head">
+              <h3 id="comparablesTitle">Emsaller</h3>
+              <button class="link-button" id="btnComparableCsv" type="button" hidden>CSV indir</button>
+            </div>
+            <p class="comparables-note">Yakında gördüğünüz ilanları ya da bildiğiniz satışları ekleyin; değer emsallere göre düzeltilir. Emsaller yalnızca bu tarayıcıda saklanır, sunucuya gönderilmez.</p>
+            <form class="comparable-form" id="comparableForm" novalidate>
+              <label class="field"><span>Fiyat (TL)</span>
+                <input id="cmpPrice" type="text" inputmode="numeric" autocomplete="off" placeholder="2.500.000">
+              </label>
+              <label class="field"><span>Alan (m²)</span>
+                <input id="cmpArea" type="text" inputmode="numeric" autocomplete="off" placeholder="1.000">
+              </label>
+              <label class="field"><span>Tür</span>
+                <select id="cmpKind">
+                  <option value="ilan">İlan fiyatı</option>
+                  <option value="satis">Gerçekleşen satış</option>
+                </select>
+              </label>
+              <button class="btn btn-ghost" type="submit">Ekle</button>
+            </form>
+            <ul class="comparable-list" id="comparableList"></ul>
+            <p class="comparable-summary" id="comparableSummary" hidden></p>
+          </section>
+
           <section class="analysis" id="analysis" aria-labelledby="analysisTitle" hidden>
             <div class="analysis-head">
               <h3 id="analysisTitle">Bölge analizi</h3>

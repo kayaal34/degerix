@@ -76,6 +76,11 @@ class Parameters:
     # Yalnızca kalibrasyonda kullanılır: ilan fiyatları bu oranda indirilerek karşılaştırılır.
     asking_discount: float = 0.12
 
+    # Kullanıcının girdiği emsallerin sonuca etkisi: her emsal için ağırlık ve üst sınır.
+    # Model tamamen devre dışı kalmaz; birkaç emsal yanlışsa sonucu tek başına belirlemesin.
+    comparable_weight_per_record: float = 0.20
+    comparable_weight_cap: float = 0.60
+
     source: str = "varsayılan"
 
 

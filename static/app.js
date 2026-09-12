@@ -30,7 +30,8 @@ const state = {
   zonedUsages: new Set(),   // emsal ve köşe parsel sorulan (imarlı) imar durumları
   analysisProvince: null,   // bölge analizi gösterilen il
   basemapChosen: false,     // kullanıcı altlığı kendisi seçtiyse parsel seçiminde değiştirilmez
-  calculated: false,        // "Değeri hesapla"ya basıldı mı; basılana kadar fiyat istenmez
+  calculated: false,
+  comparables: [],          // kullanıcının girdiği emsaller; yalnızca tarayıcıda saklanır        // "Değeri hesapla"ya basıldı mı; basılana kadar fiyat istenmez
   prewarmedParcel: null,    // çevre ölçümleri arka planda hazırlanan parsel
   lastResult: null,         // ekrandaki son tahmin; rapor ve karşılaştırma bunu kullanır
   presetAnswers: null,      // paylaşılan bağlantıdan gelen yanıtlar; parsel yüklenince uygulanır
@@ -273,6 +274,7 @@ function showParcel(parcel, point, fit) {
 
   // Sorular parsele özgüdür; yeni parselde baştan başlanır
   resetQuestions();
+  loadComparables(parcel);
   $("#inpArea").value = parcel.area_m2 ? Math.round(parcel.area_m2) : 500;
   $("#selUsage").value = parcel.usage;
   if (state.presetAnswers) {
@@ -438,6 +440,7 @@ function postEstimate(parcel, inputs) {
       view: inputs.view,
       corner: inputs.corner,
       irrigation: inputs.irrigation,
+      comparables: state.comparables.map(({ price_tl, area_m2, kind }) => ({ price_tl, area_m2, kind })),
     }),
   });
 }
@@ -510,6 +513,8 @@ function renderEstimate(result, parcel) {
       return row;
     }),
   );
+
+  renderComparableSummary(result.comparables);
 
   const housing = result.housing;
   const rows = [
@@ -847,6 +852,123 @@ function drawSparkline(points) {
   svg.setAttribute("aria-label", `Konut fiyat endeksi, ${points[0].period} – ${points.at(-1).period}`);
   svg.toggleAttribute("hidden", false);
 }
+
+/* ---------- Emsaller ---------- */
+
+const COMPARABLE_KEY = "degerix-comparables";
+
+// "2.500.000" ve "2500000" kabul edilir; ondalık ayırıcı virgüldür
+function parseAmount(text) {
+  const cleaned = text.replace(/[^\d.,]/g, "");
+  if (!cleaned) return NaN;
+  const lastComma = cleaned.lastIndexOf(",");
+  if (lastComma === -1) return Number(cleaned.replace(/\./g, ""));
+  return Number(cleaned.slice(0, lastComma).replace(/[.,]/g, "") + "." + cleaned.slice(lastComma + 1));
+}
+
+function comparableKey(parcel) {
+  return `${parcel.lat.toFixed(5)},${parcel.lng.toFixed(5)}`;
+}
+
+function readComparableStore() {
+  try {
+    return JSON.parse(localStorage.getItem(COMPARABLE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveComparables() {
+  if (!state.parcel) return;
+  const store = readComparableStore();
+  if (state.comparables.length) store[comparableKey(state.parcel)] = state.comparables;
+  else delete store[comparableKey(state.parcel)];
+  try {
+    localStorage.setItem(COMPARABLE_KEY, JSON.stringify(store));
+  } catch {
+    // depolama kapalıysa emsaller yalnızca bu oturumda geçerli olur
+  }
+}
+
+function loadComparables(parcel) {
+  state.comparables = readComparableStore()[comparableKey(parcel)] || [];
+  renderComparables();
+}
+
+function renderComparables() {
+  $("#comparableList").replaceChildren(
+    ...state.comparables.map((comparable, index) => {
+      const item = el("li", "comparable");
+      const text = el("div", "comparable-text");
+      text.append(
+        el("b", "", `${money.format(Math.round(comparable.price_tl / comparable.area_m2))}/m²`),
+        el("span", "", `${money.format(comparable.price_tl)} · ${integer.format(comparable.area_m2)} m² · ${comparable.kind === "ilan" ? "ilan" : "satış"}`),
+      );
+      const remove = el("button", "link-button", "Çıkar");
+      remove.type = "button";
+      remove.addEventListener("click", () => {
+        state.comparables.splice(index, 1);
+        saveComparables();
+        renderComparables();
+        runEstimate();
+      });
+      item.append(text, remove);
+      return item;
+    }),
+  );
+  $("#btnComparableCsv").hidden = state.comparables.length === 0;
+  if (state.comparables.length === 0) $("#comparableSummary").hidden = true;
+}
+
+function renderComparableSummary(summary) {
+  const box = $("#comparableSummary");
+  box.hidden = !summary;
+  if (!summary) return;
+  box.textContent =
+    `${summary.count} emsalin ortancası ${money.format(summary.market_unit_price)}/m² · ` +
+    `modelin değeri ${money.format(summary.model_unit_price)}/m² · ` +
+    `sonuç %${Math.round(summary.weight * 100)} ağırlıkla emsallere göre düzeltildi`;
+}
+
+$("#comparableForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!state.parcel) return;
+  const price = parseAmount($("#cmpPrice").value);
+  const area = parseAmount($("#cmpArea").value);
+  if (!(price > 0) || !(area > 0)) {
+    showAlert("Emsal için geçerli bir fiyat ve alan girin.");
+    return;
+  }
+  if (state.comparables.length >= 10) {
+    showAlert("En fazla 10 emsal eklenebilir.");
+    return;
+  }
+  state.comparables.push({ price_tl: price, area_m2: area, kind: $("#cmpKind").value });
+  saveComparables();
+  renderComparables();
+  $("#cmpPrice").value = "";
+  $("#cmpArea").value = "";
+  hideAlert();
+  runEstimate();
+});
+
+// Kalibrasyon betiğinin beklediği sütunlarla dışa aktarır
+$("#btnComparableCsv").addEventListener("click", () => {
+  const parcel = state.parcel;
+  if (!parcel || state.comparables.length === 0) return;
+  const header = "il,ilce,mahalle,lat,lng,alan_m2,imar,deger_tl,deger_turu,not";
+  const rows = state.comparables.map((comparable) => [
+    parcel.province, parcel.district, parcel.neighborhood || "", parcel.lat, parcel.lng,
+    comparable.area_m2, $("#selUsage").value, comparable.price_tl, comparable.kind,
+    `${parcel.ada || ""} ada ${parcel.parsel || ""} parsel yakını`,
+  ].join(","));
+  const blob = new Blob(["﻿" + [header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
+  const link = el("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `degerix-emsaller-${parcel.ada || "parsel"}-${parcel.parsel || ""}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
 
 /* ---------- Paylaşım ---------- */
 
