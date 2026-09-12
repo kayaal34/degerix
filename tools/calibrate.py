@@ -140,7 +140,7 @@ def report(rows: list[tuple[dict, float, float, int]]) -> dict:
 async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Parameters, dict]:
     """Yerleşim katsayılarını kayıtlara göre düzeltir."""
     summary = {}
-    for _ in range(PASSES):
+    for pass_number in range(1, PASSES + 1):
         rows = await evaluate(records, parameters)
         summary = report(rows)
         by_class: dict[int, list[float]] = {}
