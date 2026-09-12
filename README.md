@@ -73,17 +73,34 @@ parselin bulunduğu yere indirger:
 | Seyrek kırsal | 0,42 | |
 | Çok seyrek kırsal | 0,36 | dağ köyleri, kırsal parseller |
 
+Izgara 1 km çözünürlükte olduğu için sınıf sınırlarında sertlik oluşmasın diye hücrenin
+katsayısı 2 km çevresindeki en kentsel sınıfla harmanlanır: köyün hemen kenarındaki parsel
+bomboş kırsalla aynı sayılmaz. Parsel **il merkezinin içindeyse** katsayı il ortalamasının
+(1,00) altına düşmez; TCMB'nin il fiyatı zaten ağırlıklı olarak o şehirden gelir.
+
 ### 2. İmarlı arsa: geliştirme (artık değer) yöntemi
 
 ```text
-hasılat = inşaat hakkı × satılabilir oran (0,80) × bölgedeki konut fiyatı
-maliyet = inşaat hakkı × Bakanlık yapı birim maliyeti
-arsa    = hasılat − maliyet − geliştirici payı (hasılatın %15'i)
+yeni konut fiyatı = bölgedeki konut fiyatı × yeni konut primi (1,20)
+hasılat           = inşaat hakkı × satılabilir oran (0,80) × yeni konut fiyatı
+maliyet           = inşaat hakkı × Bakanlık yapı birim maliyeti
+arsa              = hasılat − maliyet − geliştirici payı (hasılatın %15'i)
 ```
 
-İnşaat maliyeti, Çevre ve Şehircilik Bakanlığının 2026 tebliğinden gelir ve yapı
-yerleşime göre seçilir: köy evi **II-C (15.100 ₺/m²)**, apartman **III-A (19.800 ₺/m²)**,
-şehir merkezinde konut **III-B (21.050 ₺/m²)**, ticari **III-C (23.400 ₺/m²)**.
+TCMB'nin fiyatı tüm konut stokunun (eski + yeni) ortalamasıdır; müteahhit ise yeni daire
+satar ve yeni konut ortalamanın üstünde fiyatlanır. Bu fark **yeni konut primi** olarak
+hesaba girer.
+
+İnşaat maliyeti, Çevre ve Şehircilik Bakanlığının 2026 tebliğinden gelir. Yapı sınıfı
+hem yerleşime hem de **bölgedeki konut fiyatına** bakılarak seçilir: konutun 25.000 ₺/m²'ye
+satıldığı bir şehirde 21.000 ₺/m² maliyetli bina yapılmaz.
+
+| Bölgedeki konut fiyatı | Konut | Ticari |
+|---|---|---|
+| 55.000 ₺/m² ve üzeri | III-B (21.050 ₺/m²) | III-C (23.400 ₺/m²) |
+| 32.000 – 55.000 ₺/m² | III-A (19.800 ₺/m²) | III-B (21.050 ₺/m²) |
+| 32.000 ₺/m² altı | II-C (15.100 ₺/m²) | III-A (19.800 ₺/m²) |
+| Kırsal yerleşim (köy ve altı) | II-C, köy evi | III-A |
 
 **Hasılat maliyeti karşılamıyorsa** (köylerde çoğu zaman böyledir) geliştirme hesabı
 arsaya değer bırakmaz. O zaman değer "taban orandan" gelir: orada arsayı alan kişi
@@ -105,12 +122,14 @@ Bulunan m² değeri şu çarpanlarla düzeltilir:
 | Ana yola erişim | en yakın ana yola mesafe (OpenStreetMap) | 0,90 – 1,05 |
 | Çevre hizmetleri | 1 km içindeki okul, sağlık ve market noktası sayısı | 0,95 – 1,05 |
 | Eğim | parselin çevresindeki yükselti farkı (Open-Meteo, Copernicus) | 0,85 – 1,00 |
+| Merkeze yakınlık | yalnızca kırsalda: ilçe merkezine uzaklık | 1,00 – 1,20 |
 | Büyüklük | büyük parselde m² fiyatı düşer | 0,65 – 1,08 |
 | Tapu | hisseli tapuda ortaklık indirimi | 0,80 – 1,00 |
 | Yol cephesi | yola cephesi yoksa geçit hakkı gerekir | 0,75 – 1,00 |
 | Elektrik ve su | eksikse düşer; tarlada etkisi daha az | 0,85 – 1,00 |
 | Manzara / köşe parsel | yalnızca yanıtlanınca uygulanır | 1,00 – 1,12 |
 | Sulama (imarsız) | sulu arazi kuru araziden pahalıdır | 0,90 – 1,20 |
+| Emsaller | kullanıcının girdiği ilan/satışların ortancası; ağırlık emsal sayısıyla artar (%20 → %60) | emsale göre |
 
 **Değer aralığı ve güven:** her eksik bilgi aralığı genişletir — yerleşim bilgisi
 alınamaması, TCMB'nin o il için fiyat yayımlamaması, canlı veri yerine kopya
@@ -131,9 +150,10 @@ Model deterministiktir: aynı girdi her zaman aynı sonucu verir.
 |---|---|
 | Samsun konut m² fiyatı (TCMB) | ₺37.326 |
 | Yerleşim: çok seyrek kırsal (10 kişi/km²) | × 0,36 → ₺13.437 |
-| Geliştirme: 350 m² inşaat hakkı | hasılat ₺3,76M − maliyet ₺5,29M → **değer bırakmıyor** |
+| Geliştirme: 350 m² inşaat hakkı | hasılat maliyeti karşılamıyor → **değer bırakmıyor** |
 | Taban değer (konut fiyatının %1,8'i) | ₺242/m² |
-| **Sonuç** | **₺165.000** (₺236/m²) · aralık ₺144.000 – ₺187.000 |
+| Merkeze yakınlık (Yakakent 6,9 km) | × 1,10 |
+| **Sonuç** | **₺182.000** (₺260/m²) · aralık ₺158.000 – ₺206.000 |
 
 Aynı parselin ilan fiyatı 245.000 ₺ (350 ₺/m²). İlan, satıcının istediği fiyattır;
 tahminin bir miktar altında kalması beklenir.
@@ -144,8 +164,9 @@ tahminin bir miktar altında kalması beklenir.
 |---|---|
 | Muğla konut m² fiyatı (TCMB) | ₺82.290 |
 | Yerleşim: yoğun kentsel küme | × 0,85 → ₺69.947 |
-| Geliştirme: 561 m² inşaat hakkı (III-A) | hasılat ₺31,4M − maliyet ₺11,1M − pay ₺4,7M = ₺15,6M |
-| **Sonuç** | **₺15.700.000** (₺33.500/m²) · güven yüksek |
+| Yeni konut primi | × 1,20 → ₺83.936 |
+| Geliştirme: 561 m² inşaat hakkı (III-B) | hasılat ₺37,7M − maliyet ₺11,8M − pay ₺5,7M = ₺20,2M |
+| **Sonuç** | **₺20.300.000** (₺43.400/m²) · güven yüksek |
 
 > **Neyi biliyoruz, neyi varsayıyoruz:** konut fiyatları, inşaat maliyetleri, parsel
 > bilgileri ve nüfus verisi resmîdir. Yerleşim katsayıları, taban oranlar, arazi
@@ -254,7 +275,24 @@ ayarlanmaları planlanır:
 - `data/pilot/bursa.csv` — belediye ihaleleri, KAP değerleme raporları ve belediye birim değerleri gibi **kaynağı belli, kamuya açık** kayıtlar (depoda).
 - `data/private/` — ilan sitelerinden elle derlenen doğrulama kayıtları. **Git'e gönderilmez**; ham ilan verisi yeniden yayımlanmaz, kişisel veri tutulmaz. İlan fiyatı satış fiyatı olmadığı için ayrı bir pazarlık payı parametresiyle karşılaştırılır.
 
+Uygulamadaki **emsal girişi**, girilen emsalleri kalibrasyon betiğinin beklediği sütunlarla
+CSV olarak dışa aktarır; dosya doğrudan `data/private/` içine konabilir.
+
 Kalibrasyon sonucu yalnızca katsayı olarak (`app/static_data/calibration.json`) depoya girer.
+
+## Araçlar
+
+| Komut | Ne yapar |
+|---|---|
+| `python tools/sanity_check.py` | Örnek noktalarda modeli çalıştırır; şehir > çeper > kasaba > köy > kırsal gibi kuralları doğrular |
+| `python tools/province_sweep.py` | 81 il merkezinde aynı parseli hesaplar, uç değerleri ve taban orana düşen illeri işaretler |
+| `python tools/calibrate.py` | Gerçek kayıtlarla modelin hatasını ölçer; `--uygula` ile katsayıları yazar |
+| `python tools/build_urbanity.py` | WorldPop nüfus ızgarasından yerleşim sınıflarını üretir |
+| `python tools/build_settlements.py` | GeoNames'ten il/ilçe merkezi ve köy listesini üretir |
+| `python tools/build_housing_prices.py` | TCMB'den il konut fiyatlarının yedek kopyasını üretir |
+
+Veri hazırlama betikleri `requirements-dev.txt` gerektirir; uygulama çalışırken bunlara
+ihtiyaç duyulmaz. Üretilen dosyalar `app/static_data/` altında depoda durur.
 
 ## Testler
 
@@ -268,7 +306,10 @@ sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalış�
 - **Değerleme modeli:** geliştirme hesabının tutarlılığı, köy/şehir farkı, taban değere düşme, imarsız arazi, determinizm, güven düzeyleri
 - **Yerleşim verisi:** ızgara okuma, sınıflar, en yakın il/ilçe merkezi ve köy, Türkiye dışı noktalar
 - **Konut fiyatı:** canlı EVDS, kopyaya düşme, fiyat yayımlanmayan iller
-- **İnşaat maliyetleri:** yapı sınıfının kullanım ve yerleşime göre seçilmesi
+- **İnşaat maliyetleri:** yapı sınıfının kullanım, yerleşim ve konut fiyatı bandına göre seçilmesi
+- **Yerleşim katsayısı:** sınıf harmanlama, il merkezi kuralı, kırsalda merkeze yakınlık
+- **Emsaller:** pazarlık payı, büyüklük düzeltmesi, ağırlık sınırı, aralığın daralması
+- **Akıl sağlığı:** şehirden kırsala sıralama, konut > tarla, emsal arttıkça değerin artması
 - **Çevre ölçümleri:** kıyıya ve yola mesafe, katsayı sınırları, eksik ölçümler, önbellek, süre sınırı
 - **Bölge analizi:** 81 ilin seri eşleştirmesi, dönem hesapları, kısmi ve tam servis kesintisi
 - **API:** yedek akışlar, 404/422/502/503 yanıtları
