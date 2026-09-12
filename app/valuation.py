@@ -34,7 +34,7 @@ from .costs import construction_cost
 from .data import CORNER, DEED, IRRIGATION, ROAD, SALE_SCENARIOS, UNKNOWN, USAGE, UTILITIES, VIEW, fold
 from .model_params import Parameters, load as load_parameters
 from .surroundings import Surroundings, factor_rows
-from .urbanity import LOW_RURAL, Urbanity
+from .urbanity import LOW_RURAL, Urbanity, VILLAGE
 
 RURAL_USAGES = frozenset({"tarla", "bag_bahce", "zeytinlik"})
 
@@ -137,6 +137,35 @@ class Estimate:
     comparables: ComparableSummary | None = None
     share_pct: float | None = None
     share_value: int | None = None
+
+
+def blended_locality(urban: Urbanity | None, parameters: Parameters) -> float:
+    """Hücrenin kentsellik katsayısını çevresiyle harmanlar.
+
+    Kentsellik ızgarası 1 km çözünürlükte olduğu için köyün ya da kasabanın hemen
+    kenarındaki parsel "boş kırsal" hücresine düşebiliyor. Çevredeki en kentsel sınıf
+    daha yüksekse katsayı o yöne doğru bir miktar çekilir; böylece sınıf sınırlarında
+    değer uçurumu oluşmaz.
+    """
+    if urban is None:
+        return parameters.locality[LOW_RURAL]
+    cell = parameters.locality[urban.class_code]
+    nearby = parameters.locality.get(urban.nearby_class, cell)
+    if nearby <= cell:
+        return cell
+    return cell + (nearby - cell) * parameters.nearby_class_weight
+
+
+def centre_proximity(urban: Urbanity | None, parameters: Parameters) -> Factor | None:
+    """Kırsalda ilçe merkezine yakınlık; şehirde zaten yerleşim sınıfı bunu içerir."""
+    if urban is None or urban.class_code > VILLAGE or urban.district_centre is None:
+        return None
+    distance_km = urban.district_centre.distance_km
+    multiplier = 1 + parameters.rural_centre_bonus * math.exp(-distance_km / parameters.rural_centre_decay_km)
+    return Factor(
+        "centre", "Merkeze yakınlık", round(multiplier, 3),
+        f"{urban.district_centre.name} merkezine {_decimal(distance_km)} km",
+    )
 
 
 def adjusted_comparable_price(comparable: Comparable, area_m2: float, parameters: Parameters) -> float:
@@ -305,7 +334,7 @@ def estimate(
     if not housing.live:
         spread += 0.03
 
-    locality = parameters.locality[class_code]
+    locality = blended_locality(urban, parameters)
     local_housing_price = housing.value * locality
     zoned = usage not in RURAL_USAGES
     development: Development | None = None
@@ -350,6 +379,10 @@ def estimate(
 
     if surroundings is not None:
         factors.extend(Factor(*row) for row in factor_rows(surroundings))
+
+    proximity = centre_proximity(urban, parameters)
+    if proximity is not None:
+        factors.append(proximity)
 
     factors.append(Factor("size", "Büyüklük", round(size_multiplier(area_m2), 3), f"{_thousands(area_m2)} m² parsel"))
 

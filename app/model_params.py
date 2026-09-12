@@ -76,6 +76,15 @@ class Parameters:
     # Yalnızca kalibrasyonda kullanılır: ilan fiyatları bu oranda indirilerek karşılaştırılır.
     asking_discount: float = 0.12
 
+    # Hücrenin sınıfı ile 2 km çevresindeki en kentsel sınıfın harmanlanma ağırlığı.
+    # Köyün kenarındaki parsel bomboş kırsalla aynı sayılmasın diye geçiş kademeli olur.
+    nearby_class_weight: float = 0.25
+
+    # Kırsalda ilçe merkezine yakınlık: merkezin dibinde en çok bu kadar prim,
+    # uzaklaştıkça bu mesafede yarılanarak sönümlenir.
+    rural_centre_bonus: float = 0.20
+    rural_centre_decay_km: float = 10.0
+
     # Kullanıcının girdiği emsallerin sonuca etkisi: her emsal için ağırlık ve üst sınır.
     # Model tamamen devre dışı kalmaz; birkaç emsal yanlışsa sonucu tek başına belirlemesin.
     comparable_weight_per_record: float = 0.20
