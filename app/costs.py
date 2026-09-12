@@ -12,7 +12,7 @@ Tebliğ her yıl ocak ayında yenilenir; güncellemek için YEAR ve tablo değer
 yeni tebliğe göre değiştirmek yeterlidir.
 """
 
-from .urbanity import DENSE_CLUSTER, SUBURBAN, TOWN, URBAN_CENTRE
+from .urbanity import VILLAGE
 
 YEAR = 2026
 SOURCE = "Çevre ve Şehircilik Bakanlığı 2026 yapı yaklaşık birim maliyetleri (RG 3/2/2026, 33157)"
@@ -36,24 +36,33 @@ CLASS_DESCRIPTIONS: dict[str, str] = {
 }
 
 
-def construction_class(usage: str, class_code: int) -> str:
-    """Kullanım türü ve yerleşim sınıfına göre tebliğdeki yapı sınıfı.
+# Bölgedeki konut fiyatına göre yapı sınıfı eşikleri (TL/m²).
+# Konutun 25.000 TL/m²'ye satıldığı bir şehirde 21.000 TL/m² maliyetli bina yapılmaz;
+# oralarda daha mütevazı yapı sınıfları yaygındır.
+HOUSING_PRICE_BANDS: list[tuple[int, str, str]] = [
+    (55_000, "III-B", "III-C"),   # (konut fiyatı eşiği, konut sınıfı, ticari sınıf)
+    (32_000, "III-A", "III-B"),
+    (0, "II-C", "III-A"),
+]
 
-    Köyde iki katlı müstakil ev ile şehir merkezinde apartman aynı maliyete
-    yapılmadığı için yerleşim sınıfı da hesaba katılır.
+
+def construction_class(usage: str, class_code: int, housing_price: float) -> str:
+    """Tebliğdeki yapı sınıfı: kullanım türü, yerleşim ve bölgedeki konut fiyatına göre.
+
+    Köydeki iki katlı ev ile şehir merkezindeki apartman aynı maliyete yapılmaz;
+    aynı şekilde konutun ucuz olduğu bir şehirde de pahalı bir yapı sınıfı seçilmez.
     """
-    if usage == "ticari":
-        return "III-C" if class_code == URBAN_CENTRE else "III-B"
     if usage == "sanayi":
         return "II-C"
-    if class_code == URBAN_CENTRE:
-        return "III-B"
-    if class_code in (DENSE_CLUSTER, TOWN, SUBURBAN):
-        return "III-A"
-    return "II-C"  # kırsal yerleşim: köy evi
+    if class_code <= VILLAGE:
+        return "III-A" if usage == "ticari" else "II-C"  # kırsal yerleşim
+    for threshold, residential_class, commercial_class in HOUSING_PRICE_BANDS:
+        if housing_price >= threshold:
+            return commercial_class if usage == "ticari" else residential_class
+    raise ValueError("Yapı sınıfı eşikleri hatalı: sıfır eşiği bulunamadı.")
 
 
-def construction_cost(usage: str, class_code: int) -> tuple[str, int]:
+def construction_cost(usage: str, class_code: int, housing_price: float) -> tuple[str, int]:
     """(yapı sınıfı, TL/m²)"""
-    building_class = construction_class(usage, class_code)
+    building_class = construction_class(usage, class_code, housing_price)
     return building_class, BUILDING_COSTS[building_class]

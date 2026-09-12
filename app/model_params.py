@@ -59,6 +59,10 @@ class Parameters:
     # İmarsız arazide arsa değeri: konut m² fiyatının oranı
     farmland_ratio: dict[int, float] = field(default_factory=lambda: _by_class(0.030, 0.020, 0.015, 0.020, 0.012, 0.008, 0.006))
 
+    # TCMB'nin konut fiyatı tüm stokun (eski + yeni) ortalamasıdır; müteahhit ise
+    # yeni daire satar ve yeni konut ortalamanın üstünde fiyatlanır.
+    new_build_premium: float = 1.20
+
     # Brüt inşaat alanının satılabilir kısmı (ortak alanlar düşülür)
     sellable_ratio: float = 0.80
 

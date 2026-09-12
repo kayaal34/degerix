@@ -1,7 +1,12 @@
 import pytest
 
 from app import urbanity
-from app.costs import BUILDING_COSTS, CLASS_DESCRIPTIONS, construction_cost
+from app.costs import BUILDING_COSTS, CLASS_DESCRIPTIONS, HOUSING_PRICE_BANDS, construction_cost
+
+CITY = urbanity.URBAN_CENTRE
+TOWN = urbanity.TOWN
+VILLAGE = urbanity.VILLAGE
+COUNTRYSIDE = urbanity.VERY_LOW_RURAL
 
 
 def test_cost_table_matches_the_official_tebligh():
@@ -16,23 +21,38 @@ def test_cost_table_matches_the_official_tebligh():
 
 
 @pytest.mark.parametrize(
-    ("usage", "class_code", "expected"),
+    ("usage", "class_code", "housing_price", "expected"),
     [
-        ("konut", urbanity.URBAN_CENTRE, ("III-B", 21_050)),
-        ("konut", urbanity.TOWN, ("III-A", 19_800)),
-        ("konut", urbanity.SUBURBAN, ("III-A", 19_800)),
-        ("konut", urbanity.VILLAGE, ("II-C", 15_100)),
-        ("konut", urbanity.VERY_LOW_RURAL, ("II-C", 15_100)),
-        ("ticari", urbanity.URBAN_CENTRE, ("III-C", 23_400)),
-        ("ticari", urbanity.TOWN, ("III-B", 21_050)),
-        ("sanayi", urbanity.URBAN_CENTRE, ("II-C", 15_100)),
+        ("konut", CITY, 90_000, ("III-B", 21_050)),        # konutun pahalı olduğu şehir
+        ("konut", CITY, 45_000, ("III-A", 19_800)),        # orta ölçekli şehir
+        ("konut", CITY, 25_000, ("II-C", 15_100)),         # konutun ucuz olduğu şehir
+        ("konut", TOWN, 40_000, ("III-A", 19_800)),
+        ("konut", VILLAGE, 40_000, ("II-C", 15_100)),      # kırsalda köy evi
+        ("konut", COUNTRYSIDE, 90_000, ("II-C", 15_100)),  # pahalı bölgede bile kırsal yapı
+        ("ticari", CITY, 90_000, ("III-C", 23_400)),
+        ("ticari", CITY, 40_000, ("III-B", 21_050)),
+        ("ticari", VILLAGE, 90_000, ("III-A", 19_800)),
+        ("sanayi", CITY, 90_000, ("II-C", 15_100)),
     ],
 )
-def test_construction_cost_depends_on_usage_and_settlement(usage, class_code, expected):
-    assert construction_cost(usage, class_code) == expected
+def test_construction_cost_depends_on_usage_settlement_and_housing_price(usage, class_code, housing_price, expected):
+    assert construction_cost(usage, class_code, housing_price) == expected
+
+
+def test_cheaper_cities_build_cheaper():
+    _, cheap = construction_cost("konut", CITY, 24_000)
+    _, middle = construction_cost("konut", CITY, 45_000)
+    _, expensive = construction_cost("konut", CITY, 90_000)
+    assert cheap < middle < expensive
 
 
 def test_village_house_is_cheaper_to_build_than_a_city_flat():
-    _, village = construction_cost("konut", urbanity.VERY_LOW_RURAL)
-    _, city = construction_cost("konut", urbanity.URBAN_CENTRE)
+    _, village = construction_cost("konut", COUNTRYSIDE, 60_000)
+    _, city = construction_cost("konut", CITY, 60_000)
     assert village < city
+
+
+def test_price_bands_run_from_expensive_to_cheap_and_cover_everything():
+    thresholds = [threshold for threshold, *_ in HOUSING_PRICE_BANDS]
+    assert thresholds == sorted(thresholds, reverse=True)
+    assert thresholds[-1] == 0  # en alt bant her fiyatı karşılar

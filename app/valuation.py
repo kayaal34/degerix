@@ -259,10 +259,10 @@ def develop(
     effective_kaks = kaks if kaks is not None else parameters.default_kaks[class_code]
     buildable = area_m2 * effective_kaks
     sellable = buildable * parameters.sellable_ratio
-    sale_price = local_housing_price * parameters.usage_price_ratio.get(usage, 1.0)
+    sale_price = local_housing_price * parameters.usage_price_ratio.get(usage, 1.0) * parameters.new_build_premium
     revenue = sellable * sale_price
 
-    building_class, cost_per_m2 = construction_cost(usage, class_code)
+    building_class, cost_per_m2 = construction_cost(usage, class_code, local_housing_price)
     cost = buildable * cost_per_m2
     developer_share = revenue * parameters.developer_margin
     land_value = revenue - cost - developer_share

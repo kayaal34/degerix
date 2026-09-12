@@ -48,7 +48,9 @@ def test_city_parcel_is_valued_with_the_development_method():
     assert result.basis == "gelistirme"
     assert development.buildable_m2 == 1500
     assert development.sellable_m2 == 1200
-    assert development.construction_cost == BUILDING_COSTS["III-B"]
+    assert development.construction_cost == BUILDING_COSTS["III-A"]  # Bursa fiyat bandı
+    # Müteahhit yeni daire satar; hasılat il ortalamasının üstünden hesaplanır
+    assert development.housing_price > BURSA.value
     assert development.revenue == pytest.approx(development.sellable_m2 * development.housing_price, rel=0.01)
     assert development.land_value == pytest.approx(
         development.revenue - development.cost - development.developer_share, rel=0.01
