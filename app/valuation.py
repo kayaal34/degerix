@@ -151,9 +151,12 @@ def blended_locality(urban: Urbanity | None, parameters: Parameters) -> float:
         return parameters.locality[LOW_RURAL]
     cell = parameters.locality[urban.class_code]
     nearby = parameters.locality.get(urban.nearby_class, cell)
-    if nearby <= cell:
-        return cell
-    return cell + (nearby - cell) * parameters.nearby_class_weight
+    blended = cell if nearby <= cell else cell + (nearby - cell) * parameters.nearby_class_weight
+
+    centre = urban.province_centre
+    if centre is not None and centre.distance_km <= parameters.province_centre_radius_km:
+        blended = max(blended, parameters.province_centre_locality)
+    return blended
 
 
 def centre_proximity(urban: Urbanity | None, parameters: Parameters) -> Factor | None:

@@ -67,3 +67,22 @@ def test_city_parcels_have_no_proximity_row(class_code):
     housing = snapshot_price("Bursa")
     result = estimate(area_m2=1000.0, usage="konut", housing=housing, urban=urban(class_code), kaks=1.0)
     assert not any(factor.key == "centre" for factor in result.factors)
+
+
+def test_province_centre_is_never_valued_below_the_provincial_average():
+    # Küçük illerin merkezi nüfus ızgarasında "kasaba" görünebiliyor; oysa TCMB'nin
+    # il konut fiyatı zaten ağırlıklı olarak o şehirden geliyor.
+    centre = Urbanity(
+        class_code=TOWN, label="kasaba", density=900.0, nearby_class=TOWN,
+        province_centre=Place(name="Şırnak", code="PPLA", population=90_000, distance_km=1.5),
+        district_centre=Place(name="Şırnak", code="PPLA2", population=90_000, distance_km=1.5),
+        settlement=Place(name="Şırnak", code="PPLA", population=90_000, distance_km=1.5),
+    )
+    outskirts = Urbanity(**(vars(centre) | {
+        "province_centre": Place(name="Şırnak", code="PPLA", population=90_000, distance_km=45.0),
+        "district_centre": Place(name="İdil", code="PPLA2", population=25_000, distance_km=20.0),
+    }))
+
+    assert blended_locality(centre, DEFAULTS) == DEFAULTS.province_centre_locality
+    assert blended_locality(outskirts, DEFAULTS) == DEFAULTS.locality[TOWN]
+    assert blended_locality(centre, DEFAULTS) > blended_locality(outskirts, DEFAULTS)

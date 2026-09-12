@@ -84,6 +84,12 @@ class Parameters:
     # Köyün kenarındaki parsel bomboş kırsalla aynı sayılmasın diye geçiş kademeli olur.
     nearby_class_weight: float = 0.25
 
+    # İl merkezinin içindeki parsel: TCMB'nin il konut fiyatı zaten ağırlıklı olarak
+    # bu şehirden geldiği için katsayı il ortalamasının altına düşürülmez. Küçük illerde
+    # merkez, nüfus yoğunluğu düşük olduğu için ızgarada "kasaba" görünebiliyor.
+    province_centre_locality: float = 1.00
+    province_centre_radius_km: float = 6.0
+
     # Kırsalda ilçe merkezine yakınlık: merkezin dibinde en çok bu kadar prim,
     # uzaklaştıkça bu mesafede yarılanarak sönümlenir.
     rural_centre_bonus: float = 0.20
