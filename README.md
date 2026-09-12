@@ -168,6 +168,19 @@ tahminin bir miktar altında kalması beklenir.
 | Geliştirme: 561 m² inşaat hakkı (III-B) | hasılat ₺37,7M − maliyet ₺11,8M − pay ₺5,7M = ₺20,2M |
 | **Sonuç** | **₺20.300.000** (₺43.400/m²) · güven yüksek |
 
+### Modelin hassas noktası
+
+Geliştirme yöntemi bir **fark** hesabıdır: hasılattan maliyet düşülür. Bu yüzden
+girdilerdeki küçük değişim sonucu büyütür — hasılat %20 artarsa, maliyet sabitken
+arsaya kalan tutar iki katına çıkabilir. Model bu nedenle üç noktada temkinli davranır:
+
+- Yeni konut primi, satılabilir oran ve geliştirici payı ayrı ayrı parametredir; hepsi kalibre edilebilir.
+- Arsa payı hasılatın %45'ini aşamaz (kat karşılığı uygulamasında arsa payı tipik olarak %20-40'tır).
+- Hasılat maliyeti karşılamıyorsa değer sıfıra gitmez, taban orandan hesaplanır.
+
+Yine de mutlak seviye, gerçek satış verisiyle kalibre edilene kadar bir tahmindir;
+modelin iç tutarlılığı testlerle, ülke geneli davranışı `tools/province_sweep.py` ile denetlenir.
+
 > **Neyi biliyoruz, neyi varsayıyoruz:** konut fiyatları, inşaat maliyetleri, parsel
 > bilgileri ve nüfus verisi resmîdir. Yerleşim katsayıları, taban oranlar, arazi
 > oranları ve geliştirici payı ise başlangıç varsayımıdır; `app/model_params.py`
