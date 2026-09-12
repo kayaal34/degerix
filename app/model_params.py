@@ -66,6 +66,11 @@ class Parameters:
     # Brüt inşaat alanının satılabilir kısmı (ortak alanlar düşülür)
     sellable_ratio: float = 0.80
 
+    # Arsanın, yapılacak projenin hasılatından alabileceği en yüksek pay.
+    # Geliştirme hesabı bir fark hesabı olduğu için pahalı piyasalarda arsaya
+    # gerçekçi olmayan paylar düşebiliyor; sektörde tipik pay hasılatın %20-40'ıdır.
+    max_land_share: float = 0.45
+
     # Müteahhidin riski ve finansman yükü; hasılatın oranı olarak düşülür.
     # Bakanlık birim maliyetleri zaten %15 genel gider ve %10 yüklenici kârı içeriyor.
     developer_margin: float = 0.15

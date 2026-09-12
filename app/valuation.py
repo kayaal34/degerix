@@ -106,6 +106,7 @@ class Development:
     developer_share: int
     land_value: int              # artık değer (negatifse 0)
     viable: bool                 # geliştirme hesabı arsaya değer bırakıyor mu
+    capped: bool = False         # arsa payı üst sınırına takıldı mı
 
 
 @dataclass(frozen=True)
@@ -270,6 +271,12 @@ def develop(
     developer_share = revenue * parameters.developer_margin
     land_value = revenue - cost - developer_share
 
+    # Geliştirme bir fark hesabıdır; pahalı piyasalarda arsaya hasılatın yarısından
+    # fazlası düşebiliyor. Sektörde arsa payı tipik olarak hasılatın %20-40'ıdır.
+    ceiling = revenue * parameters.max_land_share
+    capped = land_value > ceiling
+    land_value = min(land_value, ceiling)
+
     return Development(
         kaks=round(effective_kaks, 2),
         kaks_assumed=kaks is None,
@@ -283,6 +290,7 @@ def develop(
         developer_share=round(developer_share),
         land_value=max(round(land_value), 0),
         viable=land_value > 0,
+        capped=capped,
     )
 
 
@@ -357,6 +365,8 @@ def estimate(
                 f"{_thousands(development.buildable_m2)} m² inşaat hakkı · "
                 f"hasılat {_money(development.revenue)} − maliyet {_money(development.cost)} "
                 f"({development.construction_class}) − geliştirici payı {_money(development.developer_share)}"
+                + (f" · arsa payı hasılatın %{round(parameters.max_land_share * 100)}'i ile sınırlandı"
+                   if development.capped else "")
             )
         else:
             basis = "taban"

@@ -241,3 +241,22 @@ def test_every_usage_can_be_valued():
     for usage in USAGE:
         result = estimate(area_m2=1000, usage=usage, housing=BURSA, urban=place(urbanity.TOWN))
         assert result.total > 0
+
+
+def test_land_share_is_capped_in_expensive_markets():
+    # Geliştirme bir fark hesabıdır; pahalı piyasalarda arsaya hasılatın yarısından
+    # fazlası düşebiliyor. Sektörde tipik arsa payı hasılatın %20-40'ıdır.
+    expensive = HousingPrice(province="İstanbul", value=87_153, period="2026 2. çeyrek",
+                             source="test", live=True, estimated=False)
+    result = estimate(area_m2=1000, usage="konut", housing=expensive,
+                      urban=place(urbanity.URBAN_CENTRE), kaks=1.0)
+
+    assert result.development.capped is True
+    assert result.development.land_value <= result.development.revenue * DEFAULTS.max_land_share + 1
+    assert "sınırlandı" in result.base_detail
+
+
+def test_ordinary_markets_are_not_capped():
+    result = estimate(area_m2=1000, usage="konut", housing=BURSA,
+                      urban=place(urbanity.DENSE_CLUSTER), kaks=1.0)
+    assert result.development.capped is False
