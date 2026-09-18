@@ -10,6 +10,7 @@ Okunan kayıtlar:
 
 Beklenen sütunlar: il, lat, lng, alan_m2, imar, deger_tl, deger_turu
 İsteğe bağlı: emsal, tapu, yol, elektrik_su, manzara, kose, sulama, ilce, kaynak_url
+haric sütunu doluysa kayıt dosyada kalır ama ölçüme girmez (ör. yapili, spekulatif).
 
 deger_turu "ilan" ise, ilan fiyatı satış fiyatı olmadığı için model_params içindeki
 pazarlık payı kadar indirilerek karşılaştırılır.
@@ -58,6 +59,8 @@ def read_records() -> list[dict[str, str]]:
         for path in sorted(directory.glob("*.csv")) if directory.exists() else []:
             with path.open(encoding="utf-8-sig", newline="") as handle:
                 for row in csv.DictReader(handle):
+                    if (row.get("haric") or "").strip():
+                        continue
                     if row.get("deger_tl") and row.get("lat") and row.get("il"):
                         row["_kaynak"] = path.name
                         records.append(row)
