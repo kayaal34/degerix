@@ -21,3 +21,12 @@ Sonraki aşama: ek belediyeler için ayrı tablo adaptörleri, TKGM ile kesin
 ada/parsel eşleşmesinden koordinat tamamlama ve tarih uyumlu fiyat verisi.
 Eğitim/doğrulama ayrımı parsel bazında yapılmalı; muhammen bedel, ekspertiz ve
 gerçek satış sonuçları ayrı raporlanmalı. Bu ilk 9 kayıt modeli eğitmek için yeterli değildir.
+
+## TKGM koordinat tamamlama
+
+`python tools/enrich_auction_locations.py data/source/orhaneli_review.csv --output data/source/orhaneli_enriched.csv`
+
+İl/ilçe/mahalle adları tekil eşleşirse ada/parsel sorgulanır. Alan farkı %5'i
+aşarsa koordinat yazılmaz. `300 Evler` gibi farklı yazımlar tahminle eşleştirilmez.
+Sonuç geometrinin merkezidir; imar veya değerleme tarihi doğrulaması değildir.
+Eşleşmeyen kayıtların nedeni `konum_durumu` sütununa yazılır.
