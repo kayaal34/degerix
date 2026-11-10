@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
+from urllib.parse import urljoin, urlparse, parse_qs
 from tools.collect_auctions import Tables
 from app.tkgm import parse_area
 
@@ -12,18 +13,36 @@ URL = 'https://www.turkiye.gov.tr/csb-tasinmaz-satis-ilanlari-ihaleye-cikanlar?s
 OUTPUT = Path(__file__).resolve().parents[1] / 'data/source/treasury_review.csv'
 
 
+class ListingTables(Tables):
+    """Detay bağlantısını satırla birlikte koru; sıra numarasıyla birleştirme."""
+    def handle_starttag(self, tag, attrs):
+        super().handle_starttag(tag, attrs)
+        if tag == 'tr':
+            self.detail = ''
+        if tag == 'a' and self.row is not None:
+            candidate = urljoin(URL, dict(attrs).get('href', ''))
+            parsed = urlparse(candidate)
+            if parsed.netloc == 'www.turkiye.gov.tr' and parse_qs(parsed.query).get('detay') == ['bilgisi']:
+                self.detail = candidate
+
+    def handle_endtag(self, tag):
+        if tag == 'tr' and self.row is not None and len(self.row) == 9:
+            self.row[-1] = self.detail
+        super().handle_endtag(tag)
+
+
 def extract(html):
-    parser = Tables()
+    parser = ListingTables()
     parser.feed(html)
     records = []
     for cells in parser.rows:
         if len(cells) != 9 or cells[0] not in ('Arsa', 'Arazi', 'Tarla', 'Bağ-Bahçe'):
             continue
-        kind, _, zoning, province, district, neighborhood, area, price, _ = cells
+        kind, _, zoning, province, district, neighborhood, area, price, detail = cells
         records.append(dict(il=province, ilce=district, mahalle=neighborhood,
                             nitelik=kind, kaynak_imar=zoning, alan_m2=parse_area(area) or '',
                             deger_tl=parse_area(price) or '', deger_turu='ihale_ilan_fiyati',
-                            lat='', lng='', imar='', tarih='', kaynak_url=URL,
+                            lat='', lng='', imar='', tarih='', kaynak_url=URL, detay_url=detail,
                             durum='detay_ve_fiyat_turu_dogrulanmali'))
     if not records:
         raise ValueError('Kamuya açık tabloda kayıt bulunamadı; çıktı yazılmadı')

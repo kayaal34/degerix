@@ -49,3 +49,12 @@ azalırsa dosyayı değiştirmez. Son rapor son katsayıları yeniden ölçer.
 Güncel konut fiyatı kopyası kullanıldığı için eski satışları tarih düzeltmesi
 yapmadan karıştırmayın. Bu sürüm tarihsel fiyat normalizasyonu sağlamaz.
 İlk toplanan 29 ihale inceleme kaydı bu nedenle eğitim klasörlerine taşınmadı.
+
+## Veri hazırlık raporu
+
+`python -m tools.audit_training_data data/source/orhaneli_enriched.csv data/source/treasury_review.csv --output data/source/training_readiness.json`
+
+Rapor toplam kayıtları, eğitim adaylarını ve eksik alan sayılarını verir.
+Aynı kaynak dosyasının farklı sürümlerini birlikte vermeyin; inceleme raporu
+parsel tekilleştirmesi yapmaz. Hazine çıktısında artık satıra ait `detay_url`
+bulunur. Detay servisi teknik hata döndürüyorsa boş alanlar tahminle doldurulmaz.
