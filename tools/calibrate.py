@@ -18,6 +18,10 @@ pazarlık payı kadar indirilerek karşılaştırılır.
 Yöntem: her yerleşim sınıfı için modelin sistematik sapması ölçülür ve o sınıfın
 katsayısı sapmanın ortancasıyla düzeltilir (üç geçiş). Az kayıtlı sınıflara
 dokunulmaz; böylece birkaç ilan yüzünden katsayılar savrulmaz.
+
+İmarlı ve imarsız kayıtlar ayrı katsayıları besler: imarlı arsa yerleşim katsayısını
+(locality), imarsız arazi ise arazi oranını (farmland_ratio) ayarlar. İkisi tek
+katsayıdan ayarlansaydı tarlayı düzeltmek imarlı arsayı bozardı.
 """
 
 import argparse
@@ -44,8 +48,22 @@ PILOT_DIR = ROOT / "data" / "pilot"
 PRIVATE_DIR = ROOT / "data" / "private"
 
 MIN_RECORDS_PER_CLASS = 5   # bu sayının altındaki sınıfın katsayısına dokunulmaz
-MAX_ADJUSTMENT = 2.0        # katsayı en fazla iki katına çıkar ya da yarıya iner
 PASSES = 3
+
+# Ölçülen sapma katsayıya olduğu gibi yazılmaz, varsayılana doğru büzülür.
+# İki gerekçe: az kayıt gürültülüdür ve tek bölgeden gelen kayıt ülkeye genellenemez.
+# Marmara ovasındaki tarla ilanlarına bakıp Erzurum'un tarlasını pahalılandırmayalım.
+PRIOR_STRENGTH = 10         # bu kadar kayıt, varsayılanla yarı yarıya ağırlık demek
+PROVINCE_TARGET = 5         # tam güven için gereken farklı il sayısı
+
+# Ayarlanan katsayılar: (alan adı, varsayılandan en çok kaç kat sapabilir).
+# locality'nin bandı dar: TCMB'nin il konut fiyatı ölçülmüş bir veridir, yerleşim
+# katsayısı onun üstüne küçük bir düzeltmedir. farmland_ratio ise veriye dayanmayan
+# bir ilk tahmindi, o yüzden daha geniş bir bantta ayarlanabilir.
+FITTED = {"locality": 2.0, "farmland_ratio": 3.0}
+
+# Hangi kullanım hangi katsayıyı besler
+UNZONED = {"tarla", "bag_bahce", "zeytinlik"}
 
 ANSWER_COLUMNS = {
     "tapu": "deed", "yol": "road", "elektrik_su": "utilities",
@@ -130,35 +148,66 @@ def report(rows: list[tuple[dict, float, float, int]]) -> dict:
     print(f"\nkayıt: {summary['kayit']} · ortanca sapma: %{summary['ortanca_sapma_yuzde']} · "
           f"±%25 içinde: %{summary['yuzde_25_icinde']}")
 
-    by_class: dict[int, list[float]] = {}
-    for _, target, prediction, class_code in rows:
-        by_class.setdefault(class_code, []).append(math.log(target / prediction))
-    for class_code, ratios in sorted(by_class.items(), reverse=True):
-        direction = "düşük" if statistics.median(ratios) > 0 else "yüksek"
-        print(f"  {urbanity.CLASS_LABELS[class_code]:<20} {len(ratios):>3} kayıt · "
-              f"model ortalama %{abs(math.exp(statistics.median(ratios)) - 1) * 100:.0f} {direction}")
+    for group, label in ((False, "imarlı arsa"), (True, "imarsız arazi")):
+        selected = [row for row in rows if is_unzoned(row[0]) == group]
+        if not selected:
+            continue
+        print(f"  {label}:")
+        by_class: dict[int, list[float]] = {}
+        for _, target, prediction, class_code in selected:
+            by_class.setdefault(class_code, []).append(math.log(target / prediction))
+        for class_code, ratios in sorted(by_class.items(), reverse=True):
+            direction = "düşük" if statistics.median(ratios) > 0 else "yüksek"
+            print(f"    {urbanity.CLASS_LABELS[class_code]:<20} {len(ratios):>3} kayıt · "
+                  f"model ortalama %{abs(math.exp(statistics.median(ratios)) - 1) * 100:.0f} {direction}")
     return summary
 
 
+def is_unzoned(record: dict[str, str]) -> bool:
+    return (record.get("imar") or "").strip() in UNZONED
+
+
+def confidence(ratios: list[float], provinces: set[str]) -> float:
+    """Ölçülen sapmanın ne kadarının katsayıya yazılacağı (0 ile 1 arası)."""
+    sample = len(ratios) / (len(ratios) + PRIOR_STRENGTH)
+    spread = min(1.0, len(provinces) / PROVINCE_TARGET)
+    return sample * spread
+
+
+def fit_one(rows, parameters: Parameters, name: str) -> dict[int, float]:
+    """Bir katsayı sözlüğünü, onu besleyen kayıtların sapma ortancasıyla düzeltir."""
+    by_class: dict[int, tuple[list[float], set[str]]] = {}
+    for record, target, prediction, class_code in rows:
+        ratios, provinces = by_class.setdefault(class_code, ([], set()))
+        ratios.append(math.log(target / prediction))
+        provinces.add(record["il"])
+
+    values = dict(getattr(parameters, name))
+    defaults, limit = getattr(DEFAULTS, name), FITTED[name]
+    for class_code, (ratios, provinces) in by_class.items():
+        if len(ratios) < MIN_RECORDS_PER_CLASS:
+            continue
+        prior = defaults[class_code]
+        adjusted = values[class_code] * math.exp(statistics.median(ratios))
+        # Veriye tam uyan değer bulunur, sonra güvenilirlik kadarı varsayılandan uzaklaşır
+        adjusted = prior * (adjusted / prior) ** confidence(ratios, provinces)
+        values[class_code] = round(min(max(adjusted, prior / limit), prior * limit), 4)
+    return values
+
+
 async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Parameters, dict]:
-    """Yerleşim katsayılarını kayıtlara göre düzeltir."""
+    """İmarlı kayıtlardan yerleşim katsayısını, imarsızlardan arazi oranını ayarlar."""
     summary = {}
-    for pass_number in range(1, PASSES + 1):
+    for _ in range(PASSES):
         rows = await evaluate(records, parameters)
         summary = report(rows)
-        by_class: dict[int, list[float]] = {}
-        for _, target, prediction, class_code in rows:
-            by_class.setdefault(class_code, []).append(math.log(target / prediction))
-
-        locality = dict(parameters.locality)
-        for class_code, ratios in by_class.items():
-            if len(ratios) < MIN_RECORDS_PER_CLASS:
-                continue
-            correction = math.exp(statistics.median(ratios))
-            prior = DEFAULTS.locality[class_code]
-            adjusted = locality[class_code] * correction
-            locality[class_code] = round(min(max(adjusted, prior / MAX_ADJUSTMENT), prior * MAX_ADJUSTMENT), 3)
-        parameters = replace(parameters, locality=locality)
+        zoned = [row for row in rows if not is_unzoned(row[0])]
+        unzoned = [row for row in rows if is_unzoned(row[0])]
+        parameters = replace(
+            parameters,
+            locality=fit_one(zoned, parameters, "locality"),
+            farmland_ratio=fit_one(unzoned, parameters, "farmland_ratio"),
+        )
     return parameters, summary
 
 
@@ -182,9 +231,12 @@ async def main() -> None:
 
     fitted, after = await fit(records, DEFAULTS)
     print("\n--- ayarlanmış katsayılar ---")
-    for class_code, value in sorted(fitted.locality.items(), reverse=True):
-        mark = "" if value == DEFAULTS.locality[class_code] else f"  (varsayılan {DEFAULTS.locality[class_code]})"
-        print(f"  {urbanity.CLASS_LABELS[class_code]:<20} {value}{mark}")
+    for name in FITTED:
+        print(f"  {name}:")
+        defaults = getattr(DEFAULTS, name)
+        for class_code, value in sorted(getattr(fitted, name).items(), reverse=True):
+            mark = "" if value == defaults[class_code] else f"  (varsayılan {defaults[class_code]})"
+            print(f"    {urbanity.CLASS_LABELS[class_code]:<20} {value}{mark}")
 
     if not arguments.uygula:
         print("\nYazmak için: python tools/calibrate.py --uygula")
@@ -196,7 +248,10 @@ async def main() -> None:
             {
                 "kaynak": f"kalibrasyon {date.today().isoformat()} ({len(records)} kayıt)",
                 "rapor": {"once": before, "sonra": after},
-                "parametreler": {"locality": {str(key): value for key, value in fitted.locality.items()}},
+                "parametreler": {
+                    name: {str(key): value for key, value in getattr(fitted, name).items()}
+                    for name in FITTED
+                },
             },
             ensure_ascii=False,
             indent=1,
