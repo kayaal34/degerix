@@ -282,6 +282,12 @@ Depoda hazır bir [`render.yaml`](render.yaml) bulunur.
 
 ## Kalibrasyon
 
+Otomatik toplama komutları ve eğitim/doğrulama kuralları:
+[Otomatik veri toplama](data/pilot/AUTOMATIC_COLLECTION.md).
+Kalibrasyon yalnızca doğrulanmış `satis` kayıtlarını kullanır; ihale ilanları
+inceleme havuzunda tutulur. `--uygula` bağımsız parsel doğrulamasında iyileşme
+olmadan katsayıları değiştirmez.
+
 Model katsayıları (`app/model_params.py`) başlangıç varsayımıdır. Gerçek kayıtlarla
 ayarlanmaları planlanır:
 

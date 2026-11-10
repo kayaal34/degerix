@@ -24,6 +24,7 @@ import asyncio
 import csv
 import json
 import math
+import hashlib
 import statistics
 import sys
 from dataclasses import replace
@@ -38,6 +39,7 @@ from dotenv import load_dotenv  # noqa: E402
 from app import market, urbanity  # noqa: E402
 from app.model_params import CALIBRATION_FILE, DEFAULTS, Parameters  # noqa: E402
 from app.valuation import estimate  # noqa: E402
+from app.data import USAGE  # noqa: E402
 
 PILOT_DIR = ROOT / "data" / "pilot"
 PRIVATE_DIR = ROOT / "data" / "private"
@@ -58,7 +60,7 @@ def read_records() -> list[dict[str, str]]:
         for path in sorted(directory.glob("*.csv")) if directory.exists() else []:
             with path.open(encoding="utf-8-sig", newline="") as handle:
                 for row in csv.DictReader(handle):
-                    if row.get("deger_tl") and row.get("lat") and row.get("il"):
+                    if valid_record(row):
                         row["_kaynak"] = path.name
                         records.append(row)
     return records
@@ -71,6 +73,20 @@ def number(value: str | None) -> float | None:
         return float(value.replace(".", "").replace(",", ".")) if "," in value else float(value)
     except ValueError:
         return None
+
+
+def valid_record(row):
+    """Eksik imarı konut sayma; bozuk sayılarla eğitime başlama."""
+    values = {key: number(row.get(key)) for key in ('lat', 'lng', 'alan_m2', 'deger_tl')}
+    if any(value is None or not math.isfinite(value) for value in values.values()):
+        return False
+    try:
+        date.fromisoformat(row.get('tarih', ''))
+    except (ValueError, TypeError):
+        return False
+    return (35 <= values['lat'] <= 43 and 25 <= values['lng'] <= 45
+            and values['alan_m2'] > 0 and values['deger_tl'] > 0
+            and row.get('imar') in USAGE and bool(row.get('kaynak_url')))
 
 
 async def predict(record: dict[str, str], parameters: Parameters) -> float | None:
@@ -118,7 +134,7 @@ async def evaluate(records: list[dict[str, str]], parameters: Parameters) -> lis
 
 def report(rows: list[tuple[dict, float, float, int]]) -> dict:
     errors = [abs(math.log(target / prediction)) for _, target, prediction, _ in rows]
-    within = sum(1 for error in errors if error <= math.log(1.25))
+    within = sum(1 for _, target, prediction, _ in rows if abs(prediction / target - 1) <= .25)
     summary = {
         "kayit": len(rows),
         "ortanca_sapma_yuzde": round((math.exp(statistics.median(errors)) - 1) * 100, 1) if errors else None,
@@ -156,7 +172,25 @@ async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Pa
             adjusted = locality[class_code] * correction
             locality[class_code] = round(min(max(adjusted, prior / MAX_ADJUSTMENT), prior * MAX_ADJUSTMENT), 3)
         parameters = replace(parameters, locality=locality)
+    summary = report(await evaluate(records, parameters))
     return parameters, summary
+
+
+def split_records(records):
+    """Aynı parseli daima aynı gruba koy; dosya sırasından bağımsız ayır."""
+    train, validation = [], []
+    seen = set()
+    for row in records:
+        identity = [row.get(k, '').strip().casefold() for k in ('il', 'ilce', 'mahalle', 'ada', 'parsel')]
+        if not all(identity):
+            raise ValueError('Doğrulama ayrımı için il/ilçe/mahalle/ada/parsel zorunlu')
+        key = tuple(identity)
+        if key in seen:
+            continue
+        seen.add(key)
+        bucket = int(hashlib.sha256('|'.join(identity).encode()).hexdigest(), 16) % 5
+        (validation if bucket == 0 else train).append(row)
+    return train, validation
 
 
 async def main() -> None:
@@ -173,11 +207,22 @@ async def main() -> None:
             "  Gerekli sütunlar: il, lat, lng, alan_m2, imar, deger_tl, deger_turu"
         )
     print(f"{len(records)} kayıt okundu")
+    # Gerçek satış dışındaki fiyat türlerini aynı hedef gibi öğrenme.
+    records = [r for r in records if r.get('deger_turu', '').strip() == 'satis']
+    if not records:
+        sys.exit('Doğrulanmış gerçekleşen satış kaydı yok; katsayılar değiştirilmedi.')
+    try:
+        training, validation = split_records(records)
+    except ValueError as exc:
+        sys.exit(str(exc))
+    if len(training) < 10 or len(validation) < 5:
+        sys.exit(f'Yetersiz bağımsız veri: eğitim={len(training)}, doğrulama={len(validation)}; en az 10/5 gerekli.')
 
     print("\n--- varsayılan katsayılarla ---")
-    before = report(await evaluate(records, DEFAULTS))
+    before = report(await evaluate(validation, DEFAULTS))
 
-    fitted, after = await fit(records, DEFAULTS)
+    fitted, training_report = await fit(training, DEFAULTS)
+    after = report(await evaluate(validation, fitted))
     print("\n--- ayarlanmış katsayılar ---")
     for class_code, value in sorted(fitted.locality.items(), reverse=True):
         mark = "" if value == DEFAULTS.locality[class_code] else f"  (varsayılan {DEFAULTS.locality[class_code]})"
@@ -187,12 +232,19 @@ async def main() -> None:
         print("\nYazmak için: python tools/calibrate.py --uygula")
         return
 
+    if (not before['kayit'] or after['kayit'] != before['kayit']
+            or before['ortanca_sapma_yuzde'] is None
+            or after['ortanca_sapma_yuzde'] >= before['ortanca_sapma_yuzde']
+            or after['yuzde_25_icinde'] < before['yuzde_25_icinde']):
+        sys.exit('Bağımsız doğrulamada iyileşme yok; katsayılar değiştirilmedi.')
+
     CALIBRATION_FILE.parent.mkdir(parents=True, exist_ok=True)
     CALIBRATION_FILE.write_text(
         json.dumps(
             {
                 "kaynak": f"kalibrasyon {date.today().isoformat()} ({len(records)} kayıt)",
-                "rapor": {"once": before, "sonra": after},
+                "rapor": {"once": before, "sonra": after, "egitim": training_report,
+                          "egitim_kayit": len(training), "dogrulama_kayit": len(validation)},
                 "parametreler": {"locality": {str(key): value for key, value in fitted.locality.items()}},
             },
             ensure_ascii=False,

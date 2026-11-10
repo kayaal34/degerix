@@ -30,3 +30,22 @@ gerçek satış sonuçları ayrı raporlanmalı. Bu ilk 9 kayıt modeli eğitmek
 aşarsa koordinat yazılmaz. `300 Evler` gibi farklı yazımlar tahminle eşleştirilmez.
 Sonuç geometrinin merkezidir; imar veya değerleme tarihi doğrulaması değildir.
 Eşleşmeyen kayıtların nedeni `konum_durumu` sütununa yazılır.
+
+## İkinci kaynak ve eğitim
+
+`python -m tools.collect_treasury` e-Devlet'in herkese açık Hazine listesinin
+ilk sayfasını indirir. Alanı boş olan kayıtlar boş kalır. Fiyatın gerçekleşen
+satış bedeli olduğu varsayılmaz. Çıktı `data/source/treasury_review.csv`.
+Bu komut tüm Hazine envanterini veya sayfaların tamamını toplamaz.
+
+Kalibrasyon artık yalnızca `satis` türündeki kayıtlarla çalışır. Tarih, kaynak,
+pozitif sonlu sayılar ve açık imar kodu gerekir. Aynı parsel tekrarlanırsa ilk
+kayıt kullanılır; parsel kimliği hash'iyle yaklaşık %80 eğitim / %20 doğrulama
+ayrılır. En az 10 eğitim ve 5 doğrulama parseli gerekir; bunlar kalite garantisi
+değil, asgari çalıştırma eşikleridir. Sınıf başına 5 eğitim kaydı kuralı sürer.
+`--uygula`, doğrulamada ortanca hatası düşmezse veya %25 içinde kalanların oranı
+azalırsa dosyayı değiştirmez. Son rapor son katsayıları yeniden ölçer.
+
+Güncel konut fiyatı kopyası kullanıldığı için eski satışları tarih düzeltmesi
+yapmadan karıştırmayın. Bu sürüm tarihsel fiyat normalizasyonu sağlamaz.
+İlk toplanan 29 ihale inceleme kaydı bu nedenle eğitim klasörlerine taşınmadı.
