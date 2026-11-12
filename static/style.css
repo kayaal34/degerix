@@ -67,7 +67,7 @@ button, input, select { font: inherit; color: inherit; }
 
 .tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   padding: 3px;
   background: var(--surface-2);
   border: 1px solid var(--line);
@@ -518,3 +518,14 @@ button, input, select { font: inherit; color: inherit; }
 .comparable-text b { font-size: 14px; }
 .comparable-text span { font-size: 12px; color: var(--muted); }
 .comparable-summary { margin: 0; padding: 8px 12px; background: var(--brand-soft); border-radius: 9px; font-size: 13px; color: var(--brand); }
+#tab-explore { display: grid; gap: 12px; }
+#tab-explore[hidden], #cityReport[hidden] { display: none; }
+#tab-explore h2, #tab-explore h3, #tab-explore p { margin: 0; }
+#cityReport, .archive-item { padding: 14px; background: #f3f7f4; border: 1px solid #d5e1d9; border-radius: 12px; }
+#cityReport > *, .archive-item > * { margin-block: 6px; }
+#archiveList { display: grid; gap: 8px; }
+#tab-explore a, #parcelArchive a { color: #18573c; }
+.trend-history { display: grid; grid-template-columns: 1fr auto; font-variant-numeric: tabular-nums; }
+.trend-history dd { margin: 0; }
+.city-pin { background: #154d37; border: 2px solid white; border-radius: 15px; padding: 3px 6px; color: white; font: 600 11px/15px Inter,sans-serif; text-align: center; white-space: nowrap; }
+#parcelArchive { margin-block: 8px; }
