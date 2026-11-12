@@ -253,8 +253,8 @@ function showParcel(parcel, point, fit) {
   const hasNumber = parcel.ada && parcel.parsel;
   $("#parcelTitle").textContent = hasNumber
     ? `${parcel.ada} ada, ${parcel.parsel} parsel`
-    : parcel.neighborhood || "Seçilen konum";
-  $("#parcelPlace").textContent = [hasNumber ? parcel.neighborhood : null, `${parcel.district} / ${parcel.province}`]
+    : parcel.parsel ? parcel.parsel + " parsel" : parcel.neighborhood || "Seçilen konum";
+  $("#parcelPlace").textContent = [parcel.parsel ? parcel.neighborhood : null, `${parcel.district} / ${parcel.province}`]
     .filter(Boolean)
     .join(" · ");
 
@@ -992,6 +992,12 @@ $("#btnComparableCsv").addEventListener("click", () => {
 function updateShareUrl() {
   const [lat, lng] = state.sharePoint;
   const params = new URLSearchParams({ lat: lat.toFixed(6), lng: lng.toFixed(6) });
+  const parcel = state.parcel;
+  if (parcel.neighborhood_id && parcel.ada != null && parcel.parsel) {
+    params.set("mahalle", parcel.neighborhood_id);
+    params.set("ada", parcel.ada);
+    params.set("parsel", parcel.parsel);
+  }
   if (state.calculated) {
     for (const [key, value] of answerParams()) params.set(key, value);
     params.set("hesapla", "1");
@@ -1204,7 +1210,12 @@ async function init() {
   if (Number.isFinite(lat) && Number.isFinite(lng) && TURKEY.contains([lat, lng])) {
     state.presetAnswers = params;
     map.setView([lat, lng], 17);
-    lookupPoint(lat, lng);
+    const parcelKey = ["mahalle", "ada", "parsel"].map(name => params.get(name) || "");
+    if (parcelKey.every(part => /^\d{1,7}$/.test(part))) {
+      lookup("/api/parcels/" + parcelKey.join("/"), {fit: true});
+    } else {
+      lookupPoint(lat, lng);
+    }
   }
 }
 

@@ -114,7 +114,14 @@
       L.circleMarker(point, {pane: "markerPane", bubblingMouseEvents: false, radius: 7, color: "#fff", fillColor: "#a74816", fillOpacity: 1, weight: 2})
         .addTo(layer).bindPopup(auctionCard(row, true));
     }
-    for (const offer of offers) list.append(offerCard(offer));
+    for (const offer of offers) {
+      list.append(offerCard(offer));
+      if (!Number.isFinite(offer.lat) || !Number.isFinite(offer.lng)) continue;
+      const active = offer.history.at(-1).status === "Aktif";
+      L.circleMarker([offer.lat, offer.lng], {pane: "markerPane", bubblingMouseEvents: false,
+        radius: 7, color: active ? "#146444" : "#585d65", fillOpacity: 0.8, dashArray: active ? null : "3 3"})
+        .addTo(layer).bindPopup(offerCard(offer));
+    }
     if (city) showCity(city);
     $("#exploreStatus").textContent = (city || regionSelect.value || "81 il") + " · " + rows.length + " ihale kaydı · " + offers.length + " emlak ilanı";
     if (!list.childElementCount) list.append(el("p", "hint", "Bu seçim için arşiv kaydı yok."));
@@ -325,6 +332,45 @@
     if (row) { row.favorite = !row.favorite; updateSaved(); }
   };
   updateSaved();
+  let localRevision = 0;
+  async function nearbyArchive() {
+    const seq = ++localRevision;
+    const box = $("#localNearby");
+    box.replaceChildren();
+    const parcel = state.parcel;
+    if (!parcel || !$("#nearbyFeed").open) return;
+    try { await loadCatalog(); }
+    catch {
+      if (seq === localRevision) box.append(el("p", "hint", "Yerel arşiv yüklenemedi."));
+      return;
+    }
+    if (seq !== localRevision || state.parcel !== parcel) return;
+    const radius = Number($("#feedRadius").value);
+    const active = $("#feedLive").value === "true";
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() - Number($("#feedDays").value));
+    const since = cutoff.toISOString().slice(0, 10);
+    const nearby = row => Number.isFinite(row.lat) && Number.isFinite(row.lng) &&
+      map.distance([row.lat, row.lng], [parcel.lat, parcel.lng]) <= radius;
+    const offers = listings.filter(row => {
+      const last = row.history.at(-1);
+      return nearby(row) && last.date >= since && (last.status === "Aktif") === active;
+    });
+    const auctions = archive.records.filter(nearby);
+    if (offers.length) {
+      const details = el("details");
+      details.append(el("summary", "", "Yerel ilan arşivi (" + offers.length + ")"), ...offers.map(offerCard));
+      box.append(details);
+    }
+    if (auctions.length) {
+      const details = el("details");
+      details.append(el("summary", "", "Aynı çevredeki belediye ihaleleri (" + auctions.length + ")"),
+        ...auctions.map(row => auctionCard(row, true)));
+      box.append(details);
+    }
+  }
+  $("#nearbyFeed").addEventListener("toggle", nearbyArchive);
+  for (const name of ["#feedRadius", "#feedLive", "#feedDays"]) $(name).addEventListener("change", nearbyArchive);
   document.addEventListener("parcel-selected", async event => {
     const parcel = event.detail;
     if (active) selectTab("map");
@@ -335,7 +381,7 @@
       const prior = saved.find(r => r.key === currentKey);
       saved = saved.filter(r => r.key !== currentKey);
       saved.unshift({key: currentKey, favorite: Boolean(prior?.favorite),
-        title: [parcel.province, parcel.district, parcel.neighborhood, parcel.ada + "/" + parcel.parsel].filter(Boolean).join(" › ")});
+        title: [parcel.province, parcel.district, parcel.neighborhood, parcel.ada != null ? parcel.ada + "/" + parcel.parsel : parcel.parsel].filter(Boolean).join(" › ")});
       updateSaved();
     }
     const box = $("#parcelArchive");
@@ -344,7 +390,7 @@
     try { await loadCatalog(); } catch { return; }
     if (parcel !== state.parcel) return;
     $("#mapLocation").textContent = ["Türkiye", catalog.cities[parcel.province]?.group, parcel.province, parcel.district,
-      parcel.neighborhood, parcel.ada + "/" + parcel.parsel].filter(Boolean).join(" › ");
+      parcel.neighborhood, parcel.ada != null ? parcel.ada + "/" + parcel.parsel : parcel.parsel].filter(Boolean).join(" › ");
     const rows = archive.records.filter(r => r.neighborhoodId === parcel.neighborhood_id &&
       String(parcel.ada) === r.ada && String(parcel.parsel) === r.parcel);
     box.replaceChildren(...rows.map(row => auctionCard(row, false)));

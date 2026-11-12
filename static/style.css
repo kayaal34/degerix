@@ -535,3 +535,6 @@ button, input, select { font: inherit; color: inherit; }
 .leaflet-tooltip.area-label { background: transparent; color: #17392e; border: 0; box-shadow: none; text-shadow: 0 1px 2px white, 1px 0 2px white, -1px 0 2px white; font-size: 11px; font-weight: 650; padding: 0; }
 .map-location { bottom: auto; top: 58px; }
 #savedParcelList button { width: 100%; margin-bottom: 5px; text-align: left; justify-content: flex-start; }
+.nearby-feed { margin-block: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.nearby-feed summary { cursor: pointer; font-weight: 650; }
+.nearby-feed .form-grid, .nearby-feed .archive-item { margin-block: 12px; }
