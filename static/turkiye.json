@@ -1,0 +1,1495 @@
+{
+ "periods": [
+  "2024-10",
+  "2024-11",
+  "2024-12",
+  "2025-01",
+  "2025-02",
+  "2025-03",
+  "2025-04",
+  "2025-05",
+  "2025-06",
+  "2025-07",
+  "2025-08",
+  "2025-09",
+  "2025-10",
+  "2025-11",
+  "2025-12",
+  "2026-01",
+  "2026-02",
+  "2026-03",
+  "2026-04",
+  "2026-05",
+  "2026-06",
+  "2026-07",
+  "2026-08",
+  "2026-09"
+ ],
+ "regions": {
+  "TR10": {
+   "names": [
+    "İstanbul"
+   ],
+   "values": [
+    141.15,
+    145.4,
+    148.57,
+    153.01,
+    157.12,
+    160.77,
+    165.17,
+    169.52,
+    173.13,
+    174.17,
+    179.45,
+    182.07,
+    186.87,
+    191.32,
+    190.92,
+    196.7,
+    200.95,
+    205.1,
+    208.32,
+    212.47,
+    216.62,
+    222.4,
+    226.36,
+    230.85
+   ]
+  },
+  "TR51": {
+   "names": [
+    "Ankara"
+   ],
+   "values": [
+    158.5,
+    163.84,
+    167.19,
+    177.15,
+    182.92,
+    186.45,
+    191.96,
+    198.92,
+    203.64,
+    206.37,
+    212.28,
+    217.3,
+    219.37,
+    225.94,
+    225.46,
+    233.3,
+    237.14,
+    243.0,
+    249.43,
+    252.96,
+    255.69,
+    261.03,
+    264.82,
+    265.17
+   ]
+  },
+  "TR31": {
+   "names": [
+    "İzmir"
+   ],
+   "values": [
+    148.98,
+    151.63,
+    152.32,
+    159.77,
+    165.98,
+    172.42,
+    172.47,
+    177.77,
+    183.62,
+    181.93,
+    186.14,
+    191.3,
+    194.95,
+    199.43,
+    198.84,
+    205.92,
+    208.53,
+    214.1,
+    218.58,
+    218.44,
+    225.16,
+    223.47,
+    229.14,
+    231.42
+   ]
+  },
+  "TR21": {
+   "names": [
+    "Edirne",
+    "Kırklareli",
+    "Tekirdağ"
+   ],
+   "values": [
+    153.21,
+    154.97,
+    160.63,
+    171.07,
+    170.81,
+    174.52,
+    174.6,
+    182.2,
+    185.91,
+    185.0,
+    189.27,
+    189.53,
+    193.72,
+    198.46,
+    196.05,
+    201.96,
+    205.2,
+    211.67,
+    212.79,
+    211.41,
+    216.84,
+    217.4,
+    213.78,
+    218.57
+   ]
+  },
+  "TR22": {
+   "names": [
+    "Balıkesir",
+    "Çanakkale"
+   ],
+   "values": [
+    154.92,
+    165.4,
+    166.14,
+    174.74,
+    177.78,
+    182.1,
+    181.64,
+    189.96,
+    193.74,
+    200.54,
+    202.38,
+    201.78,
+    204.22,
+    210.62,
+    211.86,
+    217.24,
+    224.46,
+    230.95,
+    231.73,
+    240.01,
+    238.31,
+    232.74,
+    234.21,
+    237.85
+   ]
+  },
+  "TR32": {
+   "names": [
+    "Aydın",
+    "Denizli",
+    "Muğla"
+   ],
+   "values": [
+    151.73,
+    152.5,
+    154.76,
+    165.54,
+    168.76,
+    170.26,
+    177.82,
+    181.54,
+    180.13,
+    189.92,
+    189.06,
+    188.7,
+    186.52,
+    194.5,
+    194.22,
+    205.46,
+    204.6,
+    210.26,
+    207.63,
+    219.5,
+    222.22,
+    223.58,
+    222.45,
+    225.17
+   ]
+  },
+  "TR33": {
+   "names": [
+    "Afyonkarahisar",
+    "Kütahya",
+    "Manisa",
+    "Uşak"
+   ],
+   "values": [
+    166.78,
+    169.87,
+    179.88,
+    187.88,
+    195.4,
+    197.41,
+    197.5,
+    205.28,
+    206.04,
+    211.71,
+    213.86,
+    218.78,
+    221.73,
+    228.66,
+    228.89,
+    238.41,
+    243.37,
+    244.13,
+    250.39,
+    252.54,
+    253.25,
+    254.5,
+    256.78,
+    257.86
+   ]
+  },
+  "TR41": {
+   "names": [
+    "Bursa",
+    "Eskişehir",
+    "Bilecik"
+   ],
+   "values": [
+    151.92,
+    154.31,
+    158.73,
+    167.7,
+    170.9,
+    173.43,
+    174.37,
+    183.35,
+    183.02,
+    186.97,
+    191.48,
+    194.35,
+    198.43,
+    201.02,
+    203.04,
+    209.99,
+    212.29,
+    213.89,
+    219.58,
+    224.14,
+    227.71,
+    228.88,
+    234.29,
+    237.34
+   ]
+  },
+  "TR42": {
+   "names": [
+    "Bolu",
+    "Kocaeli",
+    "Sakarya",
+    "Yalova",
+    "Düzce"
+   ],
+   "values": [
+    155.69,
+    161.5,
+    163.38,
+    169.1,
+    179.58,
+    178.97,
+    180.02,
+    185.7,
+    192.56,
+    192.25,
+    199.41,
+    202.12,
+    205.74,
+    211.73,
+    210.86,
+    219.14,
+    222.64,
+    230.14,
+    228.79,
+    237.34,
+    235.64,
+    239.35,
+    241.53,
+    247.85
+   ]
+  },
+  "TR52": {
+   "names": [
+    "Konya",
+    "Karaman"
+   ],
+   "values": [
+    154.47,
+    163.03,
+    165.65,
+    171.51,
+    176.83,
+    176.2,
+    180.76,
+    182.7,
+    193.25,
+    192.89,
+    194.92,
+    199.56,
+    201.14,
+    206.64,
+    203.75,
+    212.55,
+    215.07,
+    217.87,
+    227.02,
+    232.89,
+    229.5,
+    227.29,
+    233.79,
+    238.79
+   ]
+  },
+  "TR61": {
+   "names": [
+    "Antalya",
+    "Burdur",
+    "Isparta"
+   ],
+   "values": [
+    132.65,
+    134.81,
+    137.02,
+    143.72,
+    144.35,
+    149.66,
+    153.35,
+    155.6,
+    159.16,
+    157.85,
+    164.47,
+    167.58,
+    165.82,
+    171.04,
+    170.19,
+    177.79,
+    183.87,
+    182.75,
+    190.49,
+    192.96,
+    194.13,
+    195.08,
+    196.61,
+    201.11
+   ]
+  },
+  "TR62": {
+   "names": [
+    "Adana",
+    "Mersin"
+   ],
+   "values": [
+    143.24,
+    147.48,
+    148.08,
+    155.0,
+    158.64,
+    161.45,
+    162.47,
+    171.51,
+    175.33,
+    172.38,
+    178.93,
+    181.33,
+    186.26,
+    188.06,
+    190.74,
+    194.43,
+    195.9,
+    198.48,
+    204.94,
+    203.46,
+    212.46,
+    216.19,
+    213.93,
+    220.39
+   ]
+  },
+  "TR63": {
+   "names": [
+    "Hatay",
+    "Kahramanmaraş",
+    "Osmaniye"
+   ],
+   "values": [
+    162.21,
+    169.86,
+    170.78,
+    177.05,
+    179.34,
+    184.19,
+    183.69,
+    188.04,
+    183.32,
+    197.01,
+    202.87,
+    198.75,
+    205.44,
+    206.49,
+    216.29,
+    213.63,
+    214.46,
+    224.62,
+    226.91,
+    230.53,
+    242.07,
+    250.35,
+    246.41,
+    246.37
+   ]
+  },
+  "TR7": {
+   "names": [
+    "Nevşehir",
+    "Niğde",
+    "Kırıkkale",
+    "Kırşehir",
+    "Aksaray",
+    "Kayseri",
+    "Sivas",
+    "Yozgat"
+   ],
+   "values": [
+    159.26,
+    164.88,
+    164.59,
+    173.42,
+    179.91,
+    182.09,
+    184.61,
+    192.66,
+    197.46,
+    202.02,
+    204.39,
+    211.18,
+    213.27,
+    218.16,
+    219.13,
+    229.8,
+    235.52,
+    239.1,
+    239.64,
+    241.72,
+    254.08,
+    255.93,
+    254.23,
+    257.53
+   ]
+  },
+  "TR8": {
+   "names": [
+    "Zonguldak",
+    "Karabük",
+    "Bartın",
+    "Kastamonu",
+    "Çankırı",
+    "Sinop",
+    "Samsun",
+    "Tokat",
+    "Çorum",
+    "Amasya"
+   ],
+   "values": [
+    159.74,
+    165.31,
+    168.87,
+    176.86,
+    180.72,
+    184.81,
+    187.39,
+    195.08,
+    197.18,
+    197.45,
+    203.42,
+    207.72,
+    212.29,
+    217.16,
+    217.77,
+    225.59,
+    232.48,
+    235.02,
+    243.36,
+    245.25,
+    245.91,
+    246.39,
+    249.38,
+    249.68
+   ]
+  },
+  "TR9": {
+   "names": [
+    "Trabzon",
+    "Ordu",
+    "Giresun",
+    "Rize",
+    "Artvin",
+    "Gümüşhane"
+   ],
+   "values": [
+    167.44,
+    168.16,
+    171.33,
+    175.77,
+    182.08,
+    188.25,
+    188.76,
+    194.85,
+    198.45,
+    199.89,
+    207.0,
+    207.93,
+    211.27,
+    218.25,
+    219.65,
+    231.28,
+    234.7,
+    237.24,
+    243.12,
+    246.21,
+    250.65,
+    259.32,
+    260.25,
+    262.41
+   ]
+  },
+  "TRA": {
+   "names": [
+    "Erzurum",
+    "Erzincan",
+    "Bayburt",
+    "Ağrı",
+    "Kars",
+    "Iğdır",
+    "Ardahan"
+   ],
+   "values": [
+    178.76,
+    181.8,
+    190.23,
+    200.52,
+    205.6,
+    207.73,
+    207.86,
+    221.19,
+    223.55,
+    227.17,
+    235.47,
+    237.83,
+    242.0,
+    247.35,
+    247.8,
+    256.78,
+    268.16,
+    265.39,
+    277.27,
+    273.78,
+    276.63,
+    282.75,
+    280.67,
+    285.61
+   ]
+  },
+  "TRB": {
+   "names": [
+    "Malatya",
+    "Elazığ",
+    "Bingöl",
+    "Tunceli",
+    "Van",
+    "Muş",
+    "Bitlis",
+    "Hakkari"
+   ],
+   "values": [
+    174.59,
+    179.81,
+    187.49,
+    195.82,
+    208.43,
+    210.22,
+    203.77,
+    214.5,
+    224.2,
+    221.24,
+    225.56,
+    230.65,
+    236.25,
+    251.88,
+    245.81,
+    262.28,
+    260.44,
+    271.88,
+    269.67,
+    275.37,
+    291.18,
+    298.2,
+    285.49,
+    282.9
+   ]
+  },
+  "TRC": {
+   "names": [
+    "Gaziantep",
+    "Adıyaman",
+    "Kilis",
+    "Şanlıurfa",
+    "Diyarbakır",
+    "Mardin",
+    "Batman",
+    "Şırnak",
+    "Siirt"
+   ],
+   "values": [
+    150.74,
+    156.27,
+    160.47,
+    172.45,
+    175.83,
+    178.75,
+    180.95,
+    186.12,
+    190.89,
+    191.86,
+    194.42,
+    201.38,
+    203.22,
+    207.68,
+    210.39,
+    218.08,
+    221.76,
+    224.58,
+    226.52,
+    229.44,
+    236.1,
+    240.35,
+    242.55,
+    241.22
+   ]
+  }
+ },
+ "cities": {
+  "Adana": {
+   "center": [
+    36.98615,
+    35.32531
+   ],
+   "price": 41161,
+   "estimated": false,
+   "region": "TR62",
+   "group": "Akdeniz"
+  },
+  "Adıyaman": {
+   "center": [
+    37.76441,
+    38.27629
+   ],
+   "price": 25000,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Afyonkarahisar": {
+   "center": [
+    38.75667,
+    30.54333
+   ],
+   "price": 33636,
+   "estimated": false,
+   "region": "TR33",
+   "group": "Ege"
+  },
+  "Aksaray": {
+   "center": [
+    38.37255,
+    34.02537
+   ],
+   "price": 34066,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Amasya": {
+   "center": [
+    40.65333,
+    35.83306
+   ],
+   "price": 36245,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Ankara": {
+   "center": [
+    39.91987,
+    32.85427
+   ],
+   "price": 47263,
+   "estimated": false,
+   "region": "TR51",
+   "group": "İç Anadolu"
+  },
+  "Antalya": {
+   "center": [
+    36.90812,
+    30.69556
+   ],
+   "price": 57784,
+   "estimated": false,
+   "region": "TR61",
+   "group": "Akdeniz"
+  },
+  "Ardahan": {
+   "center": [
+    41.10871,
+    42.70222
+   ],
+   "price": 28220,
+   "estimated": true,
+   "region": "TRA",
+   "group": "Doğu Anadolu"
+  },
+  "Artvin": {
+   "center": [
+    41.18161,
+    41.82172
+   ],
+   "price": 31804,
+   "estimated": false,
+   "region": "TR9",
+   "group": "Karadeniz"
+  },
+  "Aydın": {
+   "center": [
+    37.84501,
+    27.83963
+   ],
+   "price": 49848,
+   "estimated": false,
+   "region": "TR32",
+   "group": "Ege"
+  },
+  "Ağrı": {
+   "center": [
+    39.71467,
+    43.04015
+   ],
+   "price": 21949,
+   "estimated": false,
+   "region": "TRA",
+   "group": "Doğu Anadolu"
+  },
+  "Balıkesir": {
+   "center": [
+    39.64917,
+    27.88611
+   ],
+   "price": 49432,
+   "estimated": false,
+   "region": "TR22",
+   "group": "Marmara"
+  },
+  "Bartın": {
+   "center": [
+    41.63583,
+    32.3375
+   ],
+   "price": 45767,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Batman": {
+   "center": [
+    37.88738,
+    41.13221
+   ],
+   "price": 27296,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Bayburt": {
+   "center": [
+    40.25631,
+    40.22289
+   ],
+   "price": 28220,
+   "estimated": true,
+   "region": "TRA",
+   "group": "Karadeniz"
+  },
+  "Bilecik": {
+   "center": [
+    40.14192,
+    29.97932
+   ],
+   "price": 34670,
+   "estimated": false,
+   "region": "TR41",
+   "group": "Marmara"
+  },
+  "Bingöl": {
+   "center": [
+    38.88472,
+    40.49389
+   ],
+   "price": 33333,
+   "estimated": false,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Bitlis": {
+   "center": [
+    38.40115,
+    42.10784
+   ],
+   "price": 25806,
+   "estimated": false,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Bolu": {
+   "center": [
+    40.73583,
+    31.60611
+   ],
+   "price": 44355,
+   "estimated": false,
+   "region": "TR42",
+   "group": "Karadeniz"
+  },
+  "Burdur": {
+   "center": [
+    37.72028,
+    30.29083
+   ],
+   "price": 35989,
+   "estimated": false,
+   "region": "TR61",
+   "group": "Akdeniz"
+  },
+  "Bursa": {
+   "center": [
+    40.19559,
+    29.06013
+   ],
+   "price": 41264,
+   "estimated": false,
+   "region": "TR41",
+   "group": "Marmara"
+  },
+  "Denizli": {
+   "center": [
+    37.77417,
+    29.0875
+   ],
+   "price": 42772,
+   "estimated": false,
+   "region": "TR32",
+   "group": "Ege"
+  },
+  "Diyarbakır": {
+   "center": [
+    37.91363,
+    40.21721
+   ],
+   "price": 35081,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Düzce": {
+   "center": [
+    40.83889,
+    31.16389
+   ],
+   "price": 32164,
+   "estimated": false,
+   "region": "TR42",
+   "group": "Karadeniz"
+  },
+  "Edirne": {
+   "center": [
+    41.67719,
+    26.55597
+   ],
+   "price": 45338,
+   "estimated": false,
+   "region": "TR21",
+   "group": "Marmara"
+  },
+  "Elazığ": {
+   "center": [
+    38.67431,
+    39.22321
+   ],
+   "price": 27500,
+   "estimated": false,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Erzincan": {
+   "center": [
+    39.73919,
+    39.49015
+   ],
+   "price": 35294,
+   "estimated": false,
+   "region": "TRA",
+   "group": "Doğu Anadolu"
+  },
+  "Erzurum": {
+   "center": [
+    39.90861,
+    41.27694
+   ],
+   "price": 27483,
+   "estimated": false,
+   "region": "TRA",
+   "group": "Doğu Anadolu"
+  },
+  "Eskişehir": {
+   "center": [
+    39.77667,
+    30.52056
+   ],
+   "price": 39305,
+   "estimated": false,
+   "region": "TR41",
+   "group": "İç Anadolu"
+  },
+  "Gaziantep": {
+   "center": [
+    37.05944,
+    37.3825
+   ],
+   "price": 32462,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Giresun": {
+   "center": [
+    40.91698,
+    38.38741
+   ],
+   "price": 31860,
+   "estimated": false,
+   "region": "TR9",
+   "group": "Karadeniz"
+  },
+  "Gümüşhane": {
+   "center": [
+    40.46001,
+    39.47176
+   ],
+   "price": 35282,
+   "estimated": true,
+   "region": "TR9",
+   "group": "Karadeniz"
+  },
+  "Hakkari": {
+   "center": [
+    37.57444,
+    43.74083
+   ],
+   "price": 29068,
+   "estimated": true,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Hatay": {
+   "center": [
+    36.20655,
+    36.15722
+   ],
+   "price": 28912,
+   "estimated": false,
+   "region": "TR63",
+   "group": "Akdeniz"
+  },
+  "Isparta": {
+   "center": [
+    37.76444,
+    30.55222
+   ],
+   "price": 40074,
+   "estimated": false,
+   "region": "TR61",
+   "group": "Akdeniz"
+  },
+  "Iğdır": {
+   "center": [
+    39.92371,
+    44.045
+   ],
+   "price": 30410,
+   "estimated": false,
+   "region": "TRA",
+   "group": "Doğu Anadolu"
+  },
+  "Kahramanmaraş": {
+   "center": [
+    37.5847,
+    36.92641
+   ],
+   "price": 28409,
+   "estimated": false,
+   "region": "TR63",
+   "group": "Akdeniz"
+  },
+  "Karabük": {
+   "center": [
+    41.20488,
+    32.62768
+   ],
+   "price": 35484,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Karaman": {
+   "center": [
+    37.18111,
+    33.215
+   ],
+   "price": 34667,
+   "estimated": false,
+   "region": "TR52",
+   "group": "İç Anadolu"
+  },
+  "Kars": {
+   "center": [
+    40.59825,
+    43.08548
+   ],
+   "price": 25963,
+   "estimated": false,
+   "region": "TRA",
+   "group": "Doğu Anadolu"
+  },
+  "Kastamonu": {
+   "center": [
+    41.37805,
+    33.77528
+   ],
+   "price": 37394,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Kayseri": {
+   "center": [
+    38.73222,
+    35.48528
+   ],
+   "price": 29272,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Kilis": {
+   "center": [
+    36.71611,
+    37.115
+   ],
+   "price": 24174,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Kocaeli": {
+   "center": [
+    40.76499,
+    29.92928
+   ],
+   "price": 44144,
+   "estimated": false,
+   "region": "TR42",
+   "group": "Marmara"
+  },
+  "Konya": {
+   "center": [
+    37.87135,
+    32.48464
+   ],
+   "price": 36182,
+   "estimated": false,
+   "region": "TR52",
+   "group": "İç Anadolu"
+  },
+  "Kütahya": {
+   "center": [
+    39.42417,
+    29.98333
+   ],
+   "price": 33913,
+   "estimated": false,
+   "region": "TR33",
+   "group": "Ege"
+  },
+  "Kırklareli": {
+   "center": [
+    41.73508,
+    27.22521
+   ],
+   "price": 42011,
+   "estimated": false,
+   "region": "TR21",
+   "group": "Marmara"
+  },
+  "Kırıkkale": {
+   "center": [
+    39.84528,
+    33.50639
+   ],
+   "price": 28571,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Kırşehir": {
+   "center": [
+    39.14583,
+    34.16389
+   ],
+   "price": 25586,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Malatya": {
+   "center": [
+    38.35018,
+    38.31667
+   ],
+   "price": 24425,
+   "estimated": false,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Manisa": {
+   "center": [
+    38.61202,
+    27.42647
+   ],
+   "price": 42080,
+   "estimated": false,
+   "region": "TR33",
+   "group": "Ege"
+  },
+  "Mardin": {
+   "center": [
+    37.31309,
+    40.74357
+   ],
+   "price": 23101,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Mersin": {
+   "center": [
+    36.81196,
+    34.63886
+   ],
+   "price": 38837,
+   "estimated": false,
+   "region": "TR62",
+   "group": "Akdeniz"
+  },
+  "Muğla": {
+   "center": [
+    37.21807,
+    28.3665
+   ],
+   "price": 82290,
+   "estimated": false,
+   "region": "TR32",
+   "group": "Ege"
+  },
+  "Muş": {
+   "center": [
+    38.73163,
+    41.48482
+   ],
+   "price": 27632,
+   "estimated": false,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Nevşehir": {
+   "center": [
+    38.625,
+    34.71222
+   ],
+   "price": 37056,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Niğde": {
+   "center": [
+    37.96583,
+    34.67935
+   ],
+   "price": 31905,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Ordu": {
+   "center": [
+    40.97782,
+    37.89047
+   ],
+   "price": 40279,
+   "estimated": false,
+   "region": "TR9",
+   "group": "Karadeniz"
+  },
+  "Osmaniye": {
+   "center": [
+    37.07417,
+    36.24778
+   ],
+   "price": 25417,
+   "estimated": false,
+   "region": "TR63",
+   "group": "Akdeniz"
+  },
+  "Rize": {
+   "center": [
+    41.02083,
+    40.52194
+   ],
+   "price": 35599,
+   "estimated": false,
+   "region": "TR9",
+   "group": "Karadeniz"
+  },
+  "Sakarya": {
+   "center": [
+    40.78056,
+    30.40333
+   ],
+   "price": 41935,
+   "estimated": false,
+   "region": "TR42",
+   "group": "Marmara"
+  },
+  "Samsun": {
+   "center": [
+    41.27976,
+    36.3361
+   ],
+   "price": 37326,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Siirt": {
+   "center": [
+    37.9293,
+    41.94134
+   ],
+   "price": 26596,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Sinop": {
+   "center": [
+    42.02683,
+    35.16253
+   ],
+   "price": 39510,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Sivas": {
+   "center": [
+    39.74833,
+    37.01611
+   ],
+   "price": 29968,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Tekirdağ": {
+   "center": [
+    40.9781,
+    27.51101
+   ],
+   "price": 42049,
+   "estimated": false,
+   "region": "TR21",
+   "group": "Marmara"
+  },
+  "Tokat": {
+   "center": [
+    40.31389,
+    36.55444
+   ],
+   "price": 36008,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Trabzon": {
+   "center": [
+    41.005,
+    39.72694
+   ],
+   "price": 36870,
+   "estimated": false,
+   "region": "TR9",
+   "group": "Karadeniz"
+  },
+  "Tunceli": {
+   "center": [
+    39.09921,
+    39.54351
+   ],
+   "price": 29068,
+   "estimated": true,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Uşak": {
+   "center": [
+    38.67351,
+    29.4058
+   ],
+   "price": 30526,
+   "estimated": false,
+   "region": "TR33",
+   "group": "Ege"
+  },
+  "Van": {
+   "center": [
+    38.49457,
+    43.38323
+   ],
+   "price": 35714,
+   "estimated": false,
+   "region": "TRB",
+   "group": "Doğu Anadolu"
+  },
+  "Yalova": {
+   "center": [
+    40.65501,
+    29.27693
+   ],
+   "price": 41196,
+   "estimated": false,
+   "region": "TR42",
+   "group": "Marmara"
+  },
+  "Yozgat": {
+   "center": [
+    39.82,
+    34.80444
+   ],
+   "price": 26515,
+   "estimated": false,
+   "region": "TR7",
+   "group": "İç Anadolu"
+  },
+  "Zonguldak": {
+   "center": [
+    41.45139,
+    31.79305
+   ],
+   "price": 41111,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "Çanakkale": {
+   "center": [
+    40.15552,
+    26.41271
+   ],
+   "price": 52581,
+   "estimated": false,
+   "region": "TR22",
+   "group": "Marmara"
+  },
+  "Çankırı": {
+   "center": [
+    40.59995,
+    33.6153
+   ],
+   "price": 31128,
+   "estimated": false,
+   "region": "TR8",
+   "group": "İç Anadolu"
+  },
+  "Çorum": {
+   "center": [
+    40.54889,
+    34.95333
+   ],
+   "price": 31341,
+   "estimated": false,
+   "region": "TR8",
+   "group": "Karadeniz"
+  },
+  "İstanbul": {
+   "center": [
+    41.01384,
+    28.94966
+   ],
+   "price": 87153,
+   "estimated": false,
+   "region": "TR10",
+   "group": "Marmara"
+  },
+  "İzmir": {
+   "center": [
+    38.41273,
+    27.13838
+   ],
+   "price": 56466,
+   "estimated": false,
+   "region": "TR31",
+   "group": "Ege"
+  },
+  "Şanlıurfa": {
+   "center": [
+    37.16708,
+    38.79392
+   ],
+   "price": 25298,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  },
+  "Şırnak": {
+   "center": [
+    37.51393,
+    42.45432
+   ],
+   "price": 24324,
+   "estimated": false,
+   "region": "TRC",
+   "group": "Güneydoğu Anadolu"
+  }
+ },
+ "pricePeriod": "2026-Q2",
+ "source": "https://evds3.tcmb.gov.tr/charts/portlet/Njk3OWZjMzk5NjgyN2M2YzU2OGIyNWEy/tr"
+}

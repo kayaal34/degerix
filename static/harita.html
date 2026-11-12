@@ -31,12 +31,16 @@
       <div class="tabs" role="tablist">
         <button class="tab is-active" id="tabbtn-map" type="button" role="tab" aria-selected="true" aria-controls="tab-map" data-tab="map">Haritadan seç</button>
         <button class="tab" id="tabbtn-number" type="button" role="tab" aria-selected="false" aria-controls="tab-number" data-tab="number">Ada / parsel</button>
-        <button class="tab" id="tabbtn-explore" type="button" role="tab" aria-selected="false" aria-controls="tab-explore" data-tab="explore">Marmara keşfi</button>
+        <button class="tab" id="tabbtn-explore" type="button" role="tab" aria-selected="false" aria-controls="tab-explore" data-tab="explore">Bölge keşfi</button>
       </div>
 
       <section id="tab-explore" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-explore" hidden>
-        <h2>Marmara’yı keşfet</h2>
-        <label class="field"><span>İl seçin</span><select id="exploreCity"><option value="">Tüm Marmara</option></select></label>
+        <h2>Türkiye’yi keşfet</h2>
+        <label class="field"><span>Coğrafi bölge</span><select id="exploreRegion"><option value="">Tüm Türkiye</option></select></label>
+        <label class="field"><span>İl</span><select id="exploreCity"></select></label>
+        <label class="field" id="districtField" hidden><span>İlçe</span><select id="exploreDistrict"></select></label>
+        <label class="field" id="villageField" hidden><span>Köy / mahalle</span><select id="exploreVillage"></select></label>
+        <button type="button" class="btn btn-ghost" id="retryBounds" hidden>Sınırları yeniden yükle</button>
         <p id="exploreStatus" class="hint" role="status"></p>
         <div id="cityReport" hidden>
           <h3 id="cityTitle"></h3>
@@ -53,6 +57,9 @@
           <option value="reduced">Fiyatı düşen ilanlar</option>
         </select></label>
         <div id="archiveList"></div>
+        <details id="savedParcels"><summary>Favorilerim ve gezdiğim parseller</summary>
+          <p class="hint">Bu tarayıcıda saklanır.</p><div id="savedParcelList"></div>
+        </details>
       </section>
 
       <section class="tab-panel" id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map">
@@ -108,6 +115,7 @@
             </div>
             <span class="badge" id="parcelSource"></span>
           </div>
+          <button type="button" id="saveParcel" class="btn btn-ghost" hidden>Favorilere ekle</button>
           <div id="parcelArchive" hidden></div>
           <dl class="parcel-meta" id="parcelMeta"></dl>
           <p class="note" id="parcelNote" hidden>Bu noktada tapu kaydı bulunamadı; il ve ilçe OpenStreetMap'ten alındı. Arsanın alanını kendiniz girin.</p>
@@ -115,10 +123,10 @@
 
         <div class="form-grid">
           <label class="field"><span>Alan (m²)</span>
-            <input id="inpArea" type="number" min="1" max="10000000" step="1" inputmode="numeric">
+            <input id="inpArea" type="number" min="1" max="10000000" step="any" inputmode="decimal"><small id="areaOrigin"></small>
           </label>
           <label class="field"><span>İmar durumu</span>
-            <select id="selUsage"></select>
+            <select id="selUsage"></select><small id="usageOrigin"></small>
           </label>
         </div>
 
@@ -300,6 +308,7 @@
         <span class="spinner" aria-hidden="true"></span>
         <span id="mapStatusText"></span>
       </div>
+      <div class="map-location" id="mapLocation" aria-live="polite">Türkiye</div>
       <div class="map-hint" id="mapHint">Arsanın üzerine tıklayın</div>
     </main>
   </div>

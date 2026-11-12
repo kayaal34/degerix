@@ -166,6 +166,11 @@ async def neighborhoods(district_id: int) -> list[dict[str, Any]]:
     return await tkgm.list_neighborhoods(district_id)
 
 
+@app.get("/api/boundaries/{level}/{parent_id}", tags=["idari yapı"])
+async def boundaries(level: Literal["districts", "neighborhoods"], parent_id: int = PathParam(gt=0)) -> dict[str, Any]:
+    return await tkgm.boundaries(level, parent_id)
+
+
 @app.get("/api/search", response_model=list[SearchResult], tags=["idari yapı"])
 async def search(q: str = Query(min_length=3, max_length=120)) -> list[dict[str, Any]]:
     return await nominatim.search(q)
