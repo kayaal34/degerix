@@ -245,6 +245,8 @@ function lookupPoint(lat, lng) {
 function showParcel(parcel, point, fit) {
   state.parcel = parcel;
   document.dispatchEvent(new CustomEvent("parcel-selected", { detail: parcel }));
+  $("#mapLocation").textContent = ["Türkiye", parcel.province, parcel.district, parcel.neighborhood,
+    parcel.parsel && `Parsel ${parcel.parsel}`].filter(Boolean).join(" › ");
   state.sharePoint = point ?? [parcel.lat, parcel.lng];
   drawSelection(parcel, point, fit);
 
@@ -276,8 +278,14 @@ function showParcel(parcel, point, fit) {
   // Sorular parsele özgüdür; yeni parselde baştan başlanır
   resetQuestions();
   loadComparables(parcel);
-  $("#inpArea").value = parcel.area_m2 ? Math.round(parcel.area_m2) : 500;
-  $("#selUsage").value = parcel.usage;
+  $("#inpArea").value = parcel.area_m2 ?? "";
+  const rural = parcel.source === "tkgm" && ["tarla", "bag_bahce", "zeytinlik"].includes(parcel.usage);
+  $("#selUsage").value = rural ? parcel.usage : "";
+  const irrigation = (parcel.nitelik || "").toLocaleLowerCase("tr").trim().match(/^(sulu|kuru) tarla$/);
+  if (irrigation) {
+    $("#selUsage").value = "tarla";
+    document.querySelector('#questions input[name="irrigation"][value="' + irrigation[1] + '"]').checked = true;
+  }
   if (state.presetAnswers) {
     // Paylaşılan bağlantı: yanıtlar yerine konur; bağlantı hesaplanmış bir sonucu gösteriyorsa hemen hesaplanır
     applyAnswers(state.presetAnswers);
@@ -314,10 +322,17 @@ function resetQuestions() {
 // Emsal ve köşe parsel imarlı arsada, sulama imarsız arazide, hisse payı hisseli tapuda sorulur
 function updateQuestions() {
   const usage = $("#selUsage").value;
+  if (state.parcel) {
+    const area = $("#inpArea").value;
+    $("#areaOrigin").textContent = !area ? "Tapu alanını girin." :
+      Number(area) === state.parcel.area_m2 && state.parcel.source === "tkgm" ? "TKGM tapu alanı" : "Girilen alan";
+    $("#usageOrigin").textContent = !usage ? "İmar belgesindeki kullanım türünü seçin." :
+      usage === state.parcel.usage && state.parcel.nitelik ? "Tapu niteliği: " + state.parcel.nitelik + ". İmar belgesiyle kontrol edin." : "Seçilen kullanım türü";
+  }
   const zoned = state.zonedUsages.has(usage);
   $("#kaksQuestion").hidden = !zoned;
   $("#cornerQuestion").hidden = !zoned;
-  $("#irrigationQuestion").hidden = zoned;
+  $("#irrigationQuestion").hidden = !usage || zoned;
   $("#oliveNote").hidden = usage !== "zeytinlik";
   $("#shareField").hidden = radioValue("deed") !== "hisseli";
 
@@ -333,6 +348,7 @@ function readInputs() {
   if (!(area > 0 && area <= MAX_AREA)) return { error: "Alan 1 ile 10.000.000 m² arasında olmalı", field: $("#inpArea") };
 
   const usage = $("#selUsage").value;
+  if (!usage) return {error: "İmar veya kullanım türünü seçin.", field: $("#selUsage")};
   const zoned = state.zonedUsages.has(usage);
   let kaks = null;
   if (zoned && $("#inpKaks").value.trim()) {
@@ -1173,7 +1189,7 @@ $("#btnBackToMap").addEventListener("click", () => window.scrollTo({ top: 0, beh
 async function init() {
   try {
     const usages = await api("/api/usages");
-    $("#selUsage").replaceChildren(...usages.map((usage) => new Option(usage.label, usage.key)));
+    $("#selUsage").replaceChildren(new Option("Kullanım türü seçin", ""), ...usages.map((usage) => new Option(usage.label, usage.key)));
     state.zonedUsages = new Set(usages.filter((usage) => usage.zoned).map((usage) => usage.key));
   } catch (error) {
     showAlert(error.message);

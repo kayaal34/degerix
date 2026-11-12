@@ -416,9 +416,9 @@ render.yaml         Render yayın tanımı
 
 Değerix bir portfolyo projesidir. Sunulan tahminler bilgilendirme amaçlıdır; yatırım
 tavsiyesi değildir ve SPK lisanslı gayrimenkul değerleme raporu yerine geçmez.
-## Marmara keşfi ve ilan geçmişi
+## Türkiye keşfi ve ilan geçmişi
 
-Ana sayfadaki **Marmara’yı keşfet** bağlantısı 11 ilde konut birim fiyatlarını ve bölgesel TCMB konut fiyat endeksini açar. Endeks grafiği Ekim 2024–Eylül 2026 döneminin yayımlanmış aylık değerlerini gösterir. İl seçildiğinde bölgeye dahil diğer iller de belirtilir. Parsel aramasının Türkiye kapsamı sürer.
+Ana sayfadaki **Türkiye’yi keşfet** bağlantısı 81 ilde konut birim fiyatlarını ve bölgesel TCMB konut fiyat endeksini açar. Endeks grafiği Ekim 2024–Eylül 2026 döneminin yayımlanmış aylık değerlerini gösterir. İl seçildiğinde bölgeye dahil diğer iller de belirtilir. Parsel aramasının Türkiye kapsamı sürer.
 
 Arşivdeki ilk dokuz taşınmaz Bursa Orhaneli Belediyesinin 15 Eylül 2026 tarihli ihalesindendir. Kaynak ilan ve TKGM parsel kaydı aynı ekrandan açılır. Gösterilen bedel ihale öncesi muhammen bedeldir.
 
