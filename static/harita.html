@@ -117,6 +117,18 @@
           </div>
           <button type="button" id="saveParcel" class="btn btn-ghost" hidden>Favorilere ekle</button>
           <div id="parcelArchive" hidden></div>
+          <details id="nearbyFeed" class="nearby-feed">
+            <summary>Yakındaki satılık arsa ilanları</summary>
+            <div class="form-grid">
+              <label class="field">İlan durumu<select id="feedLive"><option value="false">Yayından kalkmış</option><option value="true">Aktif</option></select></label>
+              <label class="field">Parsel çevresi<select id="feedRadius"><option value="500">500 m</option><option selected value="1000">1 km</option><option value="2000">2 km</option></select></label>
+              <label class="field">Son görülme dönemi<select id="feedDays"><option value="30">30 gün</option><option value="90">90 gün</option><option value="365" selected>365 gün</option></select></label>
+            </div>
+            <div id="localNearby"></div>
+            <button type="button" id="feedSearch" class="btn btn-ghost">Tapusor’da ara</button>
+            <p id="feedStatus" class="hint" role="status"></p><div id="feedRows"></div>
+            <button type="button" class="btn btn-ghost" id="feedNext" hidden>Daha fazla göster</button>
+          </details>
           <dl class="parcel-meta" id="parcelMeta"></dl>
           <p class="note" id="parcelNote" hidden>Bu noktada tapu kaydı bulunamadı; il ve ilçe OpenStreetMap'ten alındı. Arsanın alanını kendiniz girin.</p>
         </div>
@@ -316,5 +328,6 @@
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
   <script src="explore.js"></script>
+  <script src="listings.js"></script>
 </body>
 </html>

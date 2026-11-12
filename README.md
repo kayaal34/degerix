@@ -425,3 +425,11 @@ Arşivdeki ilk dokuz taşınmaz Bursa Orhaneli Belediyesinin 15 Eylül 2026 tari
 Bir sağlayıcıdan alınan tarihli ilan gözlemlerini eklemek için UTF-8 CSV sütunları `url,title,province,district,date,status,price` olmalıdır. Aynı ilan için sabit HTTPS adresini, YYYY-MM-DD tarihini ve tam TL tutarını kullanın. Durum `Aktif` veya `Kaldırıldı` olabilir. Kaldırılan ilanlarda bedel boş kalabilir. Bir kaydın sonraki dosyada görünmemesi durumunu değiştirmez.
 
 `python tools/import_listings.py gozlemler.csv` komutu kayıtları `static/listings.json` içinde birleştirir. Bu dosyayı siteyle yayımlayın. Aynı günün aynı gözlemi tekrar eklendiğinde çoğaltılmaz. Çelişen gözlemler dosya yazılmadan bildirilir.
+## Parsel çevresindeki ilanlar
+
+Parsel kartında **Yakındaki satılık arsa ilanları** bölümünü açın. Durum, yarıçap ve son görülme dönemini seçip **Tapusor’da ara** düğmesine basın. Her sayfa 20 kayıt ister. Son görülme dönemi sağlayıcının tanımına göre bugünü dışarıda bırakır. İlk ve son fiyatlar istenen fiyatlardır. Kalkan bir ilan satış sonucunu kanıtlamaz. Koordinatı olan ilanlar haritada işaretlenir. Fiyatı ve alanı verilen bir ilanı kullanıcı kendi seçimiyle değerlemeye emsal ekleyebilir.
+
+Canlı sorgu için sunucunun ortamında veya yerel `.env` dosyasında `TAPUSOR_CLIENT_ID` ve `TAPUSOR_CLIENT_SECRET` tanımlayın ve uygulamayı yeniden başlatın. Tapusor hesabının v2 ilan duyuruları ürününe erişimi ve kredisi gerekir. Sunucu aynı sorgu sayfasını 15 dakika bellekte tutar. Sorgu kullanıcı düğmeye bastığında çalışır. Her yeni sorgu sayfası sağlayıcının tarifesine tabidir. Halka açık kurulumda bu API rotasını kendi kullanıcı erişiminize ve sağlayıcı kotanıza göre sınırlandırın. [Sağlayıcı dokümantasyonu](https://www.ai.tapusor.com/public/api/?v=2#listing-announcements)
+
+CSV arşiv aktarımında isteğe bağlı `lat,lng,neighborhood_id` sütunları kullanılabilir. Koordinatlar ilanı keşif haritasına yerleştirir. TKGM mahalle kimliği verildiğinde mahalle filtresi de çalışır. Eski CSV biçimi desteklenir.
+Saatlik yeni sorgu sayısı her sunucu işlemi için `TAPUSOR_REQUESTS_PER_HOUR` ile ayarlanır (varsayılan 60). Önbellekten gösterilenler bu kotayı tüketmez.

@@ -19,7 +19,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import evds, market, nearby, nominatim, tkgm, urbanity
+from . import evds, market, nearby, nominatim, tapusor, tkgm, urbanity
 from .data import USAGE, CornerKey, DeedKey, IrrigationKey, RoadKey, UsageKey, UtilitiesKey, ViewKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
@@ -115,6 +115,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await tkgm.close()
     await nominatim.close()
     await evds.close()
+    await tapusor.feed.close()
 
 
 app = FastAPI(
@@ -138,7 +139,14 @@ async def upstream_error_handler(_: Request, exc: UpstreamError) -> JSONResponse
 @app.get("/api/health", tags=["sistem"])
 async def health() -> dict[str, Any]:
     """`stats`: bölge analizi açık mı (EVDS anahtarı tanımlı mı)."""
-    return {"status": "ok", "version": app.version, "stats": evds.is_configured()}
+    return {"status": "ok", "version": app.version, "stats": evds.is_configured(), "listing_feed": tapusor.configured()}
+
+
+@app.get("/api/listings/nearby", tags=["emsaller"])
+async def nearby_listings(lat: float = Query(ge=LAT_MIN, le=LAT_MAX), lng: float = Query(ge=LNG_MIN, le=LNG_MAX),
+                          radius: int = Query(1000, ge=100, le=2000), days: int = Query(365, ge=1, le=365),
+                          live: bool = False, page: int = Query(0, ge=0, le=75)):
+    return await tapusor.feed.fetch(lat, lng, radius, days, live, page)
 
 
 @app.get("/api/usages", response_model=list[UsageOption], tags=["değerleme"])
@@ -229,7 +237,10 @@ async def parcel_by_number(
     ada: str = PathParam(pattern=r"^\d{1,7}$"),
     parsel: str = PathParam(pattern=r"^\d{1,7}$"),
 ) -> Parcel:
-    return await _parcel_from_feature(await tkgm.parcel_by_number(neighborhood_id, ada, parsel))
+    result = await _parcel_from_feature(await tkgm.parcel_by_number(neighborhood_id, ada, parsel))
+    if result.ada is None and ada == "0":
+        result.ada = ada
+    return result
 
 
 # ─────────────────────────── Değerleme ───────────────────────────

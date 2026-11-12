@@ -21,6 +21,16 @@ def merge(existing, rows):
             details = {key: row[key].strip() for key in ("title", "province", "district")}
             if not all(details.values()):
                 raise ValueError("Başlık, il ve ilçe gerekli")
+            lat, lng = (row.get("lat") or "").strip(), (row.get("lng") or "").strip()
+            if lat or lng:
+                if not (lat and lng and 35.5 <= float(lat) <= 42.5 and 25.5 <= float(lng) <= 45):
+                    raise ValueError("Geçerli bir enlem ve boylam çifti gerekli")
+                details.update(lat=float(lat), lng=float(lng))
+            if row.get("neighborhood_id"):
+                neighborhood = int(row["neighborhood_id"])
+                if neighborhood <= 0:
+                    raise ValueError("Geçerli TKGM mahalle kimliği gerekli")
+                details["neighborhoodId"] = neighborhood
             day = date.fromisoformat(row["date"].strip()).isoformat()
             status = row["status"].strip()
             if status not in {"Aktif", "Kaldırıldı"}:
