@@ -31,7 +31,29 @@
       <div class="tabs" role="tablist">
         <button class="tab is-active" id="tabbtn-map" type="button" role="tab" aria-selected="true" aria-controls="tab-map" data-tab="map">Haritadan seç</button>
         <button class="tab" id="tabbtn-number" type="button" role="tab" aria-selected="false" aria-controls="tab-number" data-tab="number">Ada / parsel</button>
+        <button class="tab" id="tabbtn-explore" type="button" role="tab" aria-selected="false" aria-controls="tab-explore" data-tab="explore">Marmara keşfi</button>
       </div>
+
+      <section id="tab-explore" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-explore" hidden>
+        <h2>Marmara’yı keşfet</h2>
+        <label class="field"><span>İl seçin</span><select id="exploreCity"><option value="">Tüm Marmara</option></select></label>
+        <p id="exploreStatus" class="hint" role="status"></p>
+        <div id="cityReport" hidden>
+          <h3 id="cityTitle"></h3>
+          <p id="cityPrice"></p>
+          <p id="cityTrend"></p>
+          <svg class="sparkline" id="cityChart" viewBox="0 0 300 60" role="img"></svg>
+          <details><summary>Aylık endeks değerleri</summary><dl class="trend-history" id="cityHistory"></dl></details>
+          <a id="trendSource" target="_blank" rel="noopener">TCMB endeks tablosu ↗</a>
+        </div>
+        <h3>İlan arşivi</h3>
+        <label class="field"><span>Kayıt türü</span><select id="archiveFilter">
+          <option value="all">Tüm kayıtlar</option><option value="auction">Belediye ihaleleri</option>
+          <option value="active">Aktif ilanlar</option><option value="removed">Kaldırılan ilanlar</option>
+          <option value="reduced">Fiyatı düşen ilanlar</option>
+        </select></label>
+        <div id="archiveList"></div>
+      </section>
 
       <section class="tab-panel" id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map">
         <div class="search">
@@ -86,6 +108,7 @@
             </div>
             <span class="badge" id="parcelSource"></span>
           </div>
+          <div id="parcelArchive" hidden></div>
           <dl class="parcel-meta" id="parcelMeta"></dl>
           <p class="note" id="parcelNote" hidden>Bu noktada tapu kaydı bulunamadı; il ve ilçe OpenStreetMap'ten alındı. Arsanın alanını kendiniz girin.</p>
         </div>
@@ -283,5 +306,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
+  <script src="explore.js"></script>
 </body>
 </html>

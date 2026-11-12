@@ -244,6 +244,7 @@ function lookupPoint(lat, lng) {
 
 function showParcel(parcel, point, fit) {
   state.parcel = parcel;
+  document.dispatchEvent(new CustomEvent("parcel-selected", { detail: parcel }));
   state.sharePoint = point ?? [parcel.lat, parcel.lng];
   drawSelection(parcel, point, fit);
 
@@ -827,8 +828,7 @@ function renderAnalysis(stats) {
   $("#analysis").hidden = false;
 }
 
-function drawSparkline(points) {
-  const svg = $("#analysisChart");
+function drawSparkline(points, svg = $("#analysisChart")) {
   if (points.length < 2) {
     svg.replaceChildren();
     svg.toggleAttribute("hidden", true);
@@ -1007,6 +1007,8 @@ function selectTab(name) {
     tab.classList.toggle("is-active", active);
     tab.setAttribute("aria-selected", String(active));
   });
+  $("#tab-explore").hidden = name !== "explore";
+  document.dispatchEvent(new CustomEvent("map-tab", { detail: name }));
   $("#tab-map").hidden = name !== "map";
   $("#tab-number").hidden = name !== "number";
   if (name === "number") loadProvinces();
