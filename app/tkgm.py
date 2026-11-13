@@ -98,6 +98,12 @@ def _name_by_id(places: list[dict[str, Any]], place_id: Any) -> str | None:
     return next((place["name"] for place in places if place["id"] == place_id), None)
 
 
+async def boundaries(level: str, parent_id: int) -> dict[str, Any]:
+    endpoint = {"districts": "ilceListe", "neighborhoods": "mahalleListe"}[level]
+    data = await _cached(f"/idariYapi/{endpoint}/{parent_id}", ADMIN_TTL_S)
+    return {"type": "FeatureCollection", "features": _features(data)}
+
+
 async def list_provinces() -> list[dict[str, Any]]:
     return _places(await _cached("/idariYapi/ilListe", ADMIN_TTL_S))
 

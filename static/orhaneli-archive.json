@@ -1,0 +1,114 @@
+{
+  "date": "2026-09-15",
+  "source": "https://www.bursavar.com/haber/28605618/orhaneli-belediyesi-tasinmaz-satis-ilani",
+  "records": [
+    {
+      "neighborhood": "Karıncalı Mah.",
+      "ada": "115",
+      "parcel": "3",
+      "area": 122.23,
+      "price": 300000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.969823,
+      "lng": 28.850754,
+      "neighborhoodId": 133484
+    },
+    {
+      "neighborhood": "Çeki Mah.",
+      "ada": "0",
+      "parcel": "1103",
+      "area": 55.0,
+      "price": 120000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.78458,
+      "lng": 29.073552,
+      "neighborhoodId": 151435
+    },
+    {
+      "neighborhood": "Fadıl Mah.",
+      "ada": "0",
+      "parcel": "2076",
+      "area": 2178.0,
+      "price": 2500000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.810788,
+      "lng": 29.120026,
+      "neighborhoodId": 133639
+    },
+    {
+      "neighborhood": "300 Evler",
+      "ada": "371",
+      "parcel": "11",
+      "area": 467.24,
+      "price": 1400000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.907799,
+      "lng": 28.976453,
+      "neighborhoodId": 206723
+    },
+    {
+      "neighborhood": "300 Evler",
+      "ada": "371",
+      "parcel": "12",
+      "area": 363.28,
+      "price": 1100000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.907853,
+      "lng": 28.9766,
+      "neighborhoodId": 206723
+    },
+    {
+      "neighborhood": "300 Evler",
+      "ada": "371",
+      "parcel": "13",
+      "area": 357.32,
+      "price": 1050000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.907879,
+      "lng": 28.976703,
+      "neighborhoodId": 206723
+    },
+    {
+      "neighborhood": "300 Evler",
+      "ada": "371",
+      "parcel": "14",
+      "area": 351.36,
+      "price": 1050000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.907948,
+      "lng": 28.976843,
+      "neighborhoodId": 206723
+    },
+    {
+      "neighborhood": "300 Evler",
+      "ada": "371",
+      "parcel": "15",
+      "area": 345.4,
+      "price": 1050000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.907984,
+      "lng": 28.976954,
+      "neighborhoodId": 206723
+    },
+    {
+      "neighborhood": "300 Evler",
+      "ada": "371",
+      "parcel": "16",
+      "area": 442.41,
+      "price": 1600000,
+      "district": "Orhaneli",
+      "province": "Bursa",
+      "lat": 39.908026,
+      "lng": 28.977099,
+      "neighborhoodId": 206723
+    }
+  ]
+}

@@ -176,3 +176,20 @@ def test_search(client):
     results = client.get("/api/search", params={"q": "Yalıkavak"}).json()
     assert results[0]["name"].startswith("Yalıkavak")
     assert client.get("/api/search", params={"q": "ab"}).status_code == 422
+
+def test_boundary_drilldown_keeps_tkgm_geometry(client):
+    data = client.get("/api/boundaries/districts/70").json()
+    feature = data["features"][0]
+    assert feature["properties"] == {"text": "Bodrum", "id": 724}
+    assert feature["geometry"]["type"] == "Polygon"
+    assert client.get("/api/boundaries/invalid/70").status_code == 422
+
+
+def test_discovery_covers_all_provinces(client):
+    catalog = client.get("/turkiye.json").json()
+    features = client.get("/iller.geojson").json()["features"]
+    cities = catalog["cities"]
+    assert len(cities) == len(features) == 81
+    assert set(cities) == {f["properties"]["text"] for f in features}
+    assert len({v["group"] for v in cities.values()}) == 7
+    assert all(len(catalog["regions"][v["region"]]["values"]) == 24 for v in cities.values())
