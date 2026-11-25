@@ -1,21 +1,21 @@
 {
- "kaynak": "kalibrasyon 2026-11-24 (15 kayıt)",
+ "kaynak": "kalibrasyon 2026-11-25 (28 kayıt)",
  "rapor": {
   "once": {
-   "kayit": 15,
-   "ortanca_sapma_yuzde": 96.0,
-   "yuzde_25_icinde": 26.7
+   "kayit": 28,
+   "ortanca_sapma_yuzde": 101.2,
+   "yuzde_25_icinde": 17.9
   },
   "sonra": {
-   "kayit": 15,
-   "ortanca_sapma_yuzde": 96.0,
-   "yuzde_25_icinde": 26.7
+   "kayit": 28,
+   "ortanca_sapma_yuzde": 85.1,
+   "yuzde_25_icinde": 14.3
   }
  },
  "parametreler": {
   "locality": {
-   "30": 1.05,
-   "23": 0.85,
+   "30": 1.1428,
+   "23": 0.9661,
    "22": 0.7,
    "21": 0.8,
    "13": 0.5,
