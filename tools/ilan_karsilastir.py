@@ -71,6 +71,7 @@ def oku() -> list[dict]:
             # erişilebilirlik parselin değil yerleşimin ölçümüdür; mesafeye
             # duyarlı mekanizmalar o kayıtlara göre ayarlanamaz.
             konum=satir.get("konum", "").strip() or "?",
+                ilce=satir["ilce"].strip() or "?",
                 etiket=f"{satir['il'].strip()}/{satir['ilce'].strip() or '?'}",
                 lat=lat, lng=lng, alan=alan, deger=deger,
                 usage=satir["imar"].strip(), kaks=sayi(satir.get("emsal", "")),
@@ -145,6 +146,22 @@ async def main() -> None:
         grup = [s for s in gecerli if s["il"] == il]
         print(f"  {il:12} n={len(grup):2}  medyan oran={med([s['oran'] for s in grup]):5.2f}  "
               f"oranlar={' '.join(f'{s["oran"]:.2f}' for s in sorted(grup, key=lambda s: s['oran']))}")
+
+    # İlçe tablosu, ilin ortalamasıyla fiyatlamanın bedelini gösterir: TCMB il
+    # başına tek bir konut fiyatı yayımlıyor, oysa aynı ilin iki ilçesi arasında
+    # arsa fiyatı kat kat ayrışıyor. Sapma ilçe içinde tutarlıysa sorun modelin
+    # mekanizmasında değil, elindeki fiyat verisinin çözünürlüğündedir.
+    print("\n== İLÇE BAZINDA (en az 2 ilan, en sapmalı önce) ==")
+    print(f"  {'ilçe':24} {'n':>2} {'ilan ₺/m²':>10} {'model ₺/m²':>10} {'oran':>6}  yöntem")
+    ilceler = []
+    for anahtar in {(s["il"], s["ilce"]) for s in gecerli}:
+        grup = [s for s in gecerli if (s["il"], s["ilce"]) == anahtar]
+        if len(grup) >= 2:
+            ilceler.append((anahtar, grup, med([s["oran"] for s in grup])))
+    for (il, ilce), grup, oran in sorted(ilceler, key=lambda satir: -abs(math.log2(satir[2]))):
+        yontemler = sorted({s["e"].basis for s in grup})
+        print(f"  {il + '/' + ilce:24} {len(grup):>2} {med([s['ilan'] for s in grup]):>10,.0f} "
+              f"{med([s['model'] for s in grup]):>10,.0f} {oran:>6.2f}  {'+'.join(yontemler)}")
 
     print("\n== EN KÖTÜ 10 (|log2 oran|) ==")
     print(f"  {'etiket':24} {'imar':10} {'alan':>7} {'ilan ₺/m²':>10} {'model ₺/m²':>10} {'oran':>5}  sınıf · yöntem")
