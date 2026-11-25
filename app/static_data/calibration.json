@@ -1,15 +1,15 @@
 {
- "kaynak": "kalibrasyon 2026-11-25 (54 kayıt)",
+ "kaynak": "kalibrasyon 2026-11-25 (57 kayıt)",
  "rapor": {
   "once": {
-   "kayit": 54,
-   "ortanca_sapma_yuzde": 81.7,
-   "yuzde_25_icinde": 18.5
+   "kayit": 57,
+   "ortanca_sapma_yuzde": 81.3,
+   "yuzde_25_icinde": 21.1
   },
   "sonra": {
-   "kayit": 54,
-   "ortanca_sapma_yuzde": 65.4,
-   "yuzde_25_icinde": 25.9
+   "kayit": 57,
+   "ortanca_sapma_yuzde": 59.5,
+   "yuzde_25_icinde": 28.1
   }
  },
  "parametreler": {
