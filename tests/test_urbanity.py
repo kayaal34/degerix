@@ -43,6 +43,8 @@ def test_small_coastal_town_is_between_city_and_village():
 
     assert urbanity.SUBURBAN <= place.class_code <= urbanity.URBAN_CENTRE
     assert place.is_rural is False
+    # Skor √nüfus/mesafe² olduğu için yakındaki küçük ilçe merkezi, uzaktaki büyük
+    # ilçeyi (18 km'deki Nilüfer, 536 bin) yenebiliyor.
     assert place.district_centre.name == "Mudanya"
 
 
@@ -70,3 +72,28 @@ def test_results_are_cached():
 def test_centre_search_returns_matching_codes(codes):
     place = urbanity._nearest(*MUDANYA, codes=codes, max_km=200)
     assert place is not None and place.code in codes
+
+
+MUDARLI = (41.003662, 29.552141)       # Gebze, Kocaeli
+CENTRAL_ANATOLIA = (39.0, 34.0)        # Kırşehir civarı, büyükşehirden uzak
+
+
+def test_strongest_centre_prefers_the_bigger_town():
+    place = urbanity.describe(*MUDARLI)
+
+    # Şile daha yakın (~20 km, 20 bin kişi) ama Gebze (~25 km, 281 bin kişi) daha çekici
+    assert place.district_centre.name == "Gebze"
+    assert place.district_centre.distance_km > 20
+
+
+def test_metro_is_found_near_istanbul_and_missing_in_the_middle_of_anatolia():
+    near = urbanity.describe(*MUDARLI)
+    assert near.metro is not None and near.metro.population >= 250_000
+    assert near.metro.distance_km < 150
+
+    # İç Anadolu'da eşiği henüz geçen bir il merkezi (Aksaray, 327 bin) bulunabilir.
+    # Önemli olan varlığı değil gücü: primin nüfusla ölçeklenmesi onu önemsiz kılar.
+    # Çekimin gerçekten sönümlendiğini test_model_sanity'deki çarpan testi doğruluyor.
+    far = urbanity.describe(*CENTRAL_ANATOLIA)
+    assert far is not None
+    assert far.metro is None or far.metro.population < near.metro.population / 10
