@@ -54,18 +54,18 @@ def test_more_comparables_carry_more_weight():
     three = value(comparables=[Comparable(price_tl=2_000_000, area_m2=1000, kind="satis")] * 3)
 
     assert three.comparables.weight > one.comparables.weight
-    assert three.comparables.weight <= DEFAULTS.comparable_weight_cap
+    assert three.comparables.weight <= max(DEFAULTS.comparable_weight_steps)
     assert three.unit_price < one.unit_price            # piyasaya daha yakın
 
 
 def test_agreeing_comparables_narrow_the_range_and_scattered_ones_widen_it():
     agreeing = value(comparables=[
-        Comparable(price_tl=6_000_000, area_m2=1000, kind="satis"),
-        Comparable(price_tl=6_300_000, area_m2=1000, kind="satis"),
+        Comparable(price_tl=43_000_000, area_m2=1000, kind="satis"),
+        Comparable(price_tl=45_000_000, area_m2=1000, kind="satis"),
     ])
     scattered = value(comparables=[
-        Comparable(price_tl=2_000_000, area_m2=1000, kind="satis"),
-        Comparable(price_tl=12_000_000, area_m2=1000, kind="satis"),
+        Comparable(price_tl=15_000_000, area_m2=1000, kind="satis"),
+        Comparable(price_tl=90_000_000, area_m2=1000, kind="satis"),
     ])
 
     def width(result):
@@ -97,3 +97,42 @@ def test_without_comparables_nothing_changes():
 def test_invalid_comparables_are_rejected(bad):
     with pytest.raises(ValueError):
         value(comparables=[bad])
+
+
+def test_outlier_comparable_is_dropped():
+    normal = [Comparable(price_tl=2_000_000, area_m2=1000, kind="satis")] * 3
+    outlier = Comparable(price_tl=20_000_000, area_m2=1000, kind="satis")
+    result = value(comparables=normal + [outlier])
+
+    assert result.comparables.dropped == 1
+    assert result.comparables.count == 3
+    assert result.comparables.market_unit_price == 2000
+
+
+def test_outliers_are_not_dropped_with_fewer_than_four_comparables():
+    result = value(comparables=[
+        Comparable(price_tl=2_000_000, area_m2=1000, kind="satis"),
+        Comparable(price_tl=2_000_000, area_m2=1000, kind="satis"),
+        Comparable(price_tl=20_000_000, area_m2=1000, kind="satis"),
+    ])
+    assert result.comparables.dropped == 0
+    assert result.comparables.count == 3
+
+
+def test_conflicting_comparables_widen_the_range():
+    model = value()
+    model_price = model.unit_price
+    agreeing = value(comparables=[Comparable(price_tl=model_price * 1000, area_m2=1000, kind="satis")] * 2)
+    conflicting = value(comparables=[Comparable(price_tl=model_price * 8 * 1000, area_m2=1000, kind="satis")] * 2)
+
+    assert agreeing.comparables.conflict is False
+    assert conflicting.comparables.conflict is True
+    assert (conflicting.high - conflicting.low) / conflicting.total > (agreeing.high - agreeing.low) / agreeing.total
+
+
+def test_basis_source_follows_the_comparable_weight():
+    assert value().basis_source == "model"
+    one = value(comparables=[Comparable(price_tl=2_000_000, area_m2=1000, kind="satis")])
+    three = value(comparables=[Comparable(price_tl=2_000_000, area_m2=1000, kind="satis")] * 3)
+    assert one.basis_source == "model"      # tek emsal: ağırlık 0,45
+    assert three.basis_source == "emsal"

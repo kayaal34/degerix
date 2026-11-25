@@ -260,3 +260,99 @@ def test_ordinary_markets_are_not_capped():
     result = estimate(area_m2=1000, usage="konut", housing=BURSA,
                       urban=place(urbanity.DENSE_CLUSTER), kaks=1.0)
     assert result.development.capped is False
+
+
+def test_consistent_comparables_narrow_the_range():
+    """Tutarlı emsaller aralığı belirgin biçimde daraltmalı.
+
+    Belirsizlik değerle aynı ağırlıkla harmanlanır: dört yakın emsale dayanan
+    cevabın belirsizliği modelin kendi belirsizliği değil, emsallerin dağılımıdır.
+    Bu garanti olmadan imarsız arazinin ölçülmüş geniş tabanı (±%70) emsal
+    girilse bile daralmıyor ve ürün elindeki en iyi bilgiyi kullanmıyor olurdu.
+    """
+    from app.valuation import Comparable
+
+    ortak = dict(area_m2=5_000, usage="tarla", housing=SAMSUN,
+                 urban=place(urbanity.LOW_RURAL), deed="tam", road="var", utilities="var")
+    emsalsiz = estimate(**ortak)
+    # Modelin kendi tahminine yakın, birbirini tutan dört emsal
+    birim = emsalsiz.unit_price
+    emsalli = estimate(**ortak, comparables=[
+        Comparable(price_tl=birim * 5_000 * oran, area_m2=5_000, kind="ilan")
+        for oran in (0.95, 1.00, 1.03, 1.07)
+    ])
+
+    assert emsalli.comparables is not None
+    assert emsalli.comparables.conflict is False
+    assert width(emsalli) < 0.5 * width(emsalsiz)
+    assert emsalsiz.confidence == "düşük"      # imarsız arazide emsal yoksa güven düşük
+    assert emsalli.confidence == "yüksek"
+
+
+def _with_settlement(class_code: int, distance_km: float) -> urbanity.Urbanity:
+    return urbanity.Urbanity(
+        class_code=class_code,
+        label=urbanity.CLASS_LABELS[class_code],
+        density=0.0,
+        nearby_class=class_code,
+        province_centre=None,
+        district_centre=None,
+        settlement=urbanity.Place(name="Test", code="PPL", population=5_000, distance_km=distance_km),
+    )
+
+
+def test_small_unzoned_parcel_near_a_settlement_is_priced_as_a_plot():
+    """Tarım ölçeğinin altındaki parsel verimle değil imar beklentisiyle fiyatlanmalı.
+
+    500 m²'lik bir tarlada ekilecek bir şey yok; alıcı toprağın verimini değil
+    imara açılma olasılığını satın alıyor. Ölçümde imarsız arazinin birim fiyatı
+    1 dönümün altında, 5-20 dönüm bandının 5 katı çıkıyor.
+    """
+    kucuk = estimate(area_m2=500, usage="tarla", housing=SAMSUN,
+                     urban=_with_settlement(urbanity.TOWN, 1.0))
+    buyuk = estimate(area_m2=20_000, usage="tarla", housing=SAMSUN,
+                     urban=_with_settlement(urbanity.TOWN, 1.0))
+
+    assert kucuk.basis == "beklenti"
+    assert buyuk.basis == "arazi"
+    assert kucuk.unit_price > buyuk.unit_price
+
+
+def test_zoning_expectation_needs_a_settlement_nearby():
+    """İmar beklentisi genişleyecek bir yerleşim ister; ıssızlıkta prim doğmaz."""
+    yakin = estimate(area_m2=500, usage="tarla", housing=SAMSUN,
+                     urban=_with_settlement(urbanity.TOWN, 1.0))
+    uzak = estimate(area_m2=500, usage="tarla", housing=SAMSUN,
+                    urban=_with_settlement(urbanity.TOWN, 30.0))
+
+    assert yakin.basis == "beklenti"
+    assert uzak.basis == "arazi"
+    assert yakin.unit_price > uzak.unit_price
+
+
+def test_zoning_expectation_never_cheapens_land():
+    """İki okumanın büyüğü alınır: beklenti hiçbir araziyi ucuzlatmamalı."""
+    for alan in (300, 500, 900, 1_500, 2_500, 10_000):
+        for sinif in (urbanity.VILLAGE, urbanity.TOWN, urbanity.URBAN_CENTRE):
+            yakin = estimate(area_m2=alan, usage="tarla", housing=SAMSUN,
+                             urban=_with_settlement(sinif, 1.0))
+            uzak = estimate(area_m2=alan, usage="tarla", housing=SAMSUN,
+                            urban=_with_settlement(sinif, 99.0))
+            assert yakin.unit_price >= uzak.unit_price, (alan, sinif)
+
+
+def test_no_zoning_expectation_inside_an_already_dense_cell():
+    """Yoğun kentsel hücrede hâlâ imarsız kalmış parsele beklenti primi verilmez.
+
+    Çekirdekte imarsız kalmanın bir sebebi vardır: sulak alan, tarımsal koruma,
+    dere yatağı. O sebep yakınlıkla ortadan kalkmaz. Kural Bandırma/Kuşcenneti'nden
+    geliyor: korunan sulak alandaki 1.295 m² tarla piyasada 900 TL/m² ederken
+    model, hücreyi şehir merkezi gördüğü için 4.190 TL/m² diyordu.
+    """
+    ceper = estimate(area_m2=600, usage="tarla", housing=SAMSUN,
+                     urban=_with_settlement(urbanity.SUBURBAN, 1.0))
+    cekirdek = estimate(area_m2=600, usage="tarla", housing=SAMSUN,
+                        urban=_with_settlement(urbanity.URBAN_CENTRE, 1.0))
+
+    assert ceper.basis == "beklenti"
+    assert cekirdek.basis == "arazi"

@@ -53,8 +53,11 @@ def test_value_falls_from_city_centre_to_countryside():
 
 
 def test_city_centre_is_far_above_countryside():
+    # Kırsalda inşaat hakkı bilerek verilmiyor: AREA/ANSWERS sabitlerindeki kaks=1.0
+    # kentsel bir varsayım, boş araziye elle 1,0 emsal girmek gerçekçi değil ve
+    # modelin kendi varsayımı da (köy 0,50, çok seyrek kırsal 0,30) o değil.
     city, _ = value_at("Bursa", *BURSA[0][1:])
-    country, _ = value_at("Bursa", *BURSA[-1][1:])
+    country, _ = value_at("Bursa", *BURSA[-1][1:], kaks=None)
     assert city.unit_price > 5 * country.unit_price
 
 
@@ -86,6 +89,46 @@ def test_range_contains_the_estimate(label, lat, lng):
 
 def test_development_method_in_city_and_floor_in_countryside():
     city, _ = value_at("Bursa", *BURSA[0][1:])
-    country, _ = value_at("Bursa", *BURSA[-1][1:])
+    country, _ = value_at("Bursa", *BURSA[-1][1:], kaks=None)   # boş araziye 1,0 emsal girilmez
     assert city.basis == "gelistirme"
     assert country.basis == "taban"
+
+
+MUDARLI = (41.003662, 29.552141)   # Gebze, Kocaeli: gerçek ilan 4.661 TL/m²
+
+
+REMOTE_ANATOLIA = (38.60, 33.70)   # Tuz Gölü doğusu: en yakın yapılı alan uzakta
+
+
+def test_metro_proximity_raises_value_near_istanbul():
+    """Metropol yakınındaki arazi, metropolden uzaktaki aynı araziden değerli olmalı.
+
+    Garanti mekanizmadan bağımsız ifade edilir: yakınlık modele iki kanaldan
+    giriyor (erişilebilirlik sınıfı ve metro primi) ve hangisinin taşıdığı zamanla
+    değişebilir. Eskiden burada "metro adlı faktör var mı" diye bakılıyordu; o
+    biçim, yakınlık erişilebilirlik sınıfına taşındığında modeli doğru olduğu
+    halde başarısız gösteriyordu. Karşılaştırma noktası da bilerek değişti:
+    (39,0, 34,0) ıssız sanılıyordu ama 8 km ötesinde yapılı alan var.
+    """
+    near, near_context = value_at("Kocaeli", *MUDARLI, usage="tarla", kaks=None)
+    far, far_context = value_at("Kırşehir", *REMOTE_ANATOLIA, usage="tarla", kaks=None)
+
+    # İkisi de ızgarada aynı derecede kırsal; fark yalnızca metropol yakınlığından gelsin
+    assert near_context.class_code == far_context.class_code
+    assert urbanity.rung(near_context.access_class) > urbanity.rung(far_context.access_class)
+
+    near_share = near.unit_price / snapshot_price("Kocaeli").value
+    far_share = far.unit_price / snapshot_price("Kırşehir").value
+    assert near_share > 1.5 * far_share, f"{near_share:.4f} vs {far_share:.4f}"
+
+
+def test_gebze_parcel_with_three_comparables_lands_near_the_market():
+    from app.valuation import Comparable
+
+    comparables = [Comparable(price_tl=1_100_000, area_m2=236, kind="ilan") for _ in range(3)]
+    result, _ = value_at(
+        "Kocaeli", *MUDARLI, area_m2=2121.44, usage="tarla", kaks=None,
+        utilities="kismen", comparables=comparables,
+    )
+    assert 1500 <= result.unit_price <= 4000
+    assert result.comparables.conflict is True

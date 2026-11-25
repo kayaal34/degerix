@@ -81,6 +81,44 @@ class Parameters:
     # İmarsız arazide kullanım farkı (tarla = 1,00)
     farmland_usage_ratio: dict[str, float] = field(default_factory=lambda: {"tarla": 1.00, "bag_bahce": 1.40, "zeytinlik": 1.60})
 
+    # --- İmarsız parselde imar beklentisi -------------------------------------
+    # 472 m²'lik bir "tarla"yı kimse ekmiyor: o parselin fiyatı tarımsal verimden
+    # değil, imara açılma beklentisinden geliyor. Ölçümde imarsız arazinin birim
+    # fiyatı 1 dönümün altında, 5-20 dönüm bandının 5 katı çıkıyor; tek bir
+    # tarımsal oran bu farkı taşıyamaz. Bu yüzden imarsız arazi, tarımsal değer
+    # ile "imarı bekleyen yapı parseli" değerinin büyüğü olarak hesaplanır.
+
+    # İmarsız parsel, aynı yerde konut imarlı olsaydı edeceği değerin bu kadarını
+    # eder; kalan fark alıcının taşıdığı imar riski ve bekleme süresidir.
+    zoning_expectation: float = 0.30
+
+    # Parselin "yapı parseli" sayıldığı büyüklük aralığı. Altında tamamen parsel
+    # gibi, üstünde tamamen tarım gibi fiyatlanır; arada doğrusal geçiş.
+    plot_area_min_m2: float = 400.0
+    plot_area_max_m2: float = 2000.0
+
+    # İmar beklentisi büyümekte olan bir yerleşim gerektirir: bu mesafeye kadar
+    # tam, iki katına kadar doğrusal azalarak sıfıra iner.
+    plot_settlement_km: float = 3.0
+
+    # --- Değer aralığı -------------------------------------------------------
+    # Yöntemin kendi belirsizliği: aralığın yarı genişliğinin tabanı. Eksik
+    # bilgi payları bunun üstüne eklenir.
+    #
+    # Bu sayılar varsayım değil, ölçüm: 42 gerçek ilana karşı hatanın yöntem
+    # bazında dağılımından geliyor (tools/ilan_karsilastir.py). Daha önce taban
+    # 0,08'di ve aralık 42 ilanın yalnızca 9'unu kapsıyordu; kullanıcıya
+    # gösterilen güven aralığı, modelin gerçek isabetinden üç kat dardı.
+    # Geliştirme hesabı en çok bilgiyi kullandığı için en dar, imarsız arazi ise
+    # ne imar ne emsal bilindiğinden en geniş. Aralığı ölçülen hatanın altında
+    # tutmak ürünü isabetli göstermez, yalnızca yanlış gösterir.
+    basis_spread: dict[str, float] = field(default_factory=lambda: {
+        "gelistirme": 0.45,   # ölçülen: 2/3 kapsama için ±%50 (n=12)
+        "taban": 0.50,        # ölçülen: ±%101 ama n=4, o yüzden tamamı yazılmadı
+        "arazi": 0.70,        # ölçülen: ±%76 (n=26)
+        "beklenti": 0.85,     # imar beklentisi: gelir de gelmez de, en belirsiz okuma
+    })
+
     # İlan fiyatı ile gerçekleşen satış arasındaki tipik pazarlık payı.
     # Yalnızca kalibrasyonda kullanılır: ilan fiyatları bu oranda indirilerek karşılaştırılır.
     asking_discount: float = 0.12
@@ -104,6 +142,32 @@ class Parameters:
     # Model tamamen devre dışı kalmaz; birkaç emsal yanlışsa sonucu tek başına belirlemesin.
     comparable_weight_per_record: float = 0.20
     comparable_weight_cap: float = 0.60
+
+    # Emsal ağırlığı: emsal sayısına göre kademeli
+    comparable_weight_steps: tuple[float, ...] = (0.45, 0.65, 0.80, 0.90)
+    # Emsaller dağınıksa (dispersion > comparable_scatter_limit) ağırlık bu oranla çarpılır
+    comparable_scatter_limit: float = 0.50
+    comparable_scatter_penalty: float = 0.70
+    # Medyana göre bu sınırların dışındaki emsaller elenir
+    comparable_outlier_low: float = 0.25
+    comparable_outlier_high: float = 4.0
+    # Model ile emsal bu kattan fazla ayrışırsa uyarı verilir ve aralık genişler
+    comparable_conflict_ratio: float = 3.0
+
+    # Emsale dayanan cevabın en dar aralığı: emsaller satış değil ilan olabilir,
+    # parsel farkları büyüklük düzeltmesiyle tam kapanmaz.
+    comparable_min_spread: float = 0.12
+
+    # Emsaller modelle çatıştığında aralığa eklenen pay
+    comparable_conflict_spread: float = 0.15
+    # Metropol yakınlığı
+    metro_population_min: int = 250_000
+    # Primin tamamını hak eden nüfus; aradakiler logaritmik olarak ölçeklenir.
+    # Aksaray (327 bin) ile İstanbul (15,7 milyon) aynı çekimi uygulayamaz.
+    metro_population_full: int = 15_000_000
+    metro_bonus_max: float = 2.5
+    metro_decay_km: float = 45.0
+    metro_max_km: float = 150.0
 
     source: str = "varsayılan"
 

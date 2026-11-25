@@ -29,12 +29,14 @@ import math
 import re
 import statistics
 from dataclasses import dataclass
+from typing import Literal
 
 from .costs import construction_cost
 from .data import CORNER, DEED, IRRIGATION, ROAD, SALE_SCENARIOS, UNKNOWN, USAGE, UTILITIES, VIEW, fold
 from .model_params import Parameters, load as load_parameters
 from .surroundings import Surroundings, factor_rows
-from .urbanity import LOW_RURAL, Urbanity, VILLAGE
+from . import urbanity
+from .urbanity import DENSE_CLUSTER, LOW_RURAL, SUBURBAN, Urbanity, VILLAGE
 
 RURAL_USAGES = frozenset({"tarla", "bag_bahce", "zeytinlik"})
 
@@ -80,6 +82,8 @@ class ComparableSummary:
     model_unit_price: int     # emsaller hesaba katılmadan önceki değer
     weight: float             # emsallerin sonuca etkisi (0-1)
     spread_pct: float         # emsaller arasındaki dağılım
+    dropped: int = 0          # aykırı diye elenen emsal sayısı
+    conflict: bool = False    # model ile emsaller birbirinden çok ayrışıyor
 
 
 @dataclass(frozen=True)
@@ -124,7 +128,7 @@ class Estimate:
     base_price: int              # düzeltmeler öncesi arsa m² değeri
     base_label: str
     base_detail: str
-    basis: str                   # "gelistirme" · "taban" · "arazi"
+    basis: str                   # "gelistirme" · "taban" · "arazi" · "beklenti"
     unit_price: int
     total: int
     low: int
@@ -138,19 +142,39 @@ class Estimate:
     comparables: ComparableSummary | None = None
     share_pct: float | None = None
     share_value: int | None = None
+    basis_source: Literal["emsal", "model"] = "model"   # sonuç neye dayanıyor
+
+
+def effective_class(urban: Urbanity | None) -> int:
+    """Parametre seçiminde kullanılan sınıf: hücrenin kendisi ile uzaklığa göre
+    sönümlenmiş erişilebilirlik sınıfından en kentsel olanı.
+
+    Hücrenin kendi nüfus yoğunluğu erişilebilirliği temsil etmiyor: Gaziantep
+    merkezine 8,6 km'deki boş parsel ızgarada "seyrek kırsal" görünüyor ve bu yüzden
+    hem konut katsayısı hem taban oranı kırsal seçiliyordu; ölçümde bu iki kalem
+    birlikte değeri yaklaşık 6 kat aşağı çekiyordu. İkisi de ızgaradan geldiği için
+    burada olmayan bir kentsellik uydurulmaz, var olan en kentsel bağlam seçilir.
+
+    `nearby_class` bilerek dışarıda: o 2 km içindeki düz bir maksimum, mesafe
+    sönümlemesi yok. Tam ağırlıkla alınsa sınıf sınırında değer uçurumu oluşur, bu
+    yüzden kısmi ağırlığıyla yalnızca `blended_locality` içinde kullanılır.
+    `access_class` ise sönümlemeyi kendi içinde taşıdığı için tam ağırlığı hak eder.
+    """
+    if urban is None:
+        return LOW_RURAL
+    return max((urban.class_code, urban.access_class), key=urbanity.rung)
 
 
 def blended_locality(urban: Urbanity | None, parameters: Parameters) -> float:
-    """Hücrenin kentsellik katsayısını çevresiyle harmanlar.
+    """Parselin kentsellik katsayısı; erişilebilirlik sınıfı üzerinden seçilir.
 
     Kentsellik ızgarası 1 km çözünürlükte olduğu için köyün ya da kasabanın hemen
-    kenarındaki parsel "boş kırsal" hücresine düşebiliyor. Çevredeki en kentsel sınıf
-    daha yüksekse katsayı o yöne doğru bir miktar çekilir; böylece sınıf sınırlarında
-    değer uçurumu oluşmaz.
+    kenarındaki parsel "boş kırsal" hücresine düşebiliyor; sınıf seçimini
+    `effective_class` yaptığı için bu geçiş artık orada ele alınıyor.
     """
     if urban is None:
         return parameters.locality[LOW_RURAL]
-    cell = parameters.locality[urban.class_code]
+    cell = parameters.locality[effective_class(urban)]
     nearby = parameters.locality.get(urban.nearby_class, cell)
     blended = cell if nearby <= cell else cell + (nearby - cell) * parameters.nearby_class_weight
 
@@ -161,14 +185,62 @@ def blended_locality(urban: Urbanity | None, parameters: Parameters) -> float:
 
 
 def centre_proximity(urban: Urbanity | None, parameters: Parameters) -> Factor | None:
-    """Kırsalda ilçe merkezine yakınlık; şehirde zaten yerleşim sınıfı bunu içerir."""
-    if urban is None or urban.class_code > VILLAGE or urban.district_centre is None:
+    """Kırsalda en yakın merkeze yakınlık; şehirde zaten yerleşim sınıfı bunu içerir.
+
+    Gate `effective_class` üzerinden, metro primiyle aynı gerekçeyle: parsel fiyat
+    seviyesi için kentsel sayıldıysa yakınlık katsayıya çoktan girmiştir.
+
+    Merkez, ilçe / il / büyükşehir merkezlerinin en yakını alınır. İlçe merkezi
+    araması GeoNames'te PPLA2 kodunu arıyor, büyükşehir ilçeleri (Kayapınar,
+    Şehitkamil) bu kodu taşımadığı için coğrafi olarak en yakın ilçeyi seçiyordu:
+    Kayapınar'daki parsele 13 km'deki Diyarbakır yerine 46,5 km'deki Ergani çıkıyordu.
+    """
+    if urban is None or urbanity.rung(effective_class(urban)) > urbanity.rung(VILLAGE):
         return None
-    distance_km = urban.district_centre.distance_km
+    nearest = min(
+        (place for place in (urban.district_centre, urban.province_centre, urban.metro) if place is not None),
+        key=lambda place: place.distance_km,
+        default=None,
+    )
+    if nearest is None:
+        return None
+    distance_km = nearest.distance_km
     multiplier = 1 + parameters.rural_centre_bonus * math.exp(-distance_km / parameters.rural_centre_decay_km)
     return Factor(
         "centre", "Merkeze yakınlık", round(multiplier, 3),
-        f"{urban.district_centre.name} merkezine {_decimal(distance_km)} km",
+        f"{nearest.name} merkezine {_decimal(distance_km)} km",
+    )
+
+
+def metro_proximity(urban: Urbanity | None, parameters: Parameters) -> Factor | None:
+    """Büyük şehir çekim alanı: imar beklentisi fiyatın içindedir.
+
+    Prim, parsel ETKİN olarak kırsal kaldığı ölçüde uygulanır. Bir parsel fiyat
+    seviyesi için kentsel, prim için kırsal sayılamaz: erişilebilirlik Gölyazı'yı
+    "şehir çeperi" yapıp `locality` 0,80 verirken hücresi kırsal olduğu için metro
+    primi de eklenince, Gölyazı yanındaki yoğun kentsel Mudanya'yı geçiyordu —
+    yani şehirden uzaklaşınca değer yükseliyordu. Aynı yakınlık iki kanaldan
+    sayıldığında gradyan ters dönüyor.
+
+    Sönüm kademeli, çünkü sert bir eşik aynı uçurumu sınıf sınırında yeniden kurar.
+    """
+    if urban is None or urban.metro is None or urban.metro.distance_km > parameters.metro_max_km:
+        return None
+    # Parselin etkin kentselliği arttıkça prim doğrusal olarak sıfıra iner.
+    built_up = urbanity.rung(SUBURBAN)
+    rural_weight = max(0.0, (built_up - urbanity.rung(effective_class(urban))) / built_up)
+    if rural_weight <= 0:
+        return None
+    distance_km = urban.metro.distance_km
+    # Prim nüfusla ölçeklenir: eşiği yeni geçen bir il merkezi, İstanbul kadar
+    # çekim uygulamaz. Logaritmik, çünkü çekim nüfusla doğrusal büyümüyor.
+    span = math.log10(parameters.metro_population_full / parameters.metro_population_min)
+    reach = math.log10(urban.metro.population / parameters.metro_population_min)
+    scale = min(1.0, max(0.0, reach / span)) if span > 0 else 1.0
+    multiplier = 1 + parameters.metro_bonus_max * scale * rural_weight * math.exp(-distance_km / parameters.metro_decay_km)
+    return Factor(
+        "metro", "Büyük şehir yakınlığı", round(multiplier, 3),
+        f"{urban.metro.name} merkezine {_decimal(distance_km)} km",
     )
 
 
@@ -193,17 +265,45 @@ def blend_comparables(
     if not prices or model_unit_price <= 0:
         return None, spread
 
+    # Aykırı eleme yalnızca yeterli emsal varken yapılır
+    dropped = 0
+    if len(prices) >= 4:
+        raw_median = statistics.median(prices)
+        kept = [
+            price for price in prices
+            if raw_median * parameters.comparable_outlier_low <= price <= raw_median * parameters.comparable_outlier_high
+        ]
+        if kept:
+            dropped = len(prices) - len(kept)
+            prices = kept
+
     market_price = statistics.median(prices)
     dispersion = (prices[-1] - prices[0]) / market_price if len(prices) > 1 else 0.0
-    weight = min(parameters.comparable_weight_cap, parameters.comparable_weight_per_record * len(prices))
 
-    # Emsaller birbirini tutuyorsa aralık daralır, dağınıksa genişler
-    if dispersion > 0.5:
-        spread += 0.04
-    elif len(prices) > 1:
-        spread -= 0.03
-    else:
-        spread -= 0.01
+    steps = parameters.comparable_weight_steps
+    weight = steps[min(len(prices), len(steps)) - 1]
+    if dispersion > parameters.comparable_scatter_limit:
+        weight *= parameters.comparable_scatter_penalty
+
+    ratio = max(market_price / model_unit_price, model_unit_price / market_price)
+    conflict = ratio > parameters.comparable_conflict_ratio
+
+    # Belirsizlik, değerle aynı ağırlıkla harmanlanır. Değer model ile piyasanın
+    # `weight` ağırlıklı geometrik ortalaması olduğuna göre aralık da öyle olmalı:
+    # dört tutarlı emsale dayanan bir cevabın belirsizliği, modelin belirsizliği
+    # değil emsallerin kendi dağılımıdır. Eskiden emsaller aralığı yalnızca ±0,06
+    # oynatıyordu; model tabanı ölçülen hataya çıkarıldığında (imarsızda ±%45)
+    # bu, dört iyi emsalle bile aralığı dar bırakmıyordu.
+    #
+    # Emsal aralığı: dağılımın yarısı, ama hiçbir zaman tabanın altına inmez —
+    # emsaller satış değil ilan olabilir, parsel farkları düzeltmeyle tam
+    # kapanmaz ve tek emsal kendi başına dağılım bilgisi vermez.
+    comparable_spread = max(parameters.comparable_min_spread, dispersion / 2)
+    spread = (1 - weight) * spread + weight * comparable_spread
+    if conflict:
+        # Emsaller modelle çatışıyorsa hangisinin yanıldığı bilinmiyor; ikisini
+        # birbirine yaklaştırmak değil, aralığı açıkça genişletmek gerekir.
+        spread += parameters.comparable_conflict_spread
 
     summary = ComparableSummary(
         count=len(prices),
@@ -211,6 +311,8 @@ def blend_comparables(
         model_unit_price=nice_round(model_unit_price),
         weight=round(weight, 2),
         spread_pct=round(dispersion * 100, 1),
+        dropped=dropped,
+        conflict=conflict,
     )
     return summary, max(0.05, spread)
 
@@ -218,6 +320,63 @@ def blend_comparables(
 def size_multiplier(area_m2: float) -> float:
     """500 m² referans alınır; 5.000 m²'de ~0,85, 50.000 m²'de ~0,72."""
     return min(1.08, max(0.65, (area_m2 / 500) ** -0.07))
+
+
+def plot_expectation_price(
+    *, area_m2: float, urban: Urbanity | None, class_code: int,
+    local_housing_price: float, parameters: Parameters,
+) -> tuple[float, float]:
+    """İmarsız parselin "imarı bekleyen yapı parseli" okuması: (TL/m², pay).
+
+    Tarımsal değer parselin verimini fiyatlar ve bu, tarım ölçeğindeki araziler
+    için doğru okumadır. Ama 472 m²'lik bir parselde ekilecek bir şey yoktur;
+    alıcı toprağı değil imara açılma olasılığını satın alır. İki okumanın büyüğü
+    alındığı için bu hesap hiçbir araziyi ucuzlatmaz, yalnızca tarım
+    açıklamasının anlamını yitirdiği yerde devreye girer. Pay sıfırsa okuma
+    geçersizdir.
+
+    Ölçüt, aynı yerde parsel konut imarlı olsaydı modelin söyleyeceği değerdir.
+    Taban değeri ölçüt almak yanlıştı: taban, imarlı arsanın en düşük okumasıdır
+    ve ona oran uygulamak beklentiyi iki kez kısıyor; şehir çeperinde mekanizma
+    hiç devreye girmiyordu.
+
+    İki koşul birlikte aranır: parsel yapı parseli ölçeğinde olmalı ve büyümekte
+    olan bir yerleşimin yanında olmalı. İkincisi olmadan ıssız arazideki küçük
+    hisse de prim alırdı; oysa imar beklentisi, genişleyecek bir yerleşim ister.
+    """
+    span = parameters.plot_area_max_m2 - parameters.plot_area_min_m2
+    plot_weight = (parameters.plot_area_max_m2 - area_m2) / span if span > 0 else 0.0
+    plot_weight = max(0.0, min(1.0, plot_weight))
+    settlement = urban.settlement if urban is not None else None
+    if plot_weight <= 0 or settlement is None:
+        return 0.0, 0.0
+
+    # Beklenti büyüme alanında doğar, çoktan dolmuş çekirdekte değil: parselin
+    # kendi hücresi zaten yoğun kentselse ve parsel hâlâ imarsızsa bunun bir
+    # sebebi vardır (sulak alan, tarımsal koruma, dere yatağı) ve o sebep
+    # yakınlıkla ortadan kalkmaz. Bu kuralı Bandırma/Kuşcenneti öğretti: korunan
+    # sulak alandaki 1.295 m² tarla piyasada 900 TL/m² ederken model, hücreyi
+    # şehir merkezi gördüğü için 4.190 TL/m² diyordu.
+    if urbanity.rung(urban.class_code) >= urbanity.rung(DENSE_CLUSTER):
+        return 0.0, 0.0
+    reach = parameters.plot_settlement_km
+    near_weight = max(0.0, min(1.0, (2 * reach - settlement.distance_km) / reach))
+    if near_weight <= 0:
+        return 0.0, 0.0
+
+    # Emsal burada parselin kendi hücresinden değil etkin sınıftan okunur ve bu,
+    # imarlı arsadaki kuralın bilinçli tersi. Orada inşaat hakkı parselin yerine
+    # bağlı hukuki bir olgudur; burada ise henüz imar yok, varsayımsal bir imarın
+    # getireceği yoğunluk fiyatlanıyor ve o yoğunluk çevrenin yoğunluğudur.
+    # Hücrenin bugünkü kırsal emsali kullanılsa beklenti hiç doğmuyordu.
+    zoned = develop(
+        area_m2=area_m2, usage="konut", class_code=class_code, kaks_class=class_code,
+        local_housing_price=local_housing_price, kaks=None, parameters=parameters,
+    )
+    zoned_price = max(zoned.land_value / area_m2,
+                      local_housing_price * parameters.floor_ratio[class_code])
+    share = parameters.zoning_expectation * plot_weight * near_weight
+    return zoned_price * share, share
 
 
 def nice_round(value: float, digits: int = 3) -> int:
@@ -258,9 +417,18 @@ def develop(
     local_housing_price: float,
     kaks: float | None,
     parameters: Parameters,
+    kaks_class: int | None = None,
 ) -> Development:
-    """İmarlı arsada geliştirme (artık değer) hesabı."""
-    effective_kaks = kaks if kaks is not None else parameters.default_kaks[class_code]
+    """İmarlı arsada geliştirme (artık değer) hesabı.
+
+    `class_code` fiyat seviyesini belirler ve erişilebilirlik sınıfından gelir.
+    Varsayılan inşaat hakkı ise `kaks_class` ile parselin kendi hücresinden alınır:
+    yakınlık arsayı değerli yapar ama orada daha fazla inşaat hakkı doğurmaz, imar
+    hakkı parselin kendi yerine bağlı hukuki bir olgudur. Bu ayrım olmadan Silivri'de
+    villa parseline şehir çeperi varsayılanı (KAKS 1,00) uygulanıyor ve değer
+    gerçeğin 5 katına çıkıyordu.
+    """
+    effective_kaks = kaks if kaks is not None else parameters.default_kaks[kaks_class if kaks_class is not None else class_code]
     buildable = area_m2 * effective_kaks
     sellable = buildable * parameters.sellable_ratio
     sale_price = local_housing_price * parameters.usage_price_ratio.get(usage, 1.0) * parameters.new_build_premium
@@ -333,11 +501,17 @@ def estimate(
             raise ValueError(f"Geçersiz {name} yanıtı: {answer}")
 
     parameters = parameters or load_parameters()
-    spread = 0.08  # değer aralığının yarı genişliği; her eksik bilgi büyütür
+    # Değer aralığının yarı genişliği. Buradaki başlangıç yalnızca eksik bilgi
+    # payıdır; yöntemin kendi belirsizliği yöntem seçildikten sonra eklenir.
+    spread = 0.0
     factors: list[Factor] = []
 
-    class_code = urban.class_code if urban is not None else LOW_RURAL
-    settlement_label = urban.label if urban is not None else "yerleşim bilinmiyor"
+    class_code = effective_class(urban)
+    # Etiket hesapla aynı sınıfı anlatmalı: hesap erişilebilirlik sınıfını kullanırken
+    # kullanıcıya hücrenin ham sınıfını ("seyrek kırsal") göstermek açıklamayı yanlışlar.
+    settlement_label = (
+        urbanity.CLASS_LABELS.get(class_code, urban.label) if urban is not None else "yerleşim bilinmiyor"
+    )
     if urban is None:
         spread += 0.04
     if housing.estimated:
@@ -353,6 +527,7 @@ def estimate(
     if zoned:
         development = develop(
             area_m2=area_m2, usage=usage, class_code=class_code,
+            kaks_class=urban.class_code if urban is not None else LOW_RURAL,
             local_housing_price=local_housing_price, kaks=kaks, parameters=parameters,
         )
         floor_price = local_housing_price * parameters.floor_ratio[class_code]
@@ -376,19 +551,35 @@ def estimate(
                 f"%{_decimal(parameters.floor_ratio[class_code] * 100)}'i"
             )
             base_label = "Taban değer"
-            spread += 0.05
         if development.kaks_assumed:
             spread += 0.04
     else:
         basis = "arazi"
         ratio = parameters.farmland_ratio[class_code] * parameters.farmland_usage_ratio.get(usage, 1.0)
-        base_price = local_housing_price * ratio
-        base_label = "Arazi değeri"
-        base_detail = (
-            f"{USAGE[usage]} · {settlement_label} · bölgedeki konut fiyatının "
-            f"%{_decimal(ratio * 100)}'i"
+        farmland_price = local_housing_price * ratio
+        plot_price, plot_share = plot_expectation_price(
+            area_m2=area_m2, urban=urban, class_code=class_code,
+            local_housing_price=local_housing_price, parameters=parameters,
         )
-        spread += 0.06
+        if plot_price > farmland_price:
+            basis = "beklenti"
+            base_price = plot_price
+            base_label = "İmar beklentisi"
+            base_detail = (
+                f"{USAGE[usage]} · {_thousands(area_m2)} m² tarım için küçük, yapı parseli "
+                f"ölçeğinde · aynı yerde konut imarlı olsaydı edeceği değerin "
+                f"%{_decimal(plot_share * 100)}'i"
+            )
+        else:
+            base_price = farmland_price
+            base_label = "Arazi değeri"
+            base_detail = (
+                f"{USAGE[usage]} · {settlement_label} · bölgedeki konut fiyatının "
+                f"%{_decimal(ratio * 100)}'i"
+            )
+
+    # Yöntemin kendi belirsizliği. Eksik bilgi payları bunun üstüne biner.
+    spread += parameters.basis_spread[basis]
 
     if surroundings is not None:
         factors.extend(Factor(*row) for row in factor_rows(surroundings))
@@ -396,6 +587,9 @@ def estimate(
     proximity = centre_proximity(urban, parameters)
     if proximity is not None:
         factors.append(proximity)
+    metro = metro_proximity(urban, parameters)
+    if metro is not None:
+        factors.append(metro)
 
     factors.append(Factor("size", "Büyüklük", round(size_multiplier(area_m2), 3), f"{_thousands(area_m2)} m² parsel"))
 
@@ -455,9 +649,13 @@ def estimate(
     unit_price = nice_round(base_price * math.prod(factor.multiplier for factor in factors))
     total = unit_price * area_m2
 
-    if spread <= 0.12 + 1e-9:
+    # Eşikler yöntemlerin ölçülen isabetine göre: "yüksek" ancak geliştirme hesabı
+    # eksiksiz bilgiyle çalıştığında (taban 0,30) mümkün; emsal varsayılmışsa bile
+    # "orta"ya iner. İmarsız arazi en iyi hâlde "orta", imar beklentisi hep "düşük".
+    # Eski eşikler (0,12 / 0,22) 0,08'lik taban genişliğe göreydi.
+    if spread <= 0.46 + 1e-9:
         confidence = "yüksek"
-    elif spread <= 0.22 + 1e-9:
+    elif spread <= 0.60 + 1e-9:
         confidence = "orta"
     else:
         confidence = "düşük"
@@ -489,6 +687,7 @@ def estimate(
         scenarios=scenarios,
         development=development,
         comparables=comparable_summary,
+        basis_source="emsal" if comparable_summary is not None and comparable_summary.weight >= 0.65 else "model",
         share_pct=share_pct if has_share else None,
         share_value=nice_round(total * share_pct / 100) if has_share else None,
     )
