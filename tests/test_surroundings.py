@@ -8,12 +8,8 @@ from app.geo import distance_to_line_m
 from app.surroundings import (
     OsmContext,
     Surroundings,
-    coast_multiplier,
     factor_rows,
-    main_road_multiplier,
-    services_multiplier,
     settlement_position,
-    slope_multiplier,
 )
 from app.model_params import DEFAULTS
 from app.valuation import HousingPrice, estimate
@@ -41,37 +37,31 @@ def test_distance_to_line():
     assert math.isinf(distance_to_line_m(37.0, 27.0, []))
 
 
-def test_multipliers_are_bounded_and_monotonic():
-    coast = [coast_multiplier(d) for d in (0, 500, 1500, 3000)]
-    assert coast == sorted(coast, reverse=True)
-    assert coast[0] == pytest.approx(1.2) and coast[-1] < 1.01
-    assert coast_multiplier(None) == 1.0
-    assert [main_road_multiplier(d) for d in (50, 500, 1200, None)] == [1.05, 1.0, 0.95, 0.90]
-    assert (services_multiplier(0), services_multiplier(6), services_multiplier(40)) == pytest.approx((0.95, 1.0, 1.05))
-    assert (slope_multiplier(2), slope_multiplier(15), slope_multiplier(60)) == pytest.approx((1.0, 0.925, 0.85))
-
-
-def test_surroundings_add_explained_factors():
+def test_surroundings_are_reported_without_touching_the_value():
+    """Kıyı, ana yol, hizmet ve eğim 103 ilanda ölçüldü: fiyat etkisi bulunamadı.
+    Ölçüm dökümde kalır (kullanıcı neye bakıldığını görür) ama değeri oynatmaz."""
     measured = Surroundings(osm=OsmContext(coast_m=420, main_road_m=None, services=3), slope_pct=12.4)
-    rows = {key: (multiplier, detail) for key, _, multiplier, detail in factor_rows(measured)}
+    (key, label, multiplier, detail), = factor_rows(measured)
 
-    assert rows["coast"][1] == "Kıyıya 420 m"
-    assert rows["main_road"] == (0.90, "1,5 km içinde ana yol yok")
-    assert rows["services"][1] == "1 km içinde 3 okul, sağlık ya da market noktası"
-    assert rows["slope"][1] == "Yaklaşık %12"
+    assert (key, label, multiplier) == ("surroundings", "Çevre ölçümleri", 1.0)
+    assert detail == ("Kıyıya 420 m · 1,5 km içinde ana yol yok · 1 km içinde 3 okul, "
+                      "sağlık ya da market noktası · eğim yaklaşık %12 · "
+                      "103 ilanda fiyat etkisi ölçülemedi")
 
     arguments = dict(area_m2=800, usage="konut", housing=BURSA, urban=place(urbanity.DENSE_CLUSTER), kaks=1.0)
     plain = estimate(**arguments)
     with_surroundings = estimate(**arguments, surroundings=measured)
 
-    assert [f.key for f in with_surroundings.factors][:4] == ["coast", "main_road", "services", "slope"]
-    product = math.prod(multiplier for multiplier, _ in rows.values())
-    assert with_surroundings.unit_price == pytest.approx(plain.unit_price * product, rel=0.02)
+    assert "surroundings" in {f.key for f in with_surroundings.factors}
+    assert with_surroundings.unit_price == plain.unit_price
+    assert (with_surroundings.low, with_surroundings.high) == (plain.low, plain.high)
 
 
 def test_unavailable_measurements_are_skipped():
     assert factor_rows(Surroundings(osm=None, slope_pct=None)) == []
-    assert [row[0] for row in factor_rows(Surroundings(osm=None, slope_pct=3.0))] == ["slope"]
+    rows = factor_rows(Surroundings(osm=None, slope_pct=3.0))
+    assert [row[0] for row in rows] == ["surroundings"]
+    assert rows[0][3].startswith("Eğim yaklaşık %3")
 
 
 def test_parse_overpass_classifies_elements():
@@ -120,7 +110,8 @@ def test_estimate_endpoint_uses_surroundings(client, monkeypatch):
     body = client.post("/api/estimate", json={
         "province": "Muğla", "area_m2": 500, "usage": "konut", "lat": 37.0385, "lng": 27.419,
     }).json()
-    assert {"coast", "main_road", "services", "slope"} <= {f["key"] for f in body["factors"]}
+    cevre, = (f for f in body["factors"] if f["key"] == "surroundings")
+    assert cevre["multiplier"] == 1.0 and "Kıyıya 300 m" in cevre["detail"]
 
 
 def test_fetch_within_does_not_wait_for_slow_services_and_shares_requests(monkeypatch):

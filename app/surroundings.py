@@ -1,12 +1,13 @@
 """
-Parselin çevresine göre katsayılar: denize ve ana yola mesafe, yakındaki hizmetler, eğim.
+Parselin çevresi: denize ve ana yola mesafe, yakındaki hizmetler, eğim, yerleşim.
 
-Saf fonksiyonlardır; ölçümler app/nearby.py'de OpenStreetMap ve yükselti servisinden
-alınır. Etkiler bilinçli olarak dar tutulur: ilçe katsayısı bölgenin ortalamasını
-zaten taşır, bunlar aynı ilçe içindeki farkı ayırt eder.
+Ölçümler app/nearby.py'de OpenStreetMap ve yükselti servisinden alınır. Bunlardan
+yalnızca biri değere dokunur: parselin yerleşimin kıyısında olup olmadığı
+(settlement_position → app/valuation.py'deki fringe_factor). Kıyı, ana yol, hizmet
+ve eğim ölçülüp fiyat etkisi bulunamadığı için dökümde bilgi olarak kalır;
+gerekçesi factor_rows'un içinde yazılı.
 """
 
-import math
 from dataclasses import dataclass
 
 COAST_RADIUS_M = 3000
@@ -30,34 +31,6 @@ class OsmContext:
 class Surroundings:
     osm: OsmContext | None      # None: OpenStreetMap'e ulaşılamadı
     slope_pct: float | None     # None: yükselti alınamadı
-
-
-def coast_multiplier(distance_m: float | None) -> float:
-    """Kıyıda 1,20; 500 m'de ~1,10; 3 km'de etkisiz."""
-    if distance_m is None:
-        return 1.0
-    return 1 + 0.20 * math.exp(-distance_m / 700)
-
-
-def main_road_multiplier(distance_m: float | None) -> float:
-    """Ana yola 150 m içinde 1,05; 800 m'ye kadar nötr; daha uzakta 0,95; 1,5 km içinde yoksa 0,90."""
-    if distance_m is None:
-        return 0.90
-    if distance_m <= 150:
-        return 1.05
-    if distance_m <= 800:
-        return 1.0
-    return 0.95
-
-
-def services_multiplier(count: int) -> float:
-    """1 km içinde hiç hizmet noktası yoksa 0,95; 12 ve üzerinde 1,05."""
-    return 0.95 + 0.10 * min(count, 12) / 12
-
-
-def slope_multiplier(slope_pct: float) -> float:
-    """%5'e kadar düz sayılır; %25 ve üzeri eğimde 0,85."""
-    return 1.0 - 0.15 * min(max(slope_pct - 5, 0.0), 20.0) / 20
 
 
 def settlement_position(osm: OsmContext | None) -> str | None:
@@ -101,25 +74,49 @@ def _distance(meters: float) -> str:
 
 
 def factor_rows(surroundings: Surroundings) -> list[tuple[str, str, float, str]]:
-    """Değerleme dökümüne eklenecek (anahtar, etiket, katsayı, açıklama) satırları; ölçülemeyenler atlanır."""
-    rows = []
+    """Çevre ölçümleri dökümde tek bilgi satırı olur; değere dokunmazlar (×1,00).
+
+    Buradaki dört ölçüm başlangıçta katsayıya çevrilmişti: kıyıda ×1,20'ye kadar
+    prim, ana yol 1,5 km içinde yoksa ×0,90, hizmet noktası yoksa ×0,95, %25 eğimde
+    ×0,85. Hiçbiri ölçülmemişti. 103 ilanda ölçüldüklerinde dördü birlikte modeli
+    **bozuyordu**: tipik sapma katsayısızken de ×1,80, ±%50 içindeki kayıt ise
+    53'ten 47'ye düşüyordu — kazanç yok, altı kayıt kaybı var. Sebebi, dördünün de
+    yalnızca kırpması: Türkiye kırsalında OSM'de ana yol çizilmemiş olması parselin
+    yolu olmadığı anlamına gelmiyor, biz eksik veriyi fiyat indirimi sayıyorduk.
+
+    Katsayıları veriden yeniden kurmak da kurtarmadı. Her etken kendi kovalarında
+    ortanca oranla kurulup (diğerleri bölünerek, dört tur) en iyi haline getirildiğinde
+    bile ±%50 oranı 49'da kaldı, yani nötrün altında; ölçüldüğü kayıtları görerek
+    kurulan bir katsayı ×1,00'i geçemiyorsa sahada geçmesi beklenmez. Dışarıda
+    bırakmalı ölçüm bunu doğruluyor: her kayıt kendisi hariç kalan 102 kayıttan
+    kurulan katsayıyla puanlandığında tipik sapma ×1,98'e çıkıyor ve ±%50 oranı
+    45'e düşüyor — dört kovanın ortancası ezberden başka bir şey taşımıyor. Tek tek de
+    denendiler: kıyı 11 iyi/15 bozuk, hizmet 51/50, eğim bugünkü haliyle ±%50'yi
+    53'ten 47'ye düşüren en zararlı tekil etken (ölçümde %20+ eğimli 13 parsel
+    modelin 1,17 katını istiyor — eğim cezası bu veride ters yönde).
+
+    En umutlu aday ana yol primiydi: 150 m içinde yol olan 19 parselde artık oran
+    1,52 görünüyordu. Üç sınavın hiçbirini geçmedi — dışarıda bırakmalı ölçümde
+    tipik sapma ×1,80'den ×1,82'ye çıktı ve ±%50 53'ten 50'ye düştü, iyileşen/bozulan
+    10'a 9, aykırı beş kayıt çıkarıldığında kazanç tamamen kayboldu (×1,68 → ×1,68).
+    O 1,52, kovaların birbirine bölünmesinden doğan bir yankıydı; primin gerçek
+    büyüklüğü 1,21 ve 19 kaydı oynatıp hiçbir şey kazandırmıyor.
+
+    Reddedilen dört katsayının kendisi tools/cevre_olc.py içinde duruyor; veri
+    büyüdüğünde aynı betikle yeniden sınanabilirler.
+    """
     osm = surroundings.osm
+    parcalar: list[str] = []
     if osm is not None:
-        rows.append((
-            "coast", "Denize yakınlık", round(coast_multiplier(osm.coast_m), 3),
-            f"Kıyıya {_distance(osm.coast_m)}" if osm.coast_m is not None else "3 km içinde kıyı yok",
-        ))
-        rows.append((
-            "main_road", "Ana yola erişim", main_road_multiplier(osm.main_road_m),
-            f"Ana yola {_distance(osm.main_road_m)}" if osm.main_road_m is not None else "1,5 km içinde ana yol yok",
-        ))
-        rows.append((
-            "services", "Çevre hizmetleri", round(services_multiplier(osm.services), 3),
-            f"1 km içinde {osm.services} okul, sağlık ya da market noktası",
-        ))
+        parcalar.append(f"kıyıya {_distance(osm.coast_m)}" if osm.coast_m is not None
+                        else f"{COAST_RADIUS_M // 1000} km içinde kıyı yok")
+        parcalar.append(f"ana yola {_distance(osm.main_road_m)}" if osm.main_road_m is not None
+                        else "1,5 km içinde ana yol yok")
+        parcalar.append(f"1 km içinde {osm.services} okul, sağlık ya da market noktası")
     if surroundings.slope_pct is not None:
-        rows.append((
-            "slope", "Eğim", round(slope_multiplier(surroundings.slope_pct), 3),
-            f"Yaklaşık %{surroundings.slope_pct:.0f}",
-        ))
-    return rows
+        parcalar.append(f"eğim yaklaşık %{surroundings.slope_pct:.0f}")
+    if not parcalar:
+        return []
+    anlatim = " · ".join(parcalar)
+    return [("surroundings", "Çevre ölçümleri", 1.0,
+             f"{anlatim[0].upper()}{anlatim[1:]} · 103 ilanda fiyat etkisi ölçülemedi")]
