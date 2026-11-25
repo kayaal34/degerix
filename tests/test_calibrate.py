@@ -15,6 +15,7 @@ from tools.calibrate import (
     MIN_RECORDS_PER_CLASS,
     PROVINCE_TARGET,
     confidence,
+    evaluate,
     fit_one,
     is_unzoned,
 )
@@ -24,8 +25,9 @@ RURAL = urbanity.LOW_RURAL
 
 def rows(count: int, ratio: float, provinces: tuple[str, ...] = ("Bursa",), usage: str = "tarla"):
     """Modelin `ratio` katı düşük tahmin ettiği `count` adet kayıt."""
+    # Beşinci alan modelin kullandığı yöntem; fit_one bakmaz ama evaluate üretir
     return [
-        ({"il": provinces[index % len(provinces)], "imar": usage}, ratio, 1.0, RURAL)
+        ({"il": provinces[index % len(provinces)], "imar": usage}, ratio, 1.0, RURAL, "arazi")
         for index in range(count)
     ]
 
@@ -121,3 +123,31 @@ def test_shrinkage_is_a_geometric_pull_toward_the_default():
     fitted = fit_one(rows(10, 4.0, ("Bursa", "Konya")), DEFAULTS, "farmland_ratio")
 
     assert fitted[RURAL] == pytest.approx(DEFAULTS.farmland_ratio[RURAL] * 4.0 ** weight, rel=0.01)
+
+
+def test_deviation_is_charged_to_the_class_the_model_actually_used():
+    """Sapma, katsayının okunduğu sınıfa yazılmalı: hücrenin ham sınıfına değil.
+
+    Erişilebilirlik sınıfı eklendiğinden beri fiyat seviyesi, parselin kendi
+    hücresi ile çevresinden devraldığı sınıfın kentsel olanından okunuyor.
+    Kalibrasyon ham hücre sınıfını kullandığı sürece Diyarbakır/Kayapınar şehir
+    merkezi oranıyla fiyatlanırken düzeltme seyrek kırsala gidiyor, yani her
+    geçişte yanlış katsayı oynuyordu.
+    """
+    import asyncio
+
+    from app import urbanity as u
+    from app.valuation import effective_class
+
+    kayit = {
+        "il": "Diyarbakır", "imar": "tarla", "alan_m2": "472", "deger_tl": "3150000",
+        "deger_turu": "ilan", "lat": "37.93173267", "lng": "40.06970652", "_kaynak": "test",
+    }
+    yer = u.describe(float(kayit["lat"]), float(kayit["lng"]))
+    assert yer is not None
+    # Testin anlamı bu noktanın iki sınıfının farklı olmasına bağlı
+    assert yer.class_code != effective_class(yer)
+
+    satirlar = asyncio.run(evaluate([kayit], DEFAULTS))
+    assert satirlar, "kayıt değerlendirilemedi"
+    assert satirlar[0][3] == effective_class(yer)

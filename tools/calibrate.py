@@ -42,7 +42,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 from app import market, urbanity  # noqa: E402
 from app.model_params import CALIBRATION_FILE, DEFAULTS, Parameters  # noqa: E402
-from app.valuation import estimate  # noqa: E402
+from app.valuation import effective_class, estimate  # noqa: E402
 
 PILOT_DIR = ROOT / "data" / "pilot"
 PRIVATE_DIR = ROOT / "data" / "private"
@@ -72,16 +72,33 @@ ANSWER_COLUMNS = {
 
 
 def read_records() -> list[dict[str, str]]:
-    records = []
+    """Katsayı ayarlamaya uygun kayıtlar: yalnızca koordinatı parselin kendisi olanlar.
+
+    `konum` sütunu "mahalle" ise koordinat mahalle merkezidir, parselin değil.
+    O kayıtlarda yerleşim sınıfı, yerleşime uzaklık ve erişilebilirlik parselin
+    değil köy çekirdeğinin ölçümüdür; katsayı sınıf başına ayarlandığı için
+    sapma yanlış sınıfa yazılır. Ölçümde bu fark açıkça görülüyor: mahalle
+    merkezli kayıtlarda model isabetli görünüyor (medyan 0,97) ama gerçek parsel
+    koordinatlarında %50 düşük (medyan 1,50). İlk gruptan öğrenmek, modeli
+    kendi ölçüm hatasına uydurmak olurdu.
+    """
+    records, elenen = [], 0
     for directory in (PILOT_DIR, PRIVATE_DIR):
         for path in sorted(directory.glob("*.csv")) if directory.exists() else []:
             with path.open(encoding="utf-8-sig", newline="") as handle:
                 for row in csv.DictReader(handle):
                     if (row.get("haric") or "").strip():
                         continue
-                    if row.get("deger_tl") and row.get("lat") and row.get("il"):
-                        row["_kaynak"] = path.name
-                        records.append(row)
+                    if not (row.get("deger_tl") and row.get("lat") and row.get("il")):
+                        continue
+                    if (row.get("konum") or "").strip() != "parsel":
+                        elenen += 1
+                        continue
+                    row["_kaynak"] = path.name
+                    records.append(row)
+    if elenen:
+        print(f"{elenen} kayıt ayrıldı: koordinatı parselin değil mahalle merkezinin "
+              f"(konum sütunu). Ölçüm için tools/ilan_karsilastir.py hepsini gösterir.")
     return records
 
 
@@ -94,8 +111,8 @@ def number(value: str | None) -> float | None:
         return None
 
 
-async def predict(record: dict[str, str], parameters: Parameters) -> float | None:
-    """Kaydın model tahmini (TL)."""
+async def predict(record: dict[str, str], parameters: Parameters) -> tuple[float, str] | None:
+    """Kaydın model tahmini: (TL, kullanılan yöntem)."""
     area = number(record.get("alan_m2"))
     if not area:
         return None
@@ -119,11 +136,18 @@ async def predict(record: dict[str, str], parameters: Parameters) -> float | Non
         parameters=parameters,
         **answers,
     )
-    return float(result.total)
+    return float(result.total), result.basis
 
 
-async def evaluate(records: list[dict[str, str]], parameters: Parameters) -> list[tuple[dict, float, float, int]]:
-    """(kayıt, hedef değer, tahmin, yerleşim sınıfı) listesi."""
+async def evaluate(records: list[dict[str, str]], parameters: Parameters) -> list[tuple[dict, float, float, int, str]]:
+    """(kayıt, hedef değer, tahmin, yerleşim sınıfı, yöntem) listesi.
+
+    Yerleşim sınıfı, modelin katsayıyı hangi sınıftan okuduğudur: hücrenin ham
+    sınıfı değil, erişilebilirlikle birlikte oluşan etkin sınıf. İkisi
+    ayrıldığından beri ham sınıfı kullanmak sapmayı yanlış katsayıya yazıyordu —
+    Kayapınar şehir merkezi oranıyla fiyatlanırken düzeltme seyrek kırsala
+    gidiyordu, yani her geçişte yanlış katsayı oynuyordu.
+    """
     rows = []
     for record in records:
         target = number(record.get("deger_tl"))
@@ -133,12 +157,12 @@ async def evaluate(records: list[dict[str, str]], parameters: Parameters) -> lis
         if (record.get("deger_turu") or "").strip() == "ilan":
             target *= 1 - parameters.asking_discount
         place = urbanity.describe(float(record["lat"]), float(record["lng"]))
-        rows.append((record, target, prediction, place.class_code if place else urbanity.LOW_RURAL))
+        rows.append((record, target, prediction[0], effective_class(place), prediction[1]))
     return rows
 
 
-def report(rows: list[tuple[dict, float, float, int]]) -> dict:
-    errors = [abs(math.log(target / prediction)) for _, target, prediction, _ in rows]
+def report(rows: list[tuple[dict, float, float, int, str]]) -> dict:
+    errors = [abs(math.log(target / prediction)) for _, target, prediction, _, _ in rows]
     within = sum(1 for error in errors if error <= math.log(1.25))
     summary = {
         "kayit": len(rows),
@@ -154,7 +178,7 @@ def report(rows: list[tuple[dict, float, float, int]]) -> dict:
             continue
         print(f"  {label}:")
         by_class: dict[int, list[float]] = {}
-        for _, target, prediction, class_code in selected:
+        for _, target, prediction, class_code, _basis in selected:
             by_class.setdefault(class_code, []).append(math.log(target / prediction))
         for class_code, ratios in sorted(by_class.items(), reverse=True):
             direction = "düşük" if statistics.median(ratios) > 0 else "yüksek"
@@ -177,7 +201,7 @@ def confidence(ratios: list[float], provinces: set[str]) -> float:
 def fit_one(rows, parameters: Parameters, name: str) -> dict[int, float]:
     """Bir katsayı sözlüğünü, onu besleyen kayıtların sapma ortancasıyla düzeltir."""
     by_class: dict[int, tuple[list[float], set[str]]] = {}
-    for record, target, prediction, class_code in rows:
+    for record, target, prediction, class_code, _basis in rows:
         ratios, provinces = by_class.setdefault(class_code, ([], set()))
         ratios.append(math.log(target / prediction))
         provinces.add(record["il"])
@@ -202,7 +226,10 @@ async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Pa
         rows = await evaluate(records, parameters)
         summary = report(rows)
         zoned = [row for row in rows if not is_unzoned(row[0])]
-        unzoned = [row for row in rows if is_unzoned(row[0])]
+        # farmland_ratio yalnızca onu gerçekten kullanan kayıtlardan ayarlanır:
+        # imar beklentisiyle fiyatlanan parselde bu oranın hiçbir etkisi yok, o
+        # kayıtların sapmasını buraya yazmak oranı boşuna savurur.
+        unzoned = [row for row in rows if is_unzoned(row[0]) and row[4] == "arazi"]
         parameters = replace(
             parameters,
             locality=fit_one(zoned, parameters, "locality"),
