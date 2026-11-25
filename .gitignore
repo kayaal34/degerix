@@ -17,3 +17,6 @@ _arsiv/
 
 # yerel editör / Claude ayarları
 .claude/
+
+# Playwright MCP oturum dosyalari
+.playwright-mcp/

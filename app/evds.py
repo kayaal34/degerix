@@ -29,7 +29,7 @@ from .evds_series import (
 )
 
 BASE_URL = "https://evds3.tcmb.gov.tr/igmevdsms-dis"
-USER_AGENT = "Degerix/3.2 (arsa degerleme portfolyo projesi)"
+USER_AGENT = "Degerix/4.0 (arsa degerleme portfolyo projesi)"
 CACHE_TTL_S = 12 * 3600
 HISTORY_MONTHS = 24
 

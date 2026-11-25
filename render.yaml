@@ -13,3 +13,13 @@ services:
       # Bölge analizi için TCMB EVDS anahtarı; değeri Render panelinde girilir, depoya yazılmaz
       - key: EVDS_API_KEY
         sync: false
+      # Yakındaki ilanlar için Tapusor sunucu hesabı; değerleri Render panelinde girilir,
+      # depoya yazılmaz. Tanımlı değilse /api/listings/nearby 503 döner ve arayüzdeki
+      # ilan bölümü kapalı kalır.
+      - key: TAPUSOR_CLIENT_ID
+        sync: false
+      - key: TAPUSOR_CLIENT_SECRET
+        sync: false
+      # Sunucunun sağlayıcıya saatte atacağı en fazla istek
+      - key: TAPUSOR_REQUESTS_PER_HOUR
+        value: "60"

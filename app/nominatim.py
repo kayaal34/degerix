@@ -17,7 +17,7 @@ from .data import fold
 from .errors import UpstreamError
 
 BASE_URL = "https://nominatim.openstreetmap.org"
-USER_AGENT = "Degerix/3.0 (arsa degerleme portfolyo projesi)"
+USER_AGENT = "Degerix/4.0 (arsa degerleme portfolyo projesi)"
 MIN_INTERVAL_S = 1.0
 
 _client: httpx.AsyncClient | None = None

@@ -23,7 +23,7 @@ from .errors import NotFound, UpstreamError
 
 BASE_URL = "https://cbsapi.tkgm.gov.tr/megsiswebapi.v3/api"
 HEADERS = {
-    "User-Agent": "Degerix/3.0 (arsa degerleme portfolyo projesi)",
+    "User-Agent": "Degerix/4.0 (arsa degerleme portfolyo projesi)",
     "Referer": "https://parselsorgu.tkgm.gov.tr/",
 }
 ADMIN_TTL_S = 24 * 3600

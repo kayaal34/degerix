@@ -20,7 +20,7 @@ from .surroundings import COAST_RADIUS_M, MAIN_ROAD_RADIUS_M, SERVICES_RADIUS_M,
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
-USER_AGENT = "Degerix/3.3 (arsa degerleme portfolyo projesi)"
+USER_AGENT = "Degerix/4.0 (arsa degerleme portfolyo projesi)"
 SLOPE_OFFSET_M = 60  # 90 m çözünürlüklü yükselti modelinde anlamlı en küçük adım
 CACHE_TTL_S = 24 * 3600
 
