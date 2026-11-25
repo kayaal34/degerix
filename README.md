@@ -78,6 +78,21 @@ katsayısı 2 km çevresindeki en kentsel sınıfla harmanlanır: köyün hemen 
 bomboş kırsalla aynı sayılmaz. Parsel **il merkezinin içindeyse** katsayı il ortalamasının
 (1,00) altına düşmez; TCMB'nin il fiyatı zaten ağırlıklı olarak o şehirden gelir.
 
+Bunun ötesinde parselin sınıfı **erişilebilirliğe** göre de yükseltilir: çevredeki en kentsel
+hücre, uzaklığına göre basamak basamak indirilerek devralınır ve ikisinden kentsel olanı
+seçilir (`urbanity.access_class`). Hücrenin kendi nüfus yoğunluğu erişilebilirliği temsil
+etmiyor — Gaziantep merkezine 8,6 km'deki boş bir parsel ızgarada "seyrek kırsal" görünüyor,
+oysa orada fiyatı tarımsal verim değil şehre yakınlık belirliyor. Menzil kaynağın
+kentselliğiyle oranlıdır: bir şehrin etkisi uzağa gider (basamak ≈ 6 km), bir köyün gitmez
+(≈ 2,5 km), yoksa 6 km ötedeki köy 4 kişi/km² yoğunluklu bir hücreyi köy sınıfına çıkarırdı.
+Izgarada olmayan kentsellik uydurulmaz; yalnızca var olan kentsellik sönümlenerek taşınır.
+
+Sınıf **fiyat seviyesini** belirler, **inşaat hakkını** belirlemez: KAKS girilmemişse
+varsayılan, erişilebilirlik sınıfından değil parselin kendi hücresinden okunur. Yakınlık arsayı
+değerli yapar ama orada daha fazla inşaat hakkı doğurmaz. Aynı nedenle merkez ve büyükşehir
+primleri, erişilebilirlik sınıfı parseli kentsel saydığı ölçüde kademeli olarak sıfıra iner:
+aynı yakınlık iki kanaldan sayılırsa değer şehirden uzaklaştıkça yükselmeye başlıyor.
+
 ### 2. İmarlı arsa: geliştirme (artık değer) yöntemi
 
 ```text
@@ -109,8 +124,32 @@ müteahhit değil, kendi evini yapacak kişidir. Taban oran, bölgedeki konut fi
 
 ### 3. İmarsız arazi
 
-Tarla, bağ-bahçe ve zeytinlik için değer, bölgedeki konut fiyatının yerleşime ve
-kullanıma bağlı oranıdır (kırsalda %0,6 – şehir çeperinde %2; zeytinlikte 1,6 katı).
+Tarla, bağ-bahçe ve zeytinlik için iki okuma yapılır ve **büyüğü** alınır:
+
+1. **Tarımsal değer** — bölgedeki konut fiyatının yerleşime ve kullanıma bağlı oranı
+   (kırsalda %0,6 – şehir çeperinde %2; zeytinlikte 1,6 katı).
+2. **İmar beklentisi** — aynı yerde parsel konut imarlı olsaydı edeceği değerin bir payı.
+
+İkinci okuma, tarım açıklamasının anlamını yitirdiği yerde devreye girer: 472 m²'lik
+bir "tarla"da ekilecek bir şey yoktur, alıcı toprağın verimini değil imara açılma
+olasılığını satın alır. Ölçümde imarsız arazinin birim fiyatı 1 dönümün altında,
+5-20 dönüm bandının **5 katı** çıkıyor; tek bir tarımsal oran bu farkı taşıyamaz.
+
+Beklenti üç koşulu birlikte arar:
+
+- **Parsel yapı parseli ölçeğinde olmalı** (400 m² altında tam, 2.000 m² üstünde hiç).
+  342 dönümlük bir tarlaya konut imarı beklentisi uygulanamaz.
+- **Büyümekte olan bir yerleşimin yanında olmalı** (3 km'ye kadar tam, 6 km'de sıfır).
+  İmar beklentisi genişleyecek bir yerleşim ister.
+- **Parselin kendi hücresi henüz yoğun kentsel olmamalı.** Çekirdekte hâlâ imarsız
+  kalmanın bir sebebi vardır — sulak alan, tarımsal koruma, dere yatağı — ve o sebep
+  yakınlıkla ortadan kalkmaz. Bu kuralı Bandırma/Kuşcenneti öğretti: korunan sulak
+  alandaki 1.295 m² tarla piyasada 900 ₺/m² ederken model, hücreyi şehir merkezi
+  gördüğü için 4.190 ₺/m² diyordu.
+
+Büyüğü alındığı için bu hesap hiçbir araziyi ucuzlatmaz. Varsayımsal imarın getireceği
+yoğunluk, parselin bugünkü kırsal hücresinden değil çevrenin sınıfından okunur: imarlı
+arsada inşaat hakkı parselin yerine bağlı hukuki bir olguyken, burada henüz imar yoktur.
 
 ### 4. Düzeltmeler
 
@@ -131,16 +170,22 @@ Bulunan m² değeri şu çarpanlarla düzeltilir:
 | Sulama (imarsız) | sulu arazi kuru araziden pahalıdır | 0,90 – 1,20 |
 | Emsaller | kullanıcının girdiği ilan/satışların ortancası; ağırlık emsal sayısıyla artar (%20 → %60) | emsale göre |
 
-**Değer aralığı ve güven:** her eksik bilgi aralığı genişletir — yerleşim bilgisi
-alınamaması, TCMB'nin o il için fiyat yayımlamaması, canlı veri yerine kopya
-kullanılması, girilmemiş emsal ve "Bilmiyorum" denen her soru. Kullanıcı yanıtladıkça
-aralık daralır, güven "düşük → orta → yüksek" olur.
+**Değer aralığı ve veri tamlığı:** her eksik bilgi aralığı genişletir — yerleşim
+bilgisi alınamaması, TCMB'nin o il için fiyat yayımlamaması, canlı veri yerine
+kopya kullanılması ve "Bilmiyorum" denen her soru. Emsal girilmesi aralığı
+_daraltır_; girilmemesi genişletmez. Kullanıcı yanıtladıkça aralık daralır ve
+gösterilen veri tamlığı "düşük → orta → yüksek" olur. Bu ölçü girdilerin ne kadar
+tam olduğunu anlatır, modelin gerçek isabetini değil — ölçülen sapma için
+[Bilinen sınırlamalar](#bilinen-sınırlamalar) bölümüne bakın.
 
 **Satış senaryoları:** piyasa değeri 3–6 aylık normal satışı temsil eder. Acil satışta
 imarlı arsa ×0,85, imarsız arazi ×0,78 (arazi daha yavaş satılır); tok satıcıda
 ×1,08 / ×1,10 uygulanır.
 
-Model deterministiktir: aynı girdi her zaman aynı sonucu verir.
+Model deterministiktir: aynı girdiler her zaman aynı sonucu verir. Tek istisna
+çevre ölçümleridir (kıyı, ana yol, hizmetler, eğim). Overpass ve Open-Meteo yanıtı
+4 saniyede yetişmezse o çarpanlar hesaba girmez; bu yüzden aynı parsel için ardışık
+iki istek farklı değer verebilir ve aralık bu durumda genişlemez.
 
 ### Örnekler (Eylül 2026)
 
@@ -293,13 +338,21 @@ CSV olarak dışa aktarır; dosya doğrudan `data/private/` içine konabilir.
 
 Kalibrasyon sonucu yalnızca katsayı olarak (`app/static_data/calibration.json`) depoya girer.
 
+`tools/calibrate.py` yalnızca `konum=parsel` kayıtlarını kullanır: koordinatı mahalle
+merkezi olan kayıtlarda yerleşim sınıfı parselin değil köy çekirdeğinin ölçümüdür ve
+katsayı sınıf başına ayarlandığı için sapma yanlış sınıfa yazılır. Sapma ayrıca
+modelin katsayıyı **gerçekten okuduğu** sınıfa yazılır — hücrenin ham sınıfına değil,
+erişilebilirlikle oluşan etkin sınıfa. İkisi ayrıldığından beri ham sınıfı kullanmak
+her geçişte yanlış katsayıyı oynatıyordu.
+
 ## Araçlar
 
 | Komut | Ne yapar |
 |---|---|
 | `python tools/sanity_check.py` | Örnek noktalarda modeli çalıştırır; şehir > çeper > kasaba > köy > kırsal gibi kuralları doğrular |
 | `python tools/province_sweep.py` | 81 il merkezinde aynı parseli hesaplar, uç değerleri ve taban orana düşen illeri işaretler |
-| `python tools/calibrate.py` | Gerçek kayıtlarla modelin hatasını ölçer; `--uygula` ile katsayıları yazar |
+| `python tools/calibrate.py` | Gerçek kayıtlarla modelin hatasını ölçer; `--uygula` ile katsayıları yazar. Yalnızca `konum=parsel` kayıtlarını kullanır |
+| `python tools/ilan_karsilastir.py` | `data/private/` altındaki gerçek ilanları emsalsiz tahminle karşılaştırır; koordinat hassasiyetine göre ayrı özet verir (`--detay` her ilanı listeler) |
 | `python tools/build_urbanity.py` | WorldPop nüfus ızgarasından yerleşim sınıflarını üretir |
 | `python tools/build_settlements.py` | GeoNames'ten il/ilçe merkezi ve köy listesini üretir |
 | `python tools/build_housing_prices.py` | TCMB'den il konut fiyatlarının yedek kopyasını üretir |
@@ -338,7 +391,9 @@ sabit verilerle taklit edilir. Her push'ta GitHub Actions üzerinde de çalış�
 | GET | `/api/provinces` · `/api/provinces/{id}/districts` · `/api/districts/{id}/neighborhoods` | İdari listeler |
 | GET | `/api/search?q=` | Yer arama |
 | GET | `/api/usages` | İmar durumları (`zoned`: emsal sorulur mu) |
-| GET | `/api/health` | Servis durumu (`stats`: bölge analizi açık mı) |
+| GET | `/api/boundaries/{districts\|neighborhoods}/{ust_id}` | İlçe veya mahalle sınırları (GeoJSON) |
+| GET | `/api/listings/nearby?lat=&lng=` | Yakındaki satılık arsa ilanları (Tapusor; anahtar yoksa 503) |
+| GET | `/api/health` | Servis durumu (`stats`: bölge analizi açık mı, `listing_feed`: ilan bağlantısı açık mı) |
 
 `/api/estimate` gövdesi:
 
@@ -399,7 +454,14 @@ render.yaml         Render yayın tanımı
 
 ## Bilinen sınırlamalar
 
-- **Katsayılar henüz kalibre edilmedi.** Yerleşim katsayıları, taban oranlar ve arazi oranları varsayımdır; gerçek satış verisiyle ayarlanana kadar sonuçlar bölgeden bölgeye sapabilir.
+- **Doğrulama verisinin üçte ikisinde koordinat parselin değil mahalle merkezinin.** Bu, modelin ölçülen isabetini olduğundan iyi gösteriyordu ve projenin en önemli ölçüm kısıtıdır. 42 kaydın 27'sinde `konum` sütunu `mahalle`: o kayıtlarda yerleşim sınıfı, yerleşime uzaklık ve erişilebilirlik parselin değil köy çekirdeğinin ölçümüdür. Fark ölçülebilir — mahalle merkezli kayıtlarda ortanca oran **0,84**, gerçek parsel koordinatlarında **1,47**. Katsayılar sınıf başına ayarlandığı için sapma yanlış sınıfa yazılıyordu; `tools/calibrate.py` artık yalnızca `konum=parsel` kayıtlarını kullanır.
+- **Bu veri seti modeli ölçebiliyor ama kalibre edemiyor.** Koordinatı güvenilir 15 kayıtla her yerleşim sınıfında 4'ten az kayıt kalıyor, kalibrasyon da hiçbir katsayıya dokunmuyor (`calibration.json` şu anda varsayılanları taşıyor). Önceki 28 kayıtlık kalibrasyon mahalle merkezli kayıtlara dayandığı için geri alındı: 15 nokta üzerinde küçük bir iyileşme, yanlış ölçülmüş sınıflara uydurulmuş bir katsayı setini haklı çıkarmaz.
+- **Bağımsız ölçüm (12 ilden 42 gerçek ilan, Kasım 2026).** `tools/ilan_karsilastir.py` ilan fiyatlarını emsalsiz tahminle karşılaştırır; hedef, `tools/calibrate.py` ile aynı: ilan fiyatı × (1 − pazarlık payı). Koordinatı gerçek parsel olan **15 kayıtta (10 il)** ortanca oran **1,47** — yani model ortalama **%47 düşük** — ve ortalama |log₂ oran| **0,75** (tipik sapma ~1,7 kat). Tüm 42 kayıtta ortanca oran 1,00 ama bu rakamı taşıyan şey mahalle merkezli kayıtlardır; güvenilecek rakam 1,47'dir. Hepsi istenen fiyattır, gerçekleşen satış değil.
+- **Değer aralığı ölçülen hataya oturtuldu, ama hâlâ 42 ilanın 29'unu kapsıyor.** Aralığın yarı genişliği artık yöntemin gerçek isabetinden gelir (geliştirme ±%45, taban ±%50, imarsız arazi ±%70, imar beklentisi ±%85) ve emsal girildiğinde değerle aynı ağırlıkla daralır. Öncesinde taban ±%8'di ve aralık 42 ilanın yalnızca 9'unu kapsıyordu; kullanıcıya gösterilen güven aralığı modelin gerçek isabetinden üç kat dardı. Arayüzdeki etiket de bu yüzden "Veri tamlığı" değil **"Tahmin güveni"**: güven artık yalnızca yanıtların eksiksizliğini değil, yöntemin ölçülmüş isabetini de taşıyor.
+- **Taban oranlar, geliştirici payı ve çevre çarpanları kalibre edilmez.** `tools/calibrate.py` yalnızca `locality` ve `farmland_ratio` katsayılarını ayarlar; diğerleri varsayımdır.
+- **Arsa değeri, artık değer yönteminin ima ettiği kadar emsale duyarlı değil.** Aynı ilçede (İstanbul/Çatalca ile Silivri, ikisi de "kasaba" sınıfı) model 2.530 ile 23.100 ₺/m² arasında **on kat** ayrışıyor, çünkü biri KAKS 0,10 beyan etmiş biri yüksek emsal. Piyasa ise 12.602 ile 7.785 diyor, yani 1,6 kat. Düşük emsalde geliştirme hesabı çöküp taban devralıyor ve taban yalnızca yerleşim sınıfına bağlı olduğu için değer çok aşağı iniyor; yüksek emsalde ise yukarı. Doğru çözüm, geliştirme sonucunu konuma dayalı bir çıpaya doğru harmanlamaktır — ama harmanlama ağırlığını 15 noktadan seçmek gürültüye uydurmak olurdu, yapılmadı.
+- **Diyarbakır Kayapınar hâlâ 5,8 kat düşük.** 472 m²'lik hisseli bir parsel, imarı "Arazi" beyan edilmiş ve metropol ilçesinde konut fiyatının %17,6'sına isteniyor. İmar beklentisi mekanizması bunu 6,98 kattan 5,8 kata indirdi ama kapatmadı; beyanın kendisi de tutarsız (472 m² tarım ölçeği değil). Bu noktayı kapatacak katsayı, gerçek tarlaları iki katına çıkarırdı.
+- **İl geneli konut fiyatı, baskın bir birinci şehri olan illerde uzak ilçelere yanlış taban veriyor.** TCMB EVDS il düzeyinde yayın yapıyor; İstanbul'un 90.740 ₺/m² değeri şehrin kendisinden geliyor ve Silivri gibi 56 km uzaktaki ilçelerde değeri yukarı çekiyor (ölçümde 1.300 m²'lik Silivri parselinde model, hedefin 3 katı). Bu bir katsayı sorunu değil veri sorunudur: ilçe düzeyinde konut fiyatı gerekiyor.
 - **TKGM API'si** resmî olarak belgelenmemiştir; biçim değişebilir ve yoğun kullanımda istek sınırına takılabilir.
 - **Nüfus ızgarası 2020 yılına aittir.** Hızlı büyüyen yeni yerleşimlerde sınıf gerçeğin gerisinde kalabilir.
 - **Nitelik ≠ imar durumu:** nitelikten tahmin edilen imar durumu bir öneridir; gerçek imar durumu ve emsal belediyeden öğrenilmelidir.
