@@ -107,17 +107,30 @@ class Parameters:
 
     # Yerleşimin kıyısındaki imarsız parselin primi. 104 ilanlık ölçüm imarsız
     # arazide şu deseni gösterdi (ilan ÷ model ortancası): 400 m içinde hiç bina
-    # yoksa 1,00, 200+ bina varsa 0,78, ama *birkaç* bina varsa 2,63. Yani hata
-    # boş kırda ya da dolmuş kasabada değil, yerleşimin büyüdüğü kenarda doğuyor —
+    # yoksa 1,00, 200+ bina varsa 0,78, ama *birkaç* bina varsa 2,49. Yani hata
+    # boş kırda ya da dolmuş yerleşimde değil, yerleşimin büyüdüğü kenarda doğuyor —
     # imar beklentisi orada doğduğu için. Sinyal kullanıcıya soru sorulmadan
     # OpenStreetMap'ten okunur (app/surroundings.settlement_position).
     #
-    # Katsayı ölçülen 1,37'ye değil 1,25'e kuruldu: en sapmalı beş kayıt çıkarıldığında
-    # kıyı ortancası 1,25'e iniyor, yani 1,37'nin bir kısmı o beş kayıttan geliyor.
-    # 1,25 ile 1,40 arasında tipik hata düz (1,806 / 1,798), bu yüzden bandın ihtiyatlı
-    # ucu seçildi. Dışarıda bırakmalı sınavda 21 kayıt iyileşti, 11 bozuldu; imarlı
-    # arsada aynı düzeltme 47 iyi / 57 bozuk verdiği için yalnızca imarsıza uygulanır.
-    fringe_premium: float = 1.25
+    # Katsayı ölçülen 2,49'a değil 2,00'a kuruldu: kapıdaki 15 kaydın en uç üçü
+    # çıkarılınca ortanca 2,13'e iniyor ve 1,8 ile 2,3 arasında tipik hata düz
+    # (1,726 / 1,711 / 1,701), bu yüzden bandın ihtiyatlı ucu seçildi. Dışarıda
+    # bırakmalı sınavda (her kaydın primi o kayıt hariç kalan 14 kayıttan kuruldu)
+    # tipik hata 1,866'dan 1,714'e indi, ±%50 içindeki kayıt 39'dan 43'e çıktı,
+    # 11 kayıt iyileşti 4 kayıt bozuldu. En sapmalı beş kayıt tamamen çıkarıldığında
+    # da en iyi nokta 2,00'da kaldı (1,659 -> 1,585), yani prim o beş kaydın ezberi
+    # değil. İmarlı arsada aynı düzeltme 47 iyi / 57 bozuk verdiği için yalnızca
+    # imarsıza uygulanır.
+    fringe_premium: float = 2.00
+
+    # Kıyı parselinin değer aralığına eklenen pay. Prim seviyeyi ortalamada düzeltir
+    # ama tek tek kıyı parselleri hâlâ çok daha belirsiz: primden sonra bile tipik
+    # sapma kapı içinde ×2,21, kapı dışında ×1,58. Bandın da bunu söylemesi gerekir,
+    # yoksa model en az bildiği yerde en kendinden emin görünür.
+    # Değer kapsamadan okundu: kapı dışında ±%70 kayıtların %85'ini kapsıyor, kapı
+    # içinde yalnızca %53'ünü; ±%95'te %73'e çıkıp düzleşiyor (kalan dört kayıt
+    # hiçbir makul bantla yakalanmıyor). Arazi payı 0,70 olduğu için artış 0,25.
+    fringe_spread: float = 0.25
 
     # Parselin "yapı parseli" sayıldığı büyüklük aralığı. Altında tamamen parsel
     # gibi, üstünde tamamen tarım gibi fiyatlanır; arada doğrusal geçiş.

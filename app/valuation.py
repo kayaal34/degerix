@@ -646,9 +646,11 @@ def estimate(
         # İmar beklentisi yerleşimin kıyısında doğar ve model orada ilanın yarısını
         # söylüyor. Ölçülmüş prim yalnızca imarsız arazide uygulanır; imarlı arsada
         # aynı düzeltme hatayı artırıyordu (bkz. model_params.fringe_premium).
+        # Prim seviyeyi düzeltir, belirsizliği gidermez: aralık da genişler.
         fringe = fringe_factor(surroundings, parameters)
         if fringe is not None:
             factors.append(fringe)
+            spread += parameters.fringe_spread
 
     # Yöntemin kendi belirsizliği. Eksik bilgi payları bunun üstüne biner.
     spread += parameters.basis_spread[basis]

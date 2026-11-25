@@ -15,7 +15,6 @@ SERVICES_RADIUS_M = 1000
 BUILDINGS_RADIUS_M = 400     # "yerleşimin kıyısında mı" ölçümünün yarıçapı
 BUILT_UP_RADIUS_M = 3000     # yerleşik alan poligonu bu kadar uzağa kadar aranır
 DENSE_BUILDINGS = 50         # bu kadar bina, parselin yerleşimin içinde olduğunu söyler
-FRINGE_BUILT_UP_M = 1500     # yerleşik alana bu kadar yakınsa kıyı sayılır
 
 
 @dataclass(frozen=True)
@@ -65,22 +64,24 @@ def settlement_position(osm: OsmContext | None) -> str | None:
     """Parselin yerleşime göre yeri: "ic", "kiyi", "kir" ya da ölçülemediyse None.
 
     Ölçüm şunu gösterdi: imarsız arazide model boş kırda doğru (62 ilanın 27'sinde
-    400 m içinde hiç bina yok, ortanca oran 1,00) ve kasaba içinde doğru (200+ bina,
-    0,78), ama *kıyıda* şaşıyor — 400 m içinde birkaç bina varsa ilan modelin 2,63
-    katını istiyor. Sebep anlaşılır: imar beklentisi büyümekte olan yerleşimin
+    400 m içinde hiç bina yok, ortanca oran 1,00) ve yerleşimin içinde doğru (200+
+    bina, 0,78), ama *kıyıda* şaşıyor — 400 m içinde birkaç bina varsa ilan modelin
+    2,49 katını istiyor. Sebep anlaşılır: imar beklentisi büyümekte olan yerleşimin
     kenarında doğar, ne ıssız tarlada ne dolmuş merkezde.
 
-    Kıyının ölçütü iki ayrı veriden okunur, çünkü OpenStreetMap'te Türkiye'nin
-    kırsalında bina çizimi eksiktir: ya 400 m içinde bina görünür ya da parsel
-    çizilmiş bir yerleşik alan poligonunun 1,5 km'si içindedir.
+    Ölçüt, çizilmiş yerleşik alan sınırına uzaklık değil, görünen binadır. İkisi de
+    denendi: "yerleşik alanın 1,5 km'si içinde" ölçütü 30 kaydı kapsayıp 19'unu
+    iyileştirip 11'ini bozarken, "400 m içinde bina var" ölçütü 15 kaydı kapsayıp
+    12'sini iyileştiriyor ve 3'ünü bozuyor. Fark anlamlı: çizilmiş bir sınırın
+    yakınında olmak değil, parselin yanında gerçekten inşaat başlamış olması
+    fiyatlanıyor. Poligon uzaklığı yine de okunur — parselin yerleşimin *içinde*
+    olup olmadığını söyler ve dökümde kullanıcıya gösterilir.
     """
     if osm is None:
         return None
     if osm.buildings >= DENSE_BUILDINGS or osm.built_up_m == 0:
         return "ic"
-    if osm.buildings >= 1 or (osm.built_up_m is not None and osm.built_up_m <= FRINGE_BUILT_UP_M):
-        return "kiyi"
-    return "kir"
+    return "kiyi" if osm.buildings >= 1 else "kir"
 
 
 def position_detail(osm: OsmContext) -> str:

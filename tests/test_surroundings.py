@@ -149,11 +149,12 @@ def test_fetch_within_does_not_wait_for_slow_services_and_shares_requests(monkey
 def test_settlement_position_reads_the_edge_of_a_settlement():
     # Boş kır: ne bina ne çizilmiş yerleşik alan.
     assert settlement_position(OsmContext(coast_m=None, main_road_m=None, services=0)) == "kir"
-    # Kıyı iki ayrı veriden okunabilir: görünen birkaç bina, ya da yakındaki yerleşik alan.
+    # Kıyının ölçütü görünen binadır, çizilmiş sınıra yakınlık değil: 900 m ötede
+    # yerleşik alan çizili olsa da yanında hiç bina yoksa parsel kır sayılır.
     assert settlement_position(OsmContext(
         coast_m=None, main_road_m=None, services=0, buildings=4)) == "kiyi"
     assert settlement_position(OsmContext(
-        coast_m=None, main_road_m=None, services=0, built_up_m=900)) == "kiyi"
+        coast_m=None, main_road_m=None, services=0, built_up_m=900)) == "kir"
     # İçi: yoğun bina ya da poligonun içinde olmak.
     assert settlement_position(OsmContext(
         coast_m=None, main_road_m=None, services=0, buildings=240)) == "ic"
@@ -173,7 +174,7 @@ def test_parse_overpass_counts_buildings_and_finds_the_built_up_area():
     osm = nearby.parse_overpass(data, 40.0, 28.91)
     assert osm.buildings == 7
     assert osm.built_up_m == pytest.approx(1112, abs=30)   # poligonun güney kenarına
-    assert settlement_position(osm) == "kiyi"
+    assert settlement_position(osm) == "kiyi"           # 7 bina görünüyor
 
     # Nokta poligonun içindeyse uzaklık sıfırdır ve parsel yerleşimin içi sayılır.
     icteki = nearby.parse_overpass(data, 40.015, 28.91)
@@ -191,7 +192,8 @@ def test_fringe_premium_lifts_unzoned_land_only_at_the_edge():
     assert yer is not None
     ortak = dict(area_m2=3_000, usage="tarla", housing=BURSA, urban=yer)
 
-    kir = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0), slope_pct=2.0)
+    kir = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
+                                      built_up_m=700), slope_pct=2.0)
     kiyi = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
                                        buildings=6, built_up_m=700), slope_pct=2.0)
     ic = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
@@ -218,3 +220,21 @@ def test_fringe_premium_does_not_touch_zoned_land():
                                        buildings=6, built_up_m=700), slope_pct=2.0)
     sonuc = estimate(area_m2=3_000, usage="konut", housing=BURSA, urban=yer, surroundings=kiyi)
     assert "fringe" not in {f.key for f in sonuc.factors}
+
+
+def test_fringe_widens_the_band_as_well_as_the_value():
+    """Prim seviyeyi düzeltir, belirsizliği gidermez: ölçümde kıyıda tipik sapma
+    primden sonra bile ×2,21, kapı dışında ×1,58."""
+    yer = _kirsal()
+    assert yer is not None
+    ortak = dict(area_m2=3_000, usage="tarla", housing=BURSA, urban=yer)
+    kir = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
+                                      built_up_m=700), slope_pct=2.0)
+    kiyi = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
+                                       buildings=6, built_up_m=700), slope_pct=2.0)
+
+    kirda, kiyida = estimate(**ortak, surroundings=kir), estimate(**ortak, surroundings=kiyi)
+    genislik = lambda s: (s.high - s.low) / s.total            # noqa: E731
+    assert genislik(kiyida) > genislik(kirda)
+    assert genislik(kiyida) == pytest.approx(
+        genislik(kirda) + 2 * DEFAULTS.fringe_spread, rel=0.02)
