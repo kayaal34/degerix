@@ -1,23 +1,23 @@
 {
- "kaynak": "kalibrasyon 2026-11-25 (57 kayıt)",
+ "kaynak": "kalibrasyon 2026-11-25 (67 kayıt)",
  "rapor": {
   "once": {
-   "kayit": 57,
+   "kayit": 67,
    "ortanca_sapma_yuzde": 83.9,
-   "tipik_sapma_kat": 2.016,
-   "yuzde_25_icinde": 24.6
+   "tipik_sapma_kat": 2.114,
+   "yuzde_25_icinde": 25.4
   },
   "sonra": {
-   "kayit": 57,
-   "ortanca_sapma_yuzde": 67.8,
-   "tipik_sapma_kat": 1.952,
-   "yuzde_25_icinde": 31.6
+   "kayit": 67,
+   "ortanca_sapma_yuzde": 64.6,
+   "tipik_sapma_kat": 2.021,
+   "yuzde_25_icinde": 25.4
   }
  },
  "parametreler": {
   "locality": {
-   "30": 1.3127,
-   "23": 0.9524,
+   "30": 1.2251,
+   "23": 0.9065,
    "22": 0.7,
    "21": 0.8,
    "13": 0.5,
@@ -28,9 +28,9 @@
   "farmland_ratio": {
    "30": 0.03,
    "23": 0.02,
-   "22": 0.015,
+   "22": 0.0176,
    "21": 0.02,
-   "13": 0.012,
+   "13": 0.017,
    "12": 0.008,
    "11": 0.006,
    "10": 0.006
