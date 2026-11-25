@@ -221,10 +221,16 @@ def fit_one(rows, parameters: Parameters, name: str) -> dict[int, float]:
 
 async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Parameters, dict]:
     """İmarlı kayıtlardan yerleşim katsayısını, imarsızlardan arazi oranını ayarlar."""
-    summary = {}
+    # Her geçişin sonucu ölçülür ve en iyisi tutulur. Eskiden döngü son geçişin
+    # katsayısını döndürüyor ama bir önceki geçişin raporunu yazıyordu: dosyaya
+    # yazılan sayı ile ölçülen sayı aynı duruma ait değildi. Dahası fit tek yönlü
+    # yakınsamıyor — locality hem imarlıyı hem imarsızı kaydırdığı için ölçüm
+    # 96,8 → 66,8 → 78,2 diye salınıyor. "Son geçiş" bu yüzden doğru cevap değil;
+    # ölçülmüş en iyi aday doğru cevaptır ve varsayılanlar da adaylardan biridir.
+    summary = report(await evaluate(records, parameters))
+    best, best_summary = parameters, summary
     for _ in range(PASSES):
         rows = await evaluate(records, parameters)
-        summary = report(rows)
         zoned = [row for row in rows if not is_unzoned(row[0])]
         # farmland_ratio yalnızca onu gerçekten kullanan kayıtlardan ayarlanır:
         # imar beklentisiyle fiyatlanan parselde bu oranın hiçbir etkisi yok, o
@@ -235,7 +241,10 @@ async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Pa
             locality=fit_one(zoned, parameters, "locality"),
             farmland_ratio=fit_one(unzoned, parameters, "farmland_ratio"),
         )
-    return parameters, summary
+        summary = report(await evaluate(records, parameters))
+        if summary["ortanca_sapma_yuzde"] < best_summary["ortanca_sapma_yuzde"]:
+            best, best_summary = parameters, summary
+    return best, best_summary
 
 
 async def main() -> None:

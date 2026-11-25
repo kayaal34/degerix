@@ -151,3 +151,27 @@ def test_deviation_is_charged_to_the_class_the_model_actually_used():
     satirlar = asyncio.run(evaluate([kayit], DEFAULTS))
     assert satirlar, "kayıt değerlendirilemedi"
     assert satirlar[0][3] == effective_class(yer)
+
+
+@pytest.mark.anyio
+async def test_fit_never_returns_a_worse_set_than_the_defaults(monkeypatch):
+    """Yazılan katsayı, ölçülmüş en iyi adaydır; "son geçiş" değil.
+
+    Fit tek yönlü yakınsamıyor: locality hem imarlı hem imarsız kayıtları
+    kaydırdığı için ölçüm 96,8 → 66,8 → 78,2 diye salınabiliyor. Eskiden döngü
+    son geçişin katsayısını döndürüp bir önceki geçişin raporunu yazıyordu, yani
+    dosyaya giren sayı ile ölçülen sayı aynı duruma ait değildi. Hiçbir geçiş
+    varsayılanı geçemiyorsa varsayılan kalmalı.
+    """
+    import tools.calibrate as kalibrasyon
+
+    sabit = rows(8, 1.5) + rows(8, 1.5, usage="konut")
+
+    async def degismez(records, parameters):
+        return sabit            # katsayı ne olursa olsun aynı sapma
+
+    monkeypatch.setattr(kalibrasyon, "evaluate", degismez)
+    fitted, summary = await kalibrasyon.fit([{}], DEFAULTS)
+
+    assert fitted is DEFAULTS
+    assert summary["ortanca_sapma_yuzde"] == pytest.approx(50.0, abs=0.1)
