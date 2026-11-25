@@ -75,6 +75,19 @@ class Parameters:
     # Bakanlık birim maliyetleri zaten %15 genel gider ve %10 yüklenici kârı içeriyor.
     developer_margin: float = 0.15
 
+    # Beyan edilen emsalin değere etkisinin ağırlığı; kalanı bölgede tipik emsalle
+    # hesaplanan değere gider (1,00 = beyan tek başına belirler).
+    #
+    # Ölçüm, 84 ilanda ağırlık düştükçe hatanın düzeldiğini söylüyor: emsal beyanlı
+    # imarlı kayıtlarda tipik hata 1,04 → 0,86 (ağırlık 0,55), 0,83'e kadar da
+    # iniyor (ağırlık 0,25). Sayısal en iyi 0,25 ama oraya gitmedik, çünkü ölçümün
+    # dayandığı emsaller ilan beyanıdır — doğrulanmamış, sıkça iyimser. Kendi imar
+    # durum belgesine bakarak emsal giren kullanıcının beyanı bundan güvenilirdir;
+    # ilanlardan öğrenilen sönümlemeyi olduğu gibi ona uygulamak, doğru bilgiyi
+    # yok saymak olur. 0,55 ölçülebilir kazancın neredeyse tamamını alır ve beyanı
+    # iki okumanın ağır olanı olarak bırakır.
+    declared_kaks_weight: float = 0.55
+
     # Konut dışı kullanımlarda satış fiyatı farkı (konut = 1,00)
     usage_price_ratio: dict[str, float] = field(default_factory=lambda: {"konut": 1.00, "ticari": 1.25, "sanayi": 0.55})
 

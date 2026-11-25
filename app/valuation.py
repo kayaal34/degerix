@@ -28,6 +28,7 @@ genişletir. Sonuç, satış süresine göre üç senaryo olarak da verilir.
 import math
 import re
 import statistics
+import dataclasses
 from dataclasses import dataclass
 from typing import Literal
 
@@ -111,6 +112,11 @@ class Development:
     land_value: int              # artık değer (negatifse 0)
     viable: bool                 # geliştirme hesabı arsaya değer bırakıyor mu
     capped: bool = False         # arsa payı üst sınırına takıldı mı
+    # Değer, beyan edilen emsalle hesaplanan ile bölgede tipik emsalle hesaplananın
+    # harmanı mı? Harman uygulandığında land_value artık hasılat−maliyet−pay farkına
+    # eşit olmadığı için raporda söylenmesi gerekir.
+    kaks_blended: bool = False
+    typical_kaks: float | None = None   # harmanda kullanılan bölgesel emsal
 
 
 @dataclass(frozen=True)
@@ -532,11 +538,39 @@ def estimate(
     development: Development | None = None
 
     if zoned:
+        kaks_class = urban.class_code if urban is not None else LOW_RURAL
         development = develop(
-            area_m2=area_m2, usage=usage, class_code=class_code,
-            kaks_class=urban.class_code if urban is not None else LOW_RURAL,
+            area_m2=area_m2, usage=usage, class_code=class_code, kaks_class=kaks_class,
             local_housing_price=local_housing_price, kaks=kaks, parameters=parameters,
         )
+        # Beyan edilen emsalin değere etkisi kısmen sönümlenir. Artık değer hesabı
+        # değeri emsalle doğru oranlı yapar; piyasa bunu bu kadar sert fiyatlamıyor.
+        # Ölçüm net: İstanbul/Çatalca (emsal 0,10) 5 kat düşük, Ankara/Pursaklar
+        # (emsal 1,40) 4,8 kat yüksek çıkıyor — hata beyan edilen emsale göre sıralı.
+        # Sebep de makul: ilanda yazılan emsal çoğu zaman doğrulanmış bir plan verisi
+        # değil, satıcının beyanı; düşük emsalli parseller ise sıkça villa/sahil
+        # bölgesinde, yani emsalin düşüklüğü konumun priminin işareti olabiliyor.
+        # Bu yüzden değer, beyan edilen emsalle hesaplanan ile bölgede tipik emsalle
+        # hesaplananın çarpımsal harmanıdır. İnşaat hakkı (buildable_m2) beyandan
+        # gelmeye devam eder: kullanıcıya gösterilen hukuki büyüklük değişmez.
+        weight = parameters.declared_kaks_weight
+        if kaks is not None and weight < 1.0:
+            typical = develop(
+                area_m2=area_m2, usage=usage, class_code=class_code, kaks_class=kaks_class,
+                local_housing_price=local_housing_price, kaks=None, parameters=parameters,
+            )
+            if development.land_value > 0 and typical.land_value > 0:
+                blended = development.land_value ** weight * typical.land_value ** (1 - weight)
+                # Üst sınır harmandan sonra yeniden uygulanır ve beyan edilen emsalin
+                # hasılatına göre hesaplanır: yapılacak proje beyan edilen projedir,
+                # arsaya o projenin hasılatından düşebilecek payın sınırı değişmez.
+                # Bu olmadan harman, tipik emsalin daha yüksek hasılatını arkadan
+                # getirip sınırı aşabiliyordu (İstanbul'da hasılatın %54'ü).
+                ceiling = development.revenue * parameters.max_land_share
+                development = dataclasses.replace(
+                    development, land_value=round(min(blended, ceiling)),
+                    capped=development.capped or blended > ceiling,
+                    kaks_blended=True, typical_kaks=typical.kaks)
         floor_price = local_housing_price * parameters.floor_ratio[class_code]
         development_price = development.land_value / area_m2
         if development.viable and development_price >= floor_price:
@@ -549,6 +583,10 @@ def estimate(
                 f"({development.construction_class}) − geliştirici payı {_money(development.developer_share)}"
                 + (f" · arsa payı hasılatın %{round(parameters.max_land_share * 100)}'i ile sınırlandı"
                    if development.capped else "")
+                + (f" · sonuç, beyan edilen emsalle hesaplanan değerin %{round(weight * 100)}'i "
+                   f"ile bölgede tipik emsal ({_decimal(development.typical_kaks or 0)}) "
+                   f"üzerinden hesaplananın harmanı"
+                   if development.kaks_blended else "")
             )
         else:
             basis = "taban"

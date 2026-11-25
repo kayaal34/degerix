@@ -3,19 +3,21 @@
  "rapor": {
   "once": {
    "kayit": 57,
-   "ortanca_sapma_yuzde": 81.3,
-   "yuzde_25_icinde": 21.1
+   "ortanca_sapma_yuzde": 83.9,
+   "tipik_sapma_kat": 2.016,
+   "yuzde_25_icinde": 24.6
   },
   "sonra": {
    "kayit": 57,
-   "ortanca_sapma_yuzde": 59.5,
-   "yuzde_25_icinde": 28.1
+   "ortanca_sapma_yuzde": 67.8,
+   "tipik_sapma_kat": 1.952,
+   "yuzde_25_icinde": 31.6
   }
  },
  "parametreler": {
   "locality": {
    "30": 1.3127,
-   "23": 0.9688,
+   "23": 0.9524,
    "22": 0.7,
    "21": 0.8,
    "13": 0.5,

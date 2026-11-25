@@ -382,3 +382,37 @@ def test_zoning_expectation_steps_one_rung_below_the_surrounding_density():
     assert DEFAULTS.expectation_class_step == 1
     assert bir_basamak.basis == devralan.basis == "beklenti"
     assert bir_basamak.unit_price < devralan.unit_price
+
+
+def test_declared_kaks_moves_the_value_less_than_proportionally():
+    """Beyan edilen emsal değeri belirler ama tek başına belirlemez.
+
+    Artık değer hesabı değeri emsalle doğru oranlı yapıyor, piyasa bunu bu kadar
+    sert fiyatlamıyor: ölçümde İstanbul/Çatalca (emsal 0,10) 5 kat düşük,
+    Ankara/Pursaklar (emsal 1,40) 4,8 kat yüksek çıkıyordu — hata beyana göre
+    sıralı. 84 ilanda sönümleme, emsal beyanlı kayıtların tipik hatasını
+    1,04'ten 0,86'ya indiriyor.
+    """
+    yer = place(urbanity.DENSE_CLUSTER)
+    dusuk = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=yer, kaks=0.3)
+    yuksek = estimate(area_m2=1000, usage="konut", housing=BURSA, urban=yer, kaks=1.2)
+
+    # Yön korunur: daha fazla inşaat hakkı daha değerli arsa demektir.
+    assert yuksek.unit_price > dusuk.unit_price
+    # Ama dört kat emsal, dört kat değer demek değildir.
+    assert yuksek.unit_price < 4 * dusuk.unit_price
+    # Gösterilen inşaat hakkı beyandan gelir; sönümleme yalnızca değere uygulanır.
+    assert dusuk.development.buildable_m2 == 300
+    assert yuksek.development.buildable_m2 == 1200
+    assert dusuk.development.kaks_blended is True
+    assert "harman" in dusuk.base_detail
+
+
+def test_an_assumed_kaks_is_not_blended_with_itself():
+    """Emsal girilmediyse harmanlanacak bir beyan yoktur."""
+    sonuc = estimate(area_m2=1000, usage="konut", housing=BURSA,
+                     urban=place(urbanity.DENSE_CLUSTER))
+
+    assert sonuc.development.kaks_assumed is True
+    assert sonuc.development.kaks_blended is False
+    assert "harman" not in sonuc.base_detail
