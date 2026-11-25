@@ -38,12 +38,17 @@
   const dateFormat = new Intl.DateTimeFormat("tr-TR", {dateStyle: "long", timeZone: "UTC"});
 
   function auctionCard(row, withAction) {
-    const card = el("article", "archive-item");
-    card.append(el("strong", "", row.neighborhood + " · " + row.ada + " ada / " + row.parcel + " parsel"),
-      el("p", "", row.province + " / " + row.district + " · " + twoDecimals.format(row.area) + " m²"),
-      el("p", "", "Muhammen bedel " + money.format(row.price) + " · " + integer.format(row.price / row.area) + " TL/m²"),
-      el("p", "hint", "Belediye ihalesi · " + dateFormat.format(new Date(archive.date)) + " · Sonuç bilgisi yok"),
-      sourceLink(archive.source, "İhale ilanını oku ↗"));
+    const card = recordCard({
+      status: "auction",
+      badge: "Belediye ihalesi",
+      title: row.neighborhood + " · " + row.ada + " ada / " + row.parcel + " parsel",
+      place: row.province + " / " + row.district + " · " + twoDecimals.format(row.area) + " m²",
+      amount: money.format(row.price),
+      unit: integer.format(row.price / row.area) + " TL/m²",
+      meta: ["Muhammen bedel · " + dateFormat.format(new Date(archive.date)) + " · Sonuç bilgisi yok"],
+    });
+    const actions = card.querySelector(".archive-actions");
+    actions.append(sourceLink(archive.source, "İhale ilanını oku ↗"));
     if (withAction && row.neighborhoodId) {
       const button = el("button", "btn btn-ghost", "Parsel sınırını aç");
       button.type = "button";
@@ -52,18 +57,48 @@
         map.setView([row.lat, row.lng], 17);
         lookup("/api/parcels/" + [row.neighborhoodId, row.ada, row.parcel].join("/"), {fit: true});
       };
-      card.append(button);
+      actions.append(button);
     }
     return card;
   }
 
+  const OFFER_BADGES = {active: "Aktif", reduced: "Fiyatı düştü", removed: "Kaldırıldı"};
+
+  function offerStatus(offer) {
+    const last = offer.history.at(-1);
+    if (last.status === "Kaldırıldı") return "removed";
+    if (last.status !== "Aktif") return "other";
+    const priced = offer.history.filter(event => event.price != null);
+    return priced.length > 1 && priced.at(-1).price < priced.at(-2).price ? "reduced" : "active";
+  }
+
   function offerCard(offer) {
-    const card = el("article", "archive-item");
-    card.append(el("strong", "", offer.title), el("p", "", offer.province + " / " + offer.district));
-    for (const event of offer.history) {
-      card.append(el("p", "", [event.date, event.status, event.price && money.format(event.price)].filter(Boolean).join(" · ")));
+    const status = offerStatus(offer);
+    const last = offer.history.at(-1);
+    const priced = offer.history.filter(event => event.price != null);
+    const reduced = status === "reduced";
+    const card = recordCard({
+      status,
+      badge: OFFER_BADGES[status] ?? last.status,
+      title: offer.title,
+      place: offer.province + " / " + offer.district,
+      amount: priced.length ? money.format(priced.at(-1).price) : undefined,
+      delta: reduced ? "Önceki fiyata göre " + signedPercent(100 * (priced.at(-1).price / priced.at(-2).price - 1)) : undefined,
+      trend: reduced ? "down" : undefined,
+      meta: [(status === "removed" && priced.length ? "Son bilinen fiyat · " : "") +
+        "Son gözlem " + dateFormat.format(new Date(last.date))],
+    });
+    const actions = card.querySelector(".archive-actions");
+    if (offer.history.length > 1) {
+      const details = el("details", "disclosure");
+      const history = el("ul", "archive-history");
+      for (const event of offer.history) {
+        history.append(el("li", "", [event.date, event.status, event.price && money.format(event.price)].filter(Boolean).join(" · ")));
+      }
+      details.append(el("summary", "", "Gözlem geçmişi (" + offer.history.length + ")"), history);
+      card.insertBefore(details, actions);
     }
-    card.append(sourceLink(offer.url, "İlan kaynağı ↗"));
+    actions.append(sourceLink(offer.url, "İlan kaynağı ↗"));
     return card;
   }
 
@@ -111,7 +146,8 @@
       if (!row.neighborhoodId) continue;
       const point = [row.lat, row.lng];
 
-      L.circleMarker(point, {pane: "markerPane", bubblingMouseEvents: false, radius: 7, color: "#fff", fillColor: "#a74816", fillOpacity: 1, weight: 2})
+      L.circleMarker(point, {pane: "markerPane", bubblingMouseEvents: false, radius: 7,
+        color: MAP_COLORS.halo, fillColor: MAP_COLORS.auction, fillOpacity: 1, weight: 2})
         .addTo(layer).bindPopup(auctionCard(row, true));
     }
     for (const offer of offers) {
@@ -119,12 +155,29 @@
       if (!Number.isFinite(offer.lat) || !Number.isFinite(offer.lng)) continue;
       const active = offer.history.at(-1).status === "Aktif";
       L.circleMarker([offer.lat, offer.lng], {pane: "markerPane", bubblingMouseEvents: false,
-        radius: 7, color: active ? "#146444" : "#585d65", fillOpacity: 0.8, dashArray: active ? null : "3 3"})
+        radius: 7, color: active ? MAP_COLORS.offerActive : MAP_COLORS.offerRemoved,
+        fillOpacity: 0.8, dashArray: active ? null : "3 3"})
         .addTo(layer).bindPopup(offerCard(offer));
     }
     if (city) showCity(city);
     $("#exploreStatus").textContent = (city || regionSelect.value || "81 il") + " · " + rows.length + " ihale kaydı · " + offers.length + " emlak ilanı";
-    if (!list.childElementCount) list.append(el("p", "hint", "Bu seçim için arşiv kaydı yok."));
+    if (!list.childElementCount) {
+      if (filter === "all") {
+        list.append(emptyCard("Bu bölgede arşiv kaydı yok",
+          "Seçtiğiniz bölge için arşivde ihale ya da ilan kaydı bulunmuyor. Arşiv henüz her bölgeyi kapsamıyor. " +
+          "Başka bir il ya da ilçe seçebilir veya haritadan bir parsel açıp “Yakındaki satılık arsa ilanları” " +
+          "bölümünden güncel ilanları sorgulayabilirsiniz."));
+      } else {
+        const box = emptyCard("Bu türde kayıt yok",
+          "Seçtiğiniz bölgede “" + $("#archiveFilter").selectedOptions[0].textContent +
+          "” için kayıt bulunamadı. Diğer kayıt türlerini görmek için filtreyi kaldırın.");
+        const button = el("button", "btn btn-ghost", "Tüm kayıtları göster");
+        button.type = "button";
+        button.onclick = () => { $("#archiveFilter").value = "all"; render(); };
+        box.append(button);
+        list.append(box);
+      }
+    }
   }
 
   $("#archiveFilter").addEventListener("change", render);
@@ -132,7 +185,7 @@
   const districtSelect = $("#exploreDistrict");
   const villageSelect = $("#exploreVillage");
   const borders = L.layerGroup();
-  const palette = ["#1b7460", "#83631d", "#4e66a5", "#8a5672", "#28768c", "#968443", "#805e9d"];
+  const palette = MAP_COLORS.regions;
   let provinceShapes;
   let districts = [];
   let villages = [];
@@ -181,7 +234,7 @@
       style: f => {
         const group = catalog.cities[f.properties.text]?.group || regionSelect.value;
         const index = [...regionSelect.options].findIndex(o => o.value === group);
-        return {color: "#205746", weight: 1.5, fillColor: palette[(Math.max(1,index)-1) % palette.length], fillOpacity: 0.19};
+        return {color: MAP_COLORS.border, weight: 1.5, fillColor: palette[(Math.max(1,index)-1) % palette.length], fillOpacity: 0.19};
       },
       onEachFeature: (f, polygon) => {
         polygon.bindTooltip(el("span", "", f.properties.text), {sticky: true});
@@ -358,16 +411,17 @@
     });
     const auctions = archive.records.filter(nearby);
     if (offers.length) {
-      const details = el("details");
+      const details = el("details", "disclosure");
       details.append(el("summary", "", "Yerel ilan arşivi (" + offers.length + ")"), ...offers.map(offerCard));
       box.append(details);
     }
     if (auctions.length) {
-      const details = el("details");
+      const details = el("details", "disclosure");
       details.append(el("summary", "", "Aynı çevredeki belediye ihaleleri (" + auctions.length + ")"),
         ...auctions.map(row => auctionCard(row, true)));
       box.append(details);
     }
+    if (!offers.length && !auctions.length) box.append(el("p", "hint", "Yerel arşivde bu çevre için kayıt yok."));
   }
   $("#nearbyFeed").addEventListener("toggle", nearbyArchive);
   for (const name of ["#feedRadius", "#feedLive", "#feedDays"]) $(name).addEventListener("change", nearbyArchive);
@@ -396,5 +450,8 @@
     box.replaceChildren(...rows.map(row => auctionCard(row, false)));
     box.hidden = !rows.length;
   });
-  if (location.hash !== "#ada-parsel" && !new URLSearchParams(location.search).has("lat")) selectTab("explore");
+  // #turkiye her durumda açar; hash yoksa paylaşım bağlantısı olmadığı sürece varsayılan sekme budur
+  if (tabFromHash() === "explore" || (tabFromHash() === null && !new URLSearchParams(location.search).has("lat"))) {
+    selectTab("explore");
+  }
 })();

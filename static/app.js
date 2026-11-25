@@ -10,9 +10,23 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const BASEMAP_KEY = "degerix-basemap";
 const COMPARE_KEY = "degerix-compare";
 const COMPARE_LIMIT = 2;
-const PARCEL_CASING = { color: "#fff", weight: 7, opacity: 0.9, fill: false };
-const PARCEL_STYLE = { color: "#e8590c", weight: 3, fillColor: "#e8590c", fillOpacity: 0.18 };
-const POINT_STYLE = { radius: 7, color: "#fff", weight: 2, fillColor: "#e8590c", fillOpacity: 1, interactive: false };
+const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
+const LEAVE_MS = 120; // --dur-1 ile aynı tut
+// Harita renkleri arayüz temasına değil altlığa (açık OSM / uydu) göre seçilir; Leaflet
+// onları katman oluşturulurken bir kez alır, bu yüzden CSS'ten okunmaz.
+const MAP_COLORS = {
+  halo: "#fff",
+  parcel: "#e8590c", // style.css --parcel ile aynı tut
+  auction: "#a74816",
+  offerActive: "#146444",
+  offerRemoved: "#585d65",
+  feed: "#385887",
+  border: "#205746",
+  regions: ["#1b7460", "#83631d", "#4e66a5", "#8a5672", "#28768c", "#968443", "#805e9d"],
+};
+const PARCEL_CASING = { color: MAP_COLORS.halo, weight: 7, opacity: 0.9, fill: false };
+const PARCEL_STYLE = { color: MAP_COLORS.parcel, weight: 3, fillColor: MAP_COLORS.parcel, fillOpacity: 0.18 };
+const POINT_STYLE = { radius: 7, color: MAP_COLORS.halo, weight: 2, fillColor: MAP_COLORS.parcel, fillOpacity: 1, interactive: false };
 
 // Paylaşım bağlantısında seçmeli soruların parametre adları
 const RADIO_PARAMS = { tapu: "deed", yol: "road", altyapi: "utilities", manzara: "view", kose: "corner", sulama: "irrigation" };
@@ -48,6 +62,50 @@ function el(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+// İhale, ilan ve Tapusor kartlarının ortak iskeleti. Boş kalan parça hiç üretilmez.
+// Çağıran taraf bağlantı ve düğmeleri card.querySelector(".archive-actions") içine ekler.
+function recordCard({ status, badge, title, place, amount, unit, delta, trend, meta } = {}) {
+  const card = el("article", "archive-item");
+  if (status) card.dataset.status = status;
+
+  const head = el("div", "archive-head");
+  head.append(el("strong", "archive-title", title ?? ""));
+  if (badge) {
+    const chip = el("span", "status-badge", badge);
+    if (status) chip.dataset.status = status;
+    head.append(chip);
+  }
+  card.append(head);
+
+  if (place) card.append(el("p", "archive-place", place));
+
+  if (amount) {
+    const price = el("p", "archive-price");
+    price.append(el("b", "archive-amount", amount));
+    if (unit) price.append(el("span", "archive-unit", unit));
+    if (delta) {
+      const chip = el("span", "archive-delta", delta);
+      if (trend) chip.dataset.trend = trend;
+      price.append(chip);
+    }
+    card.append(price);
+  }
+
+  for (const line of meta ?? []) {
+    if (line) card.append(el("p", "archive-meta", line));
+  }
+
+  card.append(el("div", "archive-actions"));
+  return card;
+}
+
+// Yönlendirici boş durum kartı; çağıran isterse sonuna düğme ekler
+function emptyCard(title, text) {
+  const box = el("div", "empty-card");
+  box.append(el("b", "", title), el("p", "", text));
+  return box;
 }
 
 // 7,9 milyon ₺ · 264 milyon ₺ · 1,2 milyar ₺
@@ -104,18 +162,44 @@ function hideAlert() {
   $("#alert").hidden = true;
 }
 
+// display:none'dan geçmeyen bir öğede animasyonu yeniden oynatır.
+function replay(element, className) {
+  if (!element || REDUCED_MOTION.matches) return;
+  element.classList.remove(className);
+  void element.offsetWidth; // reflow: animasyonu sıfırlar
+  element.classList.add(className);
+}
+
 let statusTimer;
+let leaveTimer;
+function hideMapStatus(box) {
+  clearTimeout(leaveTimer);
+  if (box.hidden) return;
+  if (REDUCED_MOTION.matches) {
+    box.hidden = true;
+    box.classList.remove("is-leaving");
+    return;
+  }
+  box.classList.add("is-leaving");
+  leaveTimer = setTimeout(() => {
+    box.hidden = true;
+    box.classList.remove("is-leaving");
+  }, LEAVE_MS);
+}
+
 function setMapStatus(text, tone = "loading") {
   const box = $("#mapStatus");
   clearTimeout(statusTimer);
   if (!text) {
-    box.hidden = true;
+    hideMapStatus(box);
     return;
   }
+  clearTimeout(leaveTimer);
+  box.classList.remove("is-leaving");
   box.dataset.tone = tone;
   $("#mapStatusText").textContent = text;
   box.hidden = false;
-  if (tone !== "loading") statusTimer = setTimeout(() => (box.hidden = true), 4500);
+  if (tone !== "loading") statusTimer = setTimeout(() => hideMapStatus(box), 4500);
 }
 
 /* ---------- Harita ---------- */
@@ -123,6 +207,11 @@ function setMapStatus(text, tone = "loading") {
 const map = L.map("map", { zoomControl: false, minZoom: 5, maxBounds: TURKEY.pad(0.2) });
 map.fitBounds(TURKEY);
 L.control.zoom({ position: "bottomright" }).addTo(map);
+
+// Mobilde harita yüksekliği CSS ile değişir (yapışkan harita); Leaflet'in karoları eksik kalmasın
+if (typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(() => map.invalidateSize()).observe($("#map"));
+}
 
 // API anahtarı gerektirmeyen altlıklar. OSM karoları düşük trafikli kullanım içindir:
 // https://operations.osmfoundation.org/policies/tiles/
@@ -302,7 +391,12 @@ function showParcel(parcel, point, fit) {
   runEstimate();
   if (parcel.province !== state.analysisProvince) loadAnalysis(parcel.province);
 
-  if (MOBILE.matches) $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (MOBILE.matches) {
+    map.invalidateSize({ animate: false }); // #result görünür olunca yapışkan harita kısaldı
+    // fitBounds animasyonuyla çakışmasın; o durumda merkezi ResizeObserver korur
+    if (!fit) map.panInside(L.latLng(point ?? [parcel.lat, parcel.lng]), { padding: [40, 40] });
+  }
+  if (MOBILE.matches) $("#result").scrollIntoView({ behavior: REDUCED_MOTION.matches ? "auto" : "smooth", block: "start" });
 }
 
 /* ---------- Arsa soruları ---------- */
@@ -466,7 +560,7 @@ $("#btnCalculate").addEventListener("click", () => {
   state.calculated = true;
   showOutput(true);
   runEstimate();
-  $("#resultOutput").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("#resultOutput").scrollIntoView({ behavior: REDUCED_MOTION.matches ? "auto" : "smooth", block: "start" });
 });
 
 async function runEstimate() {
@@ -504,13 +598,17 @@ async function runEstimate() {
   }
 }
 
+let lastRenderedUnitPrice = null;
 function renderEstimate(result, parcel) {
   state.lastResult = result;
   $("#valTotal").textContent = money.format(result.total);
-  $("#valRange").textContent = `${shortRange(result.low, result.high)} aralığında`;
+  $("#valRange").textContent = `Model aralığı: ${shortRange(result.low, result.high)}`;
   $("#valUnit").textContent = money.format(result.unit_price);
   const confidence = $("#valConfidence");
-  confidence.textContent = `Güven: ${result.confidence}`;
+  // "Veri tamlığı" değil: güven artık yalnızca yanıtların eksiksizliğini değil,
+  // kullanılan yöntemin ölçülmüş isabetini de taşıyor. Her sorusu yanıtlanmış bir
+  // tarla da "düşük" çıkabiliyor ve eski etiket kullanıcıyı eksik veri aramaya itiyordu.
+  confidence.textContent = `Tahmin güveni: ${result.confidence}`;
   confidence.dataset.level = result.confidence;
 
   const share = $("#valShare");
@@ -532,6 +630,7 @@ function renderEstimate(result, parcel) {
   );
 
   renderComparableSummary(result.comparables);
+  $("#settlementNote").hidden = result.settlement !== "yerleşim bilinmiyor";
 
   const housing = result.housing;
   const rows = [
@@ -577,6 +676,9 @@ function renderEstimate(result, parcel) {
   updateShareUrl();
   prepareReport(); // tarayıcının kendi yazdır menüsünden basılsa da rapor hazır olsun
   setResultActions(true);
+
+  if (result.unit_price !== lastRenderedUnitPrice) replay($("#valueCard"), "is-updated");
+  lastRenderedUnitPrice = result.unit_price;
 }
 
 function factorRow(title, detail, value, tone = "") {
@@ -597,6 +699,8 @@ function renderInvalid(message) {
   $("#valUnit").textContent = "—";
   $("#valConfidence").textContent = "";
   $("#valShare").hidden = true;
+  $("#settlementNote").hidden = true;
+  $("#comparableWarning").hidden = true;
   $("#scenarioList").replaceChildren();
   $("#factorList").replaceChildren();
 }
@@ -669,14 +773,19 @@ function prepareReport() {
 }
 
 let breakdownWasOpen = false;
+let accuracyWasOpen = false;
 window.addEventListener("beforeprint", () => {
   prepareReport();
   const breakdown = $(".breakdown");
   breakdownWasOpen = breakdown.open;
   breakdown.open = true; // raporda dökümün tamamı görünsün
+  const accuracy = $("#accuracy");
+  accuracyWasOpen = accuracy.open;
+  accuracy.open = true; // raporda doğruluk açıklaması da görünsün
 });
 window.addEventListener("afterprint", () => {
   $(".breakdown").open = breakdownWasOpen;
+  $("#accuracy").open = accuracyWasOpen;
 });
 $("#btnPrint").addEventListener("click", () => window.print());
 
@@ -729,7 +838,7 @@ $("#btnCompare").addEventListener("click", () => {
   const button = $("#btnCompare");
   button.textContent = "Eklendi";
   setTimeout(() => (button.textContent = "Karşılaştırmaya ekle"), 1500);
-  $("#compareTray").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("#compareTray").scrollIntoView({ behavior: REDUCED_MOTION.matches ? "auto" : "smooth", block: "nearest" });
 });
 
 $("#btnCompareClear").addEventListener("click", () => {
@@ -754,7 +863,7 @@ function renderComparisons() {
     ["Aralık", (item) => shortRange(item.low, item.high)],
     ["Acil satış", (item) => (item.urgent ? shortMoney(item.urgent) : "—")],
     ["Tok satıcı", (item) => (item.patient ? shortMoney(item.patient) : "—")],
-    ["Güven", (item) => item.confidence],
+    ["Tahmin güveni", (item) => item.confidence],
   ];
 
   const tableRows = rows.map(([label, value, highlight]) => {
@@ -933,12 +1042,24 @@ function renderComparables() {
     }),
   );
   $("#btnComparableCsv").hidden = state.comparables.length === 0;
-  if (state.comparables.length === 0) $("#comparableSummary").hidden = true;
+  if (state.comparables.length === 0) {
+    $("#comparableSummary").hidden = true;
+    $("#comparableWarning").hidden = true;
+  }
 }
 
 function renderComparableSummary(summary) {
   const box = $("#comparableSummary");
   box.hidden = !summary;
+  // Backend'in kendi eşiği: dağılım ortancanın %50'sini geçerse aralık genişletilir
+  const warning = $("#comparableWarning");
+  warning.hidden = !(summary && summary.count > 1 && summary.spread_pct > 50);
+  if (!warning.hidden) {
+    warning.textContent =
+      "Emsalleriniz birbirini tutmuyor: en düşük ile en yüksek m² fiyatı arasındaki fark, " +
+      `ortancanın %${upToOneDecimal.format(summary.spread_pct)} kadarı. ` +
+      "Yanlış girilmiş tek bir fiyat ya da alan sonucu belirgin biçimde saptırır; listeyi kontrol edin.";
+  }
   if (!summary) return;
   box.textContent =
     `${summary.count} emsalin ortancası ${money.format(summary.market_unit_price)}/m² · ` +
@@ -1035,6 +1156,19 @@ function selectTab(name) {
   $("#tab-number").hidden = name !== "number";
   if (name === "number") loadProvinces();
 }
+
+// Adres çubuğundaki bağlantı → sekme adı; tanınmayan hash için null
+function tabFromHash() {
+  if (location.hash === "#ada-parsel") return "number";
+  if (location.hash === "#turkiye") return "explore";
+  if (location.hash === "#harita") return "map";
+  return null;
+}
+
+window.addEventListener("hashchange", () => {
+  const name = tabFromHash();
+  if (name) selectTab(name);
+});
 
 /* ---------- Ada / parsel formu ---------- */
 
@@ -1188,7 +1322,7 @@ $("#btnLocate").addEventListener("click", () => {
   );
 });
 
-$("#btnBackToMap").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+$("#btnBackToMap").addEventListener("click", () => window.scrollTo({ top: 0, behavior: REDUCED_MOTION.matches ? "auto" : "smooth" }));
 
 /* ---------- Başlangıç ---------- */
 
@@ -1201,7 +1335,7 @@ async function init() {
     showAlert(error.message);
   }
 
-  if (location.hash === "#ada-parsel") selectTab("number"); // tanıtım sayfasındaki "Ada / parsel ile ara"
+  if (tabFromHash() === "number") selectTab("number"); // tanıtım sayfasındaki "Ada / parsel ile ara"
 
   // Paylaşılan bağlantı: ?lat=..&lng=..[&alan=..&imar=..&hesapla=1]
   const params = new URLSearchParams(location.search);

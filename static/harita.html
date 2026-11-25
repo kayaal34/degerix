@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="tr">
+<html lang="tr" class="map-page">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Değerix · Arsa Değeri Hesapla</title>
   <meta name="description" content="Haritada arsanıza tıklayın; TKGM parsel kaydıyla tahmini değerini ve hesabın nasıl yapıldığını görün.">
   <meta name="theme-color" content="#1d6b47">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231d6b47'/%3E%3Cpath d='M8 21.5 13 9l11 4-2.5 10.5z' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.3' fill='%23ffb84d'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d6b47'/%3E%3Cpath d='M8 8h4.2v16H8z' fill='%23fff' fill-opacity='.62'/%3E%3Cpath d='M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z' fill='%23fff'/%3E%3Cpath d='M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z' fill='%23fff' fill-opacity='.62'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -17,14 +17,15 @@
   <div class="app">
     <aside class="panel">
       <header class="brand">
-        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-          <rect width="32" height="32" rx="9" fill="currentColor"/>
-          <path d="M8 21.5 13 9l11 4-2.5 10.5z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>
-          <circle cx="16" cy="16" r="2.3" fill="#ffb84d"/>
+        <svg class="brand-mark" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="currentColor"/>
+          <path d="M8 8h4.2v16H8z" fill="#fff" fill-opacity=".62"/>
+          <path d="M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z" fill="#fff"/>
+          <path d="M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z" fill="#fff" fill-opacity=".62"/>
         </svg>
         <div>
           <h1><a href="./">Değerix</a></h1>
-          <p>Arsanızın tahmini değerini haritadan öğrenin</p>
+          <p>Arsa değer tahmini</p>
         </div>
       </header>
 
@@ -34,7 +35,7 @@
         <button class="tab" id="tabbtn-explore" type="button" role="tab" aria-selected="false" aria-controls="tab-explore" data-tab="explore">Bölge keşfi</button>
       </div>
 
-      <section id="tab-explore" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-explore" hidden>
+      <section id="tab-explore" class="tab-panel explore" role="tabpanel" aria-labelledby="tabbtn-explore" hidden>
         <h2>Türkiye’yi keşfet</h2>
         <label class="field"><span>Coğrafi bölge</span><select id="exploreRegion"><option value="">Tüm Türkiye</option></select></label>
         <label class="field"><span>İl</span><select id="exploreCity"></select></label>
@@ -42,12 +43,12 @@
         <label class="field" id="villageField" hidden><span>Köy / mahalle</span><select id="exploreVillage"></select></label>
         <button type="button" class="btn btn-ghost" id="retryBounds" hidden>Sınırları yeniden yükle</button>
         <p id="exploreStatus" class="hint" role="status"></p>
-        <div id="cityReport" hidden>
+        <div id="cityReport" class="city-report" hidden>
           <h3 id="cityTitle"></h3>
           <p id="cityPrice"></p>
           <p id="cityTrend"></p>
           <svg class="sparkline" id="cityChart" viewBox="0 0 300 60" role="img"></svg>
-          <details><summary>Aylık endeks değerleri</summary><dl class="trend-history" id="cityHistory"></dl></details>
+          <details class="disclosure"><summary>Aylık endeks değerleri</summary><dl class="trend-history" id="cityHistory"></dl></details>
           <a id="trendSource" target="_blank" rel="noopener">TCMB endeks tablosu ↗</a>
         </div>
         <h3>İlan arşivi</h3>
@@ -56,9 +57,9 @@
           <option value="active">Aktif ilanlar</option><option value="removed">Kaldırılan ilanlar</option>
           <option value="reduced">Fiyatı düşen ilanlar</option>
         </select></label>
-        <div id="archiveList"></div>
-        <details id="savedParcels"><summary>Favorilerim ve gezdiğim parseller</summary>
-          <p class="hint">Bu tarayıcıda saklanır.</p><div id="savedParcelList"></div>
+        <div id="archiveList" class="archive-list"></div>
+        <details id="savedParcels" class="disclosure"><summary>Favorilerim ve gezdiğim parseller</summary>
+          <p class="hint">Bu tarayıcıda saklanır.</p><div id="savedParcelList" class="saved-list"></div>
         </details>
       </section>
 
@@ -116,17 +117,17 @@
             <span class="badge" id="parcelSource"></span>
           </div>
           <button type="button" id="saveParcel" class="btn btn-ghost" hidden>Favorilere ekle</button>
-          <div id="parcelArchive" hidden></div>
-          <details id="nearbyFeed" class="nearby-feed">
+          <div id="parcelArchive" class="archive-list" hidden></div>
+          <details id="nearbyFeed" class="nearby-feed disclosure">
             <summary>Yakındaki satılık arsa ilanları</summary>
             <div class="form-grid">
-              <label class="field">İlan durumu<select id="feedLive"><option value="false">Yayından kalkmış</option><option value="true">Aktif</option></select></label>
-              <label class="field">Parsel çevresi<select id="feedRadius"><option value="500">500 m</option><option selected value="1000">1 km</option><option value="2000">2 km</option></select></label>
-              <label class="field">Son görülme dönemi<select id="feedDays"><option value="30">30 gün</option><option value="90">90 gün</option><option value="365" selected>365 gün</option></select></label>
+              <label class="field"><span>İlan durumu</span><select id="feedLive"><option value="false">Yayından kalkmış</option><option value="true">Aktif</option></select></label>
+              <label class="field"><span>Parsel çevresi</span><select id="feedRadius"><option value="500">500 m</option><option selected value="1000">1 km</option><option value="2000">2 km</option></select></label>
+              <label class="field"><span>Son görülme dönemi</span><select id="feedDays"><option value="30">30 gün</option><option value="90">90 gün</option><option value="365" selected>365 gün</option></select></label>
             </div>
-            <div id="localNearby"></div>
+            <div id="localNearby" class="archive-list"></div>
             <button type="button" id="feedSearch" class="btn btn-ghost">Tapusor’da ara</button>
-            <p id="feedStatus" class="hint" role="status"></p><div id="feedRows"></div>
+            <p id="feedStatus" class="hint" role="status"></p><div id="feedRows" class="archive-list"></div>
             <button type="button" class="btn btn-ghost" id="feedNext" hidden>Daha fazla göster</button>
           </details>
           <dl class="parcel-meta" id="parcelMeta"></dl>
@@ -232,9 +233,21 @@
             <span class="value-share" id="valShare" hidden></span>
             <div class="value-foot">
               <span><b id="valUnit">—</b> / m²</span>
-              <span class="confidence" id="valConfidence"></span>
+              <span class="confidence" id="valConfidence" title="Kullanılan yöntemin gerçek ilanlara karşı ölçülmüş isabetini ve verdiğiniz yanıtların eksiksizliğini birlikte gösterir."></span>
             </div>
+            <p class="value-caveat">Ön tahmindir: model henüz gerçek satışlarla doğrulanmadı; satış fiyatı bu aralığın dışında kalabilir.</p>
           </div>
+
+          <p class="note" id="settlementNote" hidden>Bu konum için yerleşim verisi bulunamadı; değer kırsal alan varsayımıyla hesaplandı. Parsel bir şehir ya da ilçe merkezindeyse gerçek değer bunun birkaç katı olabilir.</p>
+
+          <!-- Rakamlar data/calibration.json kaynağından (kalibrasyon 2026-11-10, 28 kayıt). Kalibrasyon yenilenince güncelleyin. -->
+          <details class="accuracy disclosure" id="accuracy">
+            <summary>Bu tahmine ne kadar güvenebilirim?</summary>
+            <p>Değerix bir ön tahmin aracıdır. Model; bölgedeki konut fiyatından, imar durumundan ve verdiğiniz yanıtlardan bir değer türetir. Henüz yeterli sayıda gerçekleşmiş satışla doğrulanmadı.</p>
+            <p><b>İlk karşılaştırma (10 Kasım 2026, 28 arsa ilanı):</b> tahminlerin yalnızca %10,7’si ilan fiyatının ±%25 yakınında kaldı; ortanca sapma %164 oldu. Karşılaştırılan fiyatlar satış değil ilan fiyatıdır ve çoğunun konumu yaklaşıktır; bu ölçümün kendisi de kesin değildir.</p>
+            <p>“Model aralığı”, modelin gerçek arsa ilanlarına karşı ölçülmüş hatasından gelir: imarlı arsada en dar, imarsız arazide en geniştir. Emsal girdiğinizde aralık emsallerin kendi dağılımı kadar daralır. “Tahmin güveni” bunu, verdiğiniz yanıtların eksiksizliğiyle birlikte özetler. İkisi de tek bir parsel için kesinlik vaadi değil.</p>
+            <p>Bildiğiniz gerçek satışları ve güncel ilanları aşağıdaki “Emsaller” bölümüne ekleyin. Alım, satım ya da kredi kararı için lisanslı bir değerleme uzmanına başvurun.</p>
+          </details>
 
           <section class="scenarios" aria-labelledby="scenariosTitle">
             <h3 id="scenariosTitle">Satış süresine göre fiyat</h3>
@@ -246,7 +259,7 @@
               <h3 id="comparablesTitle">Emsaller</h3>
               <button class="link-button" id="btnComparableCsv" type="button" hidden>CSV indir</button>
             </div>
-            <p class="comparables-note">Yakında gördüğünüz ilanları ya da bildiğiniz satışları ekleyin; değer emsallere göre düzeltilir. Emsaller yalnızca bu tarayıcıda saklanır, sunucuya gönderilmez.</p>
+            <p class="comparables-note">Yakında gördüğünüz ilanları ya da bildiğiniz satışları ekleyin; değer emsallere göre düzeltilir. Emsaller yalnızca bu tarayıcıda saklanır, sunucuya gönderilmez. Model fiyatları tarihe göre güncellemez; eski tarihli fiyatlar sonucu saptırır, yalnızca güncel fiyatları ekleyin.</p>
             <form class="comparable-form" id="comparableForm" novalidate>
               <label class="field"><span>Fiyat (TL)</span>
                 <input id="cmpPrice" type="text" inputmode="numeric" autocomplete="off" placeholder="2.500.000">
@@ -264,6 +277,7 @@
             </form>
             <ul class="comparable-list" id="comparableList"></ul>
             <p class="comparable-summary" id="comparableSummary" hidden></p>
+            <p class="note" id="comparableWarning" hidden></p>
           </section>
 
           <section class="analysis" id="analysis" aria-labelledby="analysisTitle" hidden>
@@ -284,7 +298,7 @@
           <div class="result-actions">
             <button class="btn btn-ghost" id="btnPrint" type="button">Raporu yazdır / PDF</button>
             <button class="btn btn-ghost" id="btnCompare" type="button">Karşılaştırmaya ekle</button>
-            <button class="btn btn-ghost" id="btnShare" type="button">Bağlantıyı kopyala</button>
+            <button class="btn btn-ghost span-2" id="btnShare" type="button">Bağlantıyı kopyala</button>
           </div>
 
           <div class="print-extras" aria-hidden="true">
@@ -305,7 +319,7 @@
           <p class="compare-note" id="compareNote"></p>
         </section>
 
-        <button class="btn btn-ghost mobile-only" id="btnBackToMap" type="button">↑ Haritada başka arsa seç</button>
+        <button class="btn btn-ghost mobile-only" id="btnBackToMap" type="button">↑ Aramaya ve sekmelere dön</button>
       </section>
 
       <footer class="panel-foot">

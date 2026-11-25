@@ -26,24 +26,29 @@
   }
 
   function card(item) {
-    const box = el("article", "archive-item");
-    const label = $("#feedLive").value === "true" ? "Aktif ilan" : "Yayından kalkmış ilan";
-    box.append(el("strong", "", label + " · Tapusor"));
-    if (item.first_seen || item.last_seen) {
-      const dates = [];
-      if (item.first_seen) dates.push("İlk görülme " + day.format(new Date(item.first_seen)));
-      if (item.last_seen) dates.push("Son görülme " + day.format(new Date(item.last_seen)));
-      box.append(el("p", "hint", dates.join(" · ")));
-    }
-    if (item.first_price) box.append(el("p", "", "İlk istenen fiyat " + money.format(item.first_price)));
-    if (item.last_price) box.append(el("p", "", "Son istenen fiyat " + money.format(item.last_price)));
-    if (item.first_price && item.last_price) {
-      box.append(el("p", "", "İlk fiyata göre " + signedPercent(100 * (item.last_price / item.first_price - 1))));
-    }
-    if (item.area) {
-      const unit = item.last_price ? " · " + money.format(item.last_price / item.area) + "/m²" : "";
-      box.append(el("p", "", twoDecimals.format(item.area) + " m²" + unit));
-    }
+    const live = $("#feedLive").value === "true";
+    const firstDiffers = Boolean(item.first_price && item.first_price !== item.last_price);
+    const changed = Boolean(item.first_price && item.last_price && item.first_price !== item.last_price);
+    const dates = [];
+    if (item.first_seen) dates.push("İlk görülme " + day.format(new Date(item.first_seen)));
+    if (item.last_seen) dates.push("Son görülme " + day.format(new Date(item.last_seen)));
+
+    const box = recordCard({
+      status: live ? "active" : "removed",
+      badge: live ? "Aktif" : "Yayından kalktı",
+      title: "Tapusor ilanı",
+      amount: item.last_price ? money.format(item.last_price)
+        : item.first_price ? money.format(item.first_price) : undefined,
+      unit: item.area && item.last_price ? money.format(item.last_price / item.area) + "/m²" : undefined,
+      delta: changed ? "İlk fiyata göre " + signedPercent(100 * (item.last_price / item.first_price - 1)) : undefined,
+      trend: changed ? (item.last_price < item.first_price ? "down" : "up") : undefined,
+      meta: [
+        [item.area && twoDecimals.format(item.area) + " m²",
+          firstDiffers && "İlk istenen fiyat " + money.format(item.first_price),
+          !item.last_price && item.first_price && "Son fiyat bilinmiyor"].filter(Boolean).join(" · "),
+        dates.join(" · "),
+      ],
+    });
     if (item.last_price && item.last_price <= 1e10 && item.area && item.area <= 1e8) {
       const add = el("button", "btn btn-ghost");
       add.type = "button";
@@ -58,7 +63,7 @@
         runEstimate();
         status.textContent = "İlan emsallere eklendi.";
       };
-      box.append(add);
+      box.querySelector(".archive-actions").append(add);
     }
     return box;
   }
@@ -81,7 +86,7 @@
         rows.append(card(item));
         if (Number.isFinite(item.lat) && Number.isFinite(item.lng)) {
           const title = item.last_price ? "İlan · " + money.format(item.last_price) : "Arsa ilanı";
-          L.circleMarker([item.lat, item.lng], {radius: 7, color: "#385887", fillOpacity: 0.8,
+          L.circleMarker([item.lat, item.lng], {radius: 7, color: MAP_COLORS.feed, fillOpacity: 0.8,
             bubblingMouseEvents: false}).bindTooltip(el("span", "", title)).addTo(markers);
         }
         seen.add(item.id);
@@ -90,6 +95,10 @@
       more.hidden = nextPage === null;
       status.textContent = seen.size ? seen.size + " ilan gösteriliyor. Fiyatlar satıcının istediği tutardır."
         : "Bu konum, dönem ve durum için sağlayıcıda ilan bulunamadı.";
+      if (seen.size === 0) {
+        rows.replaceChildren(emptyCard("Bu çevrede ilan bulunamadı",
+          "Parsel çevresini ya da son görülme dönemini genişletin veya ilan durumunu değiştirin, sonra yeniden arayın."));
+      }
     } catch (error) {
       if (seq === revision) status.textContent = error.message;
     } finally {

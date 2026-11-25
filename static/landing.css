@@ -2,7 +2,7 @@
 
 .landing { background: var(--surface); }
 
-a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+a.btn { text-decoration: none; }
 a.btn-ghost { color: var(--ink); }
 .btn-lg { min-height: 50px; padding: 12px 22px; font-size: 16px; }
 
@@ -36,7 +36,7 @@ a.btn-ghost { color: var(--ink); }
 
 /* ---------- Giriş ---------- */
 
-.hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
+.hero { animation: rise var(--dur-3) var(--ease-out) backwards; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
 .eyebrow { margin: 0 0 14px; color: var(--brand); font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
 .hero h1 { margin: 0; font-size: clamp(32px, 5vw, 52px); line-height: 1.08; letter-spacing: -0.03em; }
 .lead { max-width: 56ch; margin: 18px 0 0; color: var(--muted); font-size: clamp(16px, 1.6vw, 18px); }

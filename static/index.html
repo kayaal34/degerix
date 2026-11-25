@@ -6,7 +6,7 @@
   <title>Değerix · Arsanın değerini hesabıyla birlikte öğrenin</title>
   <meta name="description" content="Haritada arsanıza tıklayın ya da ada/parsel girin. Tapu kaydı, Merkez Bankası konut fiyatları ve Bakanlık inşaat maliyetleriyle tahmini değer; her rakamın kaynağıyla. Ücretsiz, üyeliksiz.">
   <meta name="theme-color" content="#1d6b47">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231d6b47'/%3E%3Cpath d='M8 21.5 13 9l11 4-2.5 10.5z' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.3' fill='%23ffb84d'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d6b47'/%3E%3Cpath d='M8 8h4.2v16H8z' fill='%23fff' fill-opacity='.62'/%3E%3Cpath d='M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z' fill='%23fff'/%3E%3Cpath d='M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z' fill='%23fff' fill-opacity='.62'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -20,10 +20,11 @@
 <body class="landing">
   <header class="site-header">
     <a class="site-brand" href="./">
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="9" fill="currentColor"/>
-        <path d="M8 21.5 13 9l11 4-2.5 10.5z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>
-        <circle cx="16" cy="16" r="2.3" fill="#ffb84d"/>
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="8" fill="currentColor"/>
+        <path d="M8 8h4.2v16H8z" fill="#fff" fill-opacity=".62"/>
+        <path d="M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z" fill="#fff"/>
+        <path d="M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z" fill="#fff" fill-opacity=".62"/>
       </svg>
       Değerix
     </a>
@@ -61,11 +62,12 @@
           <div class="value">
             <span class="value-label">Tahmini piyasa değeri</span>
             <strong class="value-total">₺55.300.000</strong>
-            <span class="value-range">50,8 – 59,7 milyon ₺ aralığında</span>
+            <span class="value-range">Model aralığı: 50,8 – 59,7 milyon ₺</span>
             <div class="value-foot">
               <span><b>₺11.800</b> / m²</span>
-              <span class="confidence">Güven: yüksek</span>
+              <span class="confidence">Tahmin güveni: yüksek</span>
             </div>
+            <p class="value-caveat">Ön tahmindir: model henüz gerçek satışlarla doğrulanmadı; satış fiyatı bu aralığın dışında kalabilir.</p>
           </div>
           <ul aria-label="Satış süresine göre fiyat">
             <li class="scenario"><div class="scenario-text"><b>Acil satış</b><span>1–2 ay içinde</span></div><div class="scenario-numbers"><b>47,0 milyon ₺</b></div></li>
@@ -143,7 +145,7 @@
               <tr><th scope="row">Şehir–köy farkı</th><td>Genellikle ilçe ortalaması</td><td>Uydu nüfus verisinden 1 km²'lik yerleşim sınıfı</td></tr>
               <tr><th scope="row">Kayıt</th><td>Üyelik, telefon ya da WhatsApp</td><td>Gerekmez</td></tr>
               <tr><th scope="row">Ücret</th><td>Birkaç ücretsiz sorgu, sonra paket</td><td>Ücretsiz</td></tr>
-              <tr><th scope="row">Belirsizlik</th><td>Tek rakam ya da açıklanmayan aralık</td><td>Yanıtlarınıza göre daralan aralık ve güven düzeyi</td></tr>
+              <tr><th scope="row">Belirsizlik</th><td>Tek rakam ya da açıklanmayan aralık</td><td>Yanıtlarınıza göre daralan model aralığı ve veri tamlığı göstergesi</td></tr>
               <tr><th scope="row">Kod</th><td>Kapalı</td><td>Açık kaynak</td></tr>
             </tbody>
           </table>
