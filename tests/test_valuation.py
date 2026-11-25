@@ -1,3 +1,4 @@
+import dataclasses
 import math
 
 import pytest
@@ -356,3 +357,23 @@ def test_no_zoning_expectation_inside_an_already_dense_cell():
 
     assert ceper.basis == "beklenti"
     assert cekirdek.basis == "arazi"
+
+
+def test_zoning_expectation_steps_one_rung_below_the_surrounding_density():
+    """Beklenti, komşu kentin bugünkü yoğunluğunu olduğu gibi devralmamalı.
+
+    İzmir/Menderes'teki 250 m² bağ-bahçe piyasada 1.144 TL/m² ederken, yakındaki
+    yoğun kümenin emsaliyle fiyatlanınca 7.610 TL/m² çıkıyordu. İmara açılacak bir
+    parsel çevrenin bugünkü kademesini değil bir altını alır; 55 ilanda bu seçim
+    imarsız arazinin tipik hatasını 0,82'den 0,77'ye indiriyor.
+    """
+    # Hücre kırsal, çevre yoğun: beklentiyi doğuran ve fazla cömert olabilen tam bu durum.
+    yer = dataclasses.replace(_with_settlement(urbanity.LOW_RURAL, 1.0),
+                              access_class=urbanity.DENSE_CLUSTER)
+    bir_basamak = estimate(area_m2=500, usage="tarla", housing=SAMSUN, urban=yer)
+    devralan = estimate(area_m2=500, usage="tarla", housing=SAMSUN, urban=yer,
+                        parameters=dataclasses.replace(DEFAULTS, expectation_class_step=0))
+
+    assert DEFAULTS.expectation_class_step == 1
+    assert bir_basamak.basis == devralan.basis == "beklenti"
+    assert bir_basamak.unit_price < devralan.unit_price

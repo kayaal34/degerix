@@ -101,6 +101,14 @@ class Parameters:
     # tam, iki katına kadar doğrusal azalarak sıfıra iner.
     plot_settlement_km: float = 3.0
 
+    # Beklentinin ölçütü, etkin sınıftan bu kadar basamak indirilmiş sınıfla
+    # hesaplanır; 0 çevrenin yoğunluğunu olduğu gibi devralmak olurdu. Bir
+    # basamak indirmek ölçülen bir seçim: 55 ilanda imarsız arazinin tipik
+    # hatası (ort|log2|) 0,82'den 0,77'ye, tümünde 0,92'den 0,89'a iniyor ve
+    # medyan yerinde kalıyor. Mekanizma olarak da doğrusu: imara açılacak bir
+    # parsel komşu kentin bugünkü yoğunluğunu değil, bir alt kademesini alır.
+    expectation_class_step: int = 1
+
     # --- Değer aralığı -------------------------------------------------------
     # Yöntemin kendi belirsizliği: aralığın yarı genişliğinin tabanı. Eksik
     # bilgi payları bunun üstüne eklenir.

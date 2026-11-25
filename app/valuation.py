@@ -369,12 +369,19 @@ def plot_expectation_price(
     # bağlı hukuki bir olgudur; burada ise henüz imar yok, varsayımsal bir imarın
     # getireceği yoğunluk fiyatlanıyor ve o yoğunluk çevrenin yoğunluğudur.
     # Hücrenin bugünkü kırsal emsali kullanılsa beklenti hiç doğmuyordu.
+    # Ama çevrenin yoğunluğunu olduğu gibi devralmak da fazla cömert: İzmir/
+    # Menderes'teki 250 m² bağ-bahçe piyasada 1.144 TL/m² ederken, yakındaki
+    # yoğun kümenin emsaliyle fiyatlanınca 7.610 TL/m² çıkıyordu. Ölçüt sınıfı
+    # bu yüzden etkin sınıftan expectation_class_step basamak indirilir.
+    bench_class = urbanity.CLASS_ORDER[
+        max(0, urbanity.rung(class_code) - parameters.expectation_class_step)
+    ]
     zoned = develop(
-        area_m2=area_m2, usage="konut", class_code=class_code, kaks_class=class_code,
+        area_m2=area_m2, usage="konut", class_code=bench_class, kaks_class=bench_class,
         local_housing_price=local_housing_price, kaks=None, parameters=parameters,
     )
     zoned_price = max(zoned.land_value / area_m2,
-                      local_housing_price * parameters.floor_ratio[class_code])
+                      local_housing_price * parameters.floor_ratio[bench_class])
     share = parameters.zoning_expectation * plot_weight * near_weight
     return zoned_price * share, share
 
