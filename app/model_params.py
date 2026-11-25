@@ -94,8 +94,16 @@ class Parameters:
 
     # Parselin "yapı parseli" sayıldığı büyüklük aralığı. Altında tamamen parsel
     # gibi, üstünde tamamen tarım gibi fiyatlanır; arada doğrusal geçiş.
+    # Üst sınır 2.000 m² iken ölçüm bunu çürüttü: Diyarbakır/Kayapınar'da metropol
+    # ilçesi içindeki 3.400 m² "tarla" piyasada 4.136 ₺/m² ederken model 513 diyordu,
+    # çünkü parsel eşiğin üstünde kalıp tamamen tarımsal fiyatlanıyordu. 81 ilanda
+    # sınır tarandı: 5 dönümde imarsız arazinin tipik hatası 0,88'den 0,82'ye, parsel
+    # pinli kümede 1,04'ten 0,96'ya iniyor ve ortanca 1,00'da kalıyor. 10 dönüm
+    # sayısal olarak biraz daha iyi görünüyor ama oraya gitmedik: 10 dönümlük parsel
+    # artık gerçek bir tarladır ve veri seti bu konuda yanlı — satılığa çıkan büyük
+    # imarsız parseller şehir çeperindeki spekülatif arazilere kayıyor.
     plot_area_min_m2: float = 400.0
-    plot_area_max_m2: float = 2000.0
+    plot_area_max_m2: float = 5000.0
 
     # İmar beklentisi büyümekte olan bir yerleşim gerektirir: bu mesafeye kadar
     # tam, iki katına kadar doğrusal azalarak sıfıra iner.

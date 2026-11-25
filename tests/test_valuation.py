@@ -53,9 +53,14 @@ def test_city_parcel_is_valued_with_the_development_method():
     # Müteahhit yeni daire satar; hasılat il ortalamasının üstünden hesaplanır
     assert development.housing_price > BURSA.value
     assert development.revenue == pytest.approx(development.sellable_m2 * development.housing_price, rel=0.01)
-    assert development.land_value == pytest.approx(
-        development.revenue - development.cost - development.developer_share, rel=0.01
-    )
+    # Arsa payı, artık değer ile hasılat payı sınırının küçüğüdür. Şehir merkezinde
+    # 2026 Kasım kalibrasyonundan sonra artık değer bu sınırı aşıyor ve pay
+    # kırpılıyor: pahalı piyasalarda fark hesabı arsaya gerçekçi olmayan paylar
+    # düşürüyor, max_land_share tam bunun için var.
+    artik = development.revenue - development.cost - development.developer_share
+    sinir = development.revenue * DEFAULTS.max_land_share
+    assert development.land_value == pytest.approx(min(artik, sinir), rel=0.01)
+    assert development.capped is (artik > sinir)
     assert development.viable is True
     assert result.unit_price > 5_000
     assert "inşaat hakkı" in result.base_detail
