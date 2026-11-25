@@ -16,9 +16,23 @@ from typing import Any
 import httpx
 
 from .geo import KM_PER_DEG_LAT, KM_PER_DEG_LNG_AT_EQUATOR, distance_to_line_m
-from .surroundings import COAST_RADIUS_M, MAIN_ROAD_RADIUS_M, SERVICES_RADIUS_M, OsmContext, Surroundings
+from .surroundings import (
+    BUILDINGS_RADIUS_M,
+    BUILT_UP_RADIUS_M,
+    COAST_RADIUS_M,
+    MAIN_ROAD_RADIUS_M,
+    SERVICES_RADIUS_M,
+    OsmContext,
+    Surroundings,
+)
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Sorgu ağırlaştıkça ana Overpass örneği gün içinde 40 saniyeye kadar çıkıyor, zaman
+# zaman 502 veriyor; aynı sorgu Fransa aynasında 8 saniye sürüyor. Sırayla denenir,
+# ikisi de yetişmezse çevre ölçümü atlanır (fetch_within bütçesi).
+OVERPASS_URLS = (
+    "https://overpass.openstreetmap.fr/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
+)
 ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
 USER_AGENT = "Degerix/4.0 (arsa degerleme portfolyo projesi)"
 SLOPE_OFFSET_M = 60  # 90 m çözünürlüklü yükselti modelinde anlamlı en küçük adım
@@ -26,17 +40,20 @@ CACHE_TTL_S = 24 * 3600
 
 _cache: dict[str, tuple[float, Surroundings]] = {}
 
-_QUERY = """[out:json][timeout:15];
+_QUERY = """[out:json][timeout:25];
 (
   way["natural"="coastline"](around:{coast},{lat},{lng});
   way["highway"~"^(motorway|trunk|primary|secondary)$"](around:{road},{lat},{lng});
+  way["landuse"~"^(residential|commercial|industrial|retail)$"](around:{built_up},{lat},{lng});
 );
 out tags geom;
 (
   nwr["amenity"~"^(school|kindergarten|university|hospital|clinic|doctors|pharmacy)$"](around:{services},{lat},{lng});
   nwr["shop"~"^(supermarket|convenience)$"](around:{services},{lat},{lng});
 );
-out tags center;"""
+out tags center;
+way["building"](around:{buildings},{lat},{lng});
+out count;"""
 
 
 def clear_cache() -> None:
@@ -80,12 +97,28 @@ async def fetch_within(lat: float, lng: float, budget_s: float) -> Surroundings 
         return None
 
 
+def _inside(lat: float, lng: float, ring: list[tuple[float, float]]) -> bool:
+    """Işın atma: nokta poligonun içinde mi."""
+    crossings = 0
+    for (y1, x1), (y2, x2) in zip(ring, ring[1:] + ring[:1]):
+        if (y1 > lat) != (y2 > lat) and x1 + (lat - y1) * (x2 - x1) / (y2 - y1) > lng:
+            crossings += 1
+    return crossings % 2 == 1
+
+
 def parse_overpass(data: dict[str, Any], lat: float, lng: float) -> OsmContext:
-    coast = road = math.inf
-    services = 0
+    coast = road = built_up = math.inf
+    services = buildings = 0
     for element in data.get("elements", []):
         tags = element.get("tags") or {}
-        if "geometry" in element and (tags.get("natural") == "coastline" or "highway" in tags):
+        if element.get("type") == "count":
+            buildings = int(tags.get("ways", 0) or 0)
+        elif "geometry" in element and "landuse" in tags:
+            ring = [(point["lat"], point["lon"]) for point in element["geometry"] if point]
+            if len(ring) >= 3:
+                built_up = min(built_up, 0.0 if _inside(lat, lng, ring)
+                               else distance_to_line_m(lat, lng, ring))
+        elif "geometry" in element and (tags.get("natural") == "coastline" or "highway" in tags):
             line = [(point["lat"], point["lon"]) for point in element["geometry"] if point]
             distance = distance_to_line_m(lat, lng, line)
             if tags.get("natural") == "coastline":
@@ -98,20 +131,25 @@ def parse_overpass(data: dict[str, Any], lat: float, lng: float) -> OsmContext:
         coast_m=None if math.isinf(coast) else round(coast),
         main_road_m=None if math.isinf(road) else round(road),
         services=services,
+        buildings=buildings,
+        built_up_m=None if math.isinf(built_up) else round(built_up),
     )
 
 
 async def _osm_context(client: httpx.AsyncClient, lat: float, lng: float) -> OsmContext | None:
     query = _QUERY.format(
         coast=COAST_RADIUS_M, road=MAIN_ROAD_RADIUS_M, services=SERVICES_RADIUS_M,
+        built_up=BUILT_UP_RADIUS_M, buildings=BUILDINGS_RADIUS_M,
         lat=f"{lat:.6f}", lng=f"{lng:.6f}",
     )
-    try:
-        response = await client.post(OVERPASS_URL, data={"data": query})
-        response.raise_for_status()
-        return parse_overpass(response.json(), lat, lng)
-    except (httpx.HTTPError, ValueError, KeyError, TypeError):
-        return None
+    for url in OVERPASS_URLS:
+        try:
+            response = await client.post(url, data={"data": query})
+            response.raise_for_status()
+            return parse_overpass(response.json(), lat, lng)
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            continue
+    return None
 
 
 async def _slope_pct(client: httpx.AsyncClient, lat: float, lng: float) -> float | None:

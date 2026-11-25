@@ -105,6 +105,20 @@ class Parameters:
     # eder; kalan fark alıcının taşıdığı imar riski ve bekleme süresidir.
     zoning_expectation: float = 0.30
 
+    # Yerleşimin kıyısındaki imarsız parselin primi. 104 ilanlık ölçüm imarsız
+    # arazide şu deseni gösterdi (ilan ÷ model ortancası): 400 m içinde hiç bina
+    # yoksa 1,00, 200+ bina varsa 0,78, ama *birkaç* bina varsa 2,63. Yani hata
+    # boş kırda ya da dolmuş kasabada değil, yerleşimin büyüdüğü kenarda doğuyor —
+    # imar beklentisi orada doğduğu için. Sinyal kullanıcıya soru sorulmadan
+    # OpenStreetMap'ten okunur (app/surroundings.settlement_position).
+    #
+    # Katsayı ölçülen 1,37'ye değil 1,25'e kuruldu: en sapmalı beş kayıt çıkarıldığında
+    # kıyı ortancası 1,25'e iniyor, yani 1,37'nin bir kısmı o beş kayıttan geliyor.
+    # 1,25 ile 1,40 arasında tipik hata düz (1,806 / 1,798), bu yüzden bandın ihtiyatlı
+    # ucu seçildi. Dışarıda bırakmalı sınavda 21 kayıt iyileşti, 11 bozuldu; imarlı
+    # arsada aynı düzeltme 47 iyi / 57 bozuk verdiği için yalnızca imarsıza uygulanır.
+    fringe_premium: float = 1.25
+
     # Parselin "yapı parseli" sayıldığı büyüklük aralığı. Altında tamamen parsel
     # gibi, üstünde tamamen tarım gibi fiyatlanır; arada doğrusal geçiş.
     # Üst sınır 2.000 m² iken ölçüm bunu çürüttü: Diyarbakır/Kayapınar'da metropol

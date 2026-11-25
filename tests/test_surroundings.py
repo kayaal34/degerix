@@ -12,8 +12,10 @@ from app.surroundings import (
     factor_rows,
     main_road_multiplier,
     services_multiplier,
+    settlement_position,
     slope_multiplier,
 )
+from app.model_params import DEFAULTS
 from app.valuation import HousingPrice, estimate
 
 BURSA = HousingPrice(province="Bursa", value=41_264, period="2026 2. çeyrek", source="test", live=True, estimated=False)
@@ -142,3 +144,77 @@ def test_fetch_within_does_not_wait_for_slow_services_and_shares_requests(monkey
     assert impatient is None        # süre aşıldı, değer beklemeden hesaplanır
     assert patient is measured      # ölçüm iptal edilmedi, arka planda tamamlandı
     assert len(calls) == 1          # eşzamanlı istekler tek ölçümü paylaştı
+
+
+def test_settlement_position_reads_the_edge_of_a_settlement():
+    # Boş kır: ne bina ne çizilmiş yerleşik alan.
+    assert settlement_position(OsmContext(coast_m=None, main_road_m=None, services=0)) == "kir"
+    # Kıyı iki ayrı veriden okunabilir: görünen birkaç bina, ya da yakındaki yerleşik alan.
+    assert settlement_position(OsmContext(
+        coast_m=None, main_road_m=None, services=0, buildings=4)) == "kiyi"
+    assert settlement_position(OsmContext(
+        coast_m=None, main_road_m=None, services=0, built_up_m=900)) == "kiyi"
+    # İçi: yoğun bina ya da poligonun içinde olmak.
+    assert settlement_position(OsmContext(
+        coast_m=None, main_road_m=None, services=0, buildings=240)) == "ic"
+    assert settlement_position(OsmContext(
+        coast_m=None, main_road_m=None, services=0, buildings=3, built_up_m=0)) == "ic"
+    # Ölçüm yoksa karar da yok; prim uydurulmaz.
+    assert settlement_position(None) is None
+
+
+def test_parse_overpass_counts_buildings_and_finds_the_built_up_area():
+    data = {"elements": [
+        {"type": "way", "tags": {"landuse": "residential"}, "geometry": [
+            {"lat": 40.01, "lon": 28.90}, {"lat": 40.01, "lon": 28.92},
+            {"lat": 40.02, "lon": 28.92}, {"lat": 40.02, "lon": 28.90}]},
+        {"type": "count", "tags": {"ways": "7"}},
+    ]}
+    osm = nearby.parse_overpass(data, 40.0, 28.91)
+    assert osm.buildings == 7
+    assert osm.built_up_m == pytest.approx(1112, abs=30)   # poligonun güney kenarına
+    assert settlement_position(osm) == "kiyi"
+
+    # Nokta poligonun içindeyse uzaklık sıfırdır ve parsel yerleşimin içi sayılır.
+    icteki = nearby.parse_overpass(data, 40.015, 28.91)
+    assert icteki.built_up_m == 0
+    assert settlement_position(icteki) == "ic"
+
+
+def _kirsal(lat: float = 40.21, lng: float = 28.62) -> urbanity.Urbanity | None:
+    return urbanity.describe(lat, lng)
+
+
+def test_fringe_premium_lifts_unzoned_land_only_at_the_edge():
+    """Ölçülen desen: kırda ve yerleşimin içinde model isabet ediyor, kıyıda şaşıyor."""
+    yer = _kirsal()
+    assert yer is not None
+    ortak = dict(area_m2=3_000, usage="tarla", housing=BURSA, urban=yer)
+
+    kir = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0), slope_pct=2.0)
+    kiyi = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
+                                       buildings=6, built_up_m=700), slope_pct=2.0)
+    ic = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
+                                     buildings=300, built_up_m=0), slope_pct=2.0)
+
+    kirda = estimate(**ortak, surroundings=kir)
+    kiyida = estimate(**ortak, surroundings=kiyi)
+    icte = estimate(**ortak, surroundings=ic)
+
+    assert "fringe" not in {f.key for f in kirda.factors}
+    assert "fringe" not in {f.key for f in icte.factors}
+    kiyi_etken = next(f for f in kiyida.factors if f.key == "fringe")
+    assert kiyi_etken.multiplier == pytest.approx(DEFAULTS.fringe_premium)
+    # Prim yalnızca kıyıda değeri yükseltir; hizmet/yol katsayıları aynı olduğu için
+    # iki değerin oranı doğrudan primdir.
+    assert kiyida.unit_price / kirda.unit_price == pytest.approx(DEFAULTS.fringe_premium, rel=0.02)
+
+
+def test_fringe_premium_does_not_touch_zoned_land():
+    """İmarlı arsada aynı düzeltme ölçümde hatayı artırıyordu (47 iyi / 57 bozuk)."""
+    yer = _kirsal()
+    assert yer is not None
+    kiyi = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
+                                       buildings=6, built_up_m=700), slope_pct=2.0)
+    sonuc = estimate(area_m2=3_000, usage="konut", housing=BURSA, urban=yer, surroundings=kiyi)
+    assert "fringe" not in {f.key for f in sonuc.factors}

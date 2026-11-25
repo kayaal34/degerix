@@ -12,6 +12,10 @@ from dataclasses import dataclass
 COAST_RADIUS_M = 3000
 MAIN_ROAD_RADIUS_M = 1500
 SERVICES_RADIUS_M = 1000
+BUILDINGS_RADIUS_M = 400     # "yerleşimin kıyısında mı" ölçümünün yarıçapı
+BUILT_UP_RADIUS_M = 3000     # yerleşik alan poligonu bu kadar uzağa kadar aranır
+DENSE_BUILDINGS = 50         # bu kadar bina, parselin yerleşimin içinde olduğunu söyler
+FRINGE_BUILT_UP_M = 1500     # yerleşik alana bu kadar yakınsa kıyı sayılır
 
 
 @dataclass(frozen=True)
@@ -19,6 +23,8 @@ class OsmContext:
     coast_m: float | None       # None: COAST_RADIUS_M içinde kıyı yok
     main_road_m: float | None   # None: MAIN_ROAD_RADIUS_M içinde ana yol yok
     services: int               # SERVICES_RADIUS_M içindeki okul, sağlık ve market noktası
+    buildings: int = 0          # BUILDINGS_RADIUS_M içindeki bina sayısı
+    built_up_m: float | None = None   # yerleşik alan poligonuna m; 0 = içinde, None = yok
 
 
 @dataclass(frozen=True)
@@ -53,6 +59,38 @@ def services_multiplier(count: int) -> float:
 def slope_multiplier(slope_pct: float) -> float:
     """%5'e kadar düz sayılır; %25 ve üzeri eğimde 0,85."""
     return 1.0 - 0.15 * min(max(slope_pct - 5, 0.0), 20.0) / 20
+
+
+def settlement_position(osm: OsmContext | None) -> str | None:
+    """Parselin yerleşime göre yeri: "ic", "kiyi", "kir" ya da ölçülemediyse None.
+
+    Ölçüm şunu gösterdi: imarsız arazide model boş kırda doğru (62 ilanın 27'sinde
+    400 m içinde hiç bina yok, ortanca oran 1,00) ve kasaba içinde doğru (200+ bina,
+    0,78), ama *kıyıda* şaşıyor — 400 m içinde birkaç bina varsa ilan modelin 2,63
+    katını istiyor. Sebep anlaşılır: imar beklentisi büyümekte olan yerleşimin
+    kenarında doğar, ne ıssız tarlada ne dolmuş merkezde.
+
+    Kıyının ölçütü iki ayrı veriden okunur, çünkü OpenStreetMap'te Türkiye'nin
+    kırsalında bina çizimi eksiktir: ya 400 m içinde bina görünür ya da parsel
+    çizilmiş bir yerleşik alan poligonunun 1,5 km'si içindedir.
+    """
+    if osm is None:
+        return None
+    if osm.buildings >= DENSE_BUILDINGS or osm.built_up_m == 0:
+        return "ic"
+    if osm.buildings >= 1 or (osm.built_up_m is not None and osm.built_up_m <= FRINGE_BUILT_UP_M):
+        return "kiyi"
+    return "kir"
+
+
+def position_detail(osm: OsmContext) -> str:
+    if osm.built_up_m is None:
+        yer = f"{BUILT_UP_RADIUS_M // 1000} km içinde yerleşik alan çizilmemiş"
+    elif osm.built_up_m == 0:
+        yer = "yerleşik alanın içinde"
+    else:
+        yer = f"yerleşik alana {_distance(osm.built_up_m)}"
+    return f"{yer} · {BUILDINGS_RADIUS_M} m içinde {osm.buildings} bina"
 
 
 def _distance(meters: float) -> str:

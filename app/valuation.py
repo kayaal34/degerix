@@ -35,7 +35,7 @@ from typing import Literal
 from .costs import construction_cost
 from .data import CORNER, DEED, IRRIGATION, ROAD, SALE_SCENARIOS, UNKNOWN, USAGE, UTILITIES, VIEW, fold
 from .model_params import Parameters, load as load_parameters
-from .surroundings import Surroundings, factor_rows
+from .surroundings import Surroundings, factor_rows, position_detail, settlement_position
 from . import urbanity
 from .urbanity import DENSE_CLUSTER, LOW_RURAL, SUBURBAN, Urbanity, VILLAGE
 
@@ -188,6 +188,27 @@ def blended_locality(urban: Urbanity | None, parameters: Parameters) -> float:
     if centre is not None and centre.distance_km <= parameters.province_centre_radius_km:
         blended = max(blended, parameters.province_centre_locality)
     return blended
+
+
+def fringe_factor(surroundings: Surroundings | None, parameters: Parameters) -> Factor | None:
+    """Yerleşimin kıyısındaki imarsız parselin primi; ölçülemezse None.
+
+    Yalnızca imarsız arazide çağrılır. "Kıyı" ölçütü OpenStreetMap'ten okunur:
+    400 m içinde bina görünüyor ama yoğun değil, ya da parsel çizilmiş bir yerleşik
+    alanın 1,5 km'si içinde fakat içinde değil. Kırda ve yerleşimin içinde prim yok;
+    ölçüm oralarda modelin zaten isabet ettiğini söylüyor (ortanca 1,00 ve 0,78).
+
+    Çevre ölçümü bir dış servise bağlı ve bütçeyle sınırlı; yetişmezse değerleme
+    bugünkü haliyle, primsiz sürer. Bu bilinçli: eksik ölçüm, uydurma primden iyidir.
+    """
+    if surroundings is None or surroundings.osm is None:
+        return None
+    if settlement_position(surroundings.osm) != "kiyi":
+        return None
+    return Factor(
+        "fringe", "Yerleşim kıyısı", round(parameters.fringe_premium, 3),
+        f"{position_detail(surroundings.osm)} · imar beklentisi yerleşimin kenarında doğar",
+    )
 
 
 def centre_proximity(urban: Urbanity | None, parameters: Parameters) -> Factor | None:
@@ -622,6 +643,12 @@ def estimate(
                 f"{USAGE[usage]} · {settlement_label} · bölgedeki konut fiyatının "
                 f"%{_decimal(ratio * 100)}'i"
             )
+        # İmar beklentisi yerleşimin kıyısında doğar ve model orada ilanın yarısını
+        # söylüyor. Ölçülmüş prim yalnızca imarsız arazide uygulanır; imarlı arsada
+        # aynı düzeltme hatayı artırıyordu (bkz. model_params.fringe_premium).
+        fringe = fringe_factor(surroundings, parameters)
+        if fringe is not None:
+            factors.append(fringe)
 
     # Yöntemin kendi belirsizliği. Eksik bilgi payları bunun üstüne biner.
     spread += parameters.basis_spread[basis]
