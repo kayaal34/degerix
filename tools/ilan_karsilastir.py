@@ -6,6 +6,15 @@ gitignore'da olduğu için ilan verisi yayımlanmaz.
 
     python tools/ilan_karsilastir.py            # özet
     python tools/ilan_karsilastir.py --detay    # her ilan için satır
+    python tools/ilan_karsilastir.py --cevre    # çevre düzeltmeleriyle (yavaş)
+
+Varsayılan ölçüm çevre düzeltmelerini (OSM yol/hizmet/kıyı + eğim) GEÇMEZ, çünkü
+her kayıt için Overpass sorgusu gerekir ve ölçüm dakikalarca sürer. Farkı ölçtük:
+84 ilanda çevre çarpanının ortancası 0,984 ve en yükseği 1,000 — yani bu modül
+yalnızca indirim uyguluyor, hiç prim vermiyor. Sonuç olarak parsel pinli kümede
+tipik hata 0,94'ten 0,96'ya ÇIKIYOR: model zaten hafif düşükken bir indirim daha
+biniyor. Bu yüzden `--cevre` isteğe bağlıdır ama uygulamanın kullanıcıya verdiği
+cevap onu içerir; aradaki fark buradaki rakamların yaklaşık %1,6'sıdır.
 """
 
 import asyncio
@@ -27,7 +36,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT_DIR / ".env")
 
-from app import market, urbanity  # noqa: E402
+from app import market, nearby, urbanity  # noqa: E402
 from app.valuation import estimate, load_parameters  # noqa: E402
 
 VERI_DIZINI = ROOT_DIR / "data" / "private"
@@ -61,6 +70,12 @@ def oku() -> list[dict]:
             lat, lng = sayi(satir.get("lat", "")), sayi(satir.get("lng", ""))
             alan, deger = sayi(satir.get("alan_m2", "")), sayi(satir.get("deger_tl", ""))
             if None in (lat, lng, alan, deger) or not alan or not satir.get("imar", "").strip():
+                continue
+            # Yalnızca gerçek ilan/satış kaydı ölçüme girer. Bu kontrol olmadan
+            # data/private altına yazılan bir MODEL ÇIKTISI (ör. toplu_degerle.py
+            # sonucu) ilan sanılıp okunuyor ve model kendi tahminine karşı
+            # ölçülüyordu: 84 kayıt bir anda 101 olup hata sahte biçimde düşüyordu.
+            if satir.get("deger_turu", "").strip() not in ("ilan", "satis"):
                 continue
             cevaplar = {ad: satir[sutun].strip() for sutun, ad in CEVAP_ALANLARI.items()
                         if satir.get(sutun, "").strip()}
@@ -96,6 +111,7 @@ def ozet(ad: str, grup: list[dict]) -> str:
 
 async def main() -> None:
     detay = "--detay" in sys.argv
+    cevreli = "--cevre" in sys.argv
     kayitlar = oku()
     if not kayitlar:
         print(f"{VERI_DIZINI} altında koordinatlı ilan bulunamadı.")
@@ -110,8 +126,9 @@ async def main() -> None:
             if yer is None:
                 hatalar.append(f"{k['etiket']}: kentsellik ızgarasının dışında")
                 continue
+            cevre = await nearby.fetch(k["lat"], k["lng"]) if cevreli else None
             e = estimate(area_m2=k["alan"], usage=k["usage"], housing=housing, urban=yer,
-                         kaks=k["kaks"], **k["cevaplar"])
+                         surroundings=cevre, kaks=k["kaks"], **k["cevaplar"])
         except Exception as hata:                                  # noqa: BLE001
             hatalar.append(f"{k['etiket']}: {type(hata).__name__}: {hata}")
             continue
