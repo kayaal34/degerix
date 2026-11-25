@@ -167,9 +167,17 @@ def report(rows: list[tuple[dict, float, float, int, str]]) -> dict:
     summary = {
         "kayit": len(rows),
         "ortanca_sapma_yuzde": round((math.exp(statistics.median(errors)) - 1) * 100, 1) if errors else None,
+        # Aday seçimi bu sayıya göre yapılır. Ortanca sapma kuyrukları hiç görmez:
+        # iki kat yanılan tek bir kayıt onu kıpırdatmaz. Oysa ürünün gösterdiği değer
+        # aralığı tam olarak kuyrukla ilgili ve projenin her yerinde kullanılan ölçüt
+        # çarpımsal tipik sapmadır (ort|log2|). Ortanca sapmaya göre seçmek, emsal
+        # sönümlemesinden sonra tipik sapmayı 0,86'dan 0,96'ya çıkaran katsayı setini
+        # "daha iyi" sanmaya yol açıyordu.
+        "tipik_sapma_kat": round(math.exp(statistics.mean(errors)), 3) if errors else None,
         "yuzde_25_icinde": round(100 * within / len(rows), 1) if rows else None,
     }
     print(f"\nkayıt: {summary['kayit']} · ortanca sapma: %{summary['ortanca_sapma_yuzde']} · "
+          f"tipik sapma: ×{summary['tipik_sapma_kat']} · "
           f"±%25 içinde: %{summary['yuzde_25_icinde']}")
 
     for group, label in ((False, "imarlı arsa"), (True, "imarsız arazi")):
@@ -242,7 +250,7 @@ async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Pa
             farmland_ratio=fit_one(unzoned, parameters, "farmland_ratio"),
         )
         summary = report(await evaluate(records, parameters))
-        if summary["ortanca_sapma_yuzde"] < best_summary["ortanca_sapma_yuzde"]:
+        if summary["tipik_sapma_kat"] < best_summary["tipik_sapma_kat"]:
             best, best_summary = parameters, summary
     return best, best_summary
 
