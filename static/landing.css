@@ -231,7 +231,7 @@ a.btn-ghost { color: var(--ink); }
   white-space: nowrap;
 }
 .il-ipucu::before { display: none; }   /* Leaflet'in beyaz oku koyu kutuda ters duruyor */
-.il-ipucu i { color: rgb(255 255 255 / 70%); font-style: normal; }
+.il-ipucu i { color: var(--on-brand-soft-text, rgb(255 255 255 / 70%)); font-style: normal; }
 
 
 @media (max-width: 900px) {

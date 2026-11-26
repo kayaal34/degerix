@@ -2,6 +2,11 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
+  <script>
+    /* Tema, ilk boyamadan ÖNCE. Bu iki satır gövdenin sonuna taşınırsa
+       koyu tema seçmiş kullanıcı her sayfa geçişinde beyaz bir çakma görür. */
+    try { var t = localStorage.getItem("degerix.tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#14543a">
   <title>Değerix · Abonelik ve sorgu hakları</title>
@@ -27,6 +32,8 @@
       Değerix
     </a>
     <nav class="site-nav" aria-label="Sayfa bölümleri">
+      <button class="tema-dugmesi" id="temaDugmesi" type="button"
+              aria-label="Koyu temaya geç" title="Koyu temaya geç"></button>
       <a href="giris.html">Giriş yap</a>
       <a class="btn btn-ghost" href="harita.html#harita">Haritaya dön</a>
     </nav>
@@ -166,5 +173,6 @@
     renderPlans();
     renderAccount();
   </script>
+  <script src="tema.js"></script>
 </body>
 </html>

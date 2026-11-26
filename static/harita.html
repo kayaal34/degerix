@@ -2,6 +2,11 @@
 <html lang="tr" class="map-page">
 <head>
   <meta charset="utf-8">
+  <script>
+    /* Tema, ilk boyamadan ÖNCE. Bu iki satır gövdenin sonuna taşınırsa
+       koyu tema seçmiş kullanıcı her sayfa geçişinde beyaz bir çakma görür. */
+    try { var t = localStorage.getItem("degerix.tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Değerix · Arsa Değeri Hesapla</title>
   <meta name="description" content="Haritada arsanıza tıklayın; TKGM parsel kaydıyla tahmini değerini ve hesabın nasıl yapıldığını görün.">
@@ -43,6 +48,7 @@
           <h1><a href="./">Değerix</a></h1>
           <p>Arsa değer tahmini</p>
         </div>
+        <button class="tema-dugmesi" id="temaDugmesi" type="button" aria-label="Koyu temaya geç" title="Koyu temaya geç"></button>
         <div class="hesap-bar" id="hesapBar" hidden>
           <span class="hesap-kalan" id="hesapKalan" hidden></span>
           <span class="hesap-kimlik" id="hesapKimlik" hidden></span>
@@ -438,6 +444,7 @@
   <script src="app.js"></script>
   <script src="explore.js"></script>
   <script src="listings.js"></script>
+  <script src="tema.js"></script>
   <script src="cerez.js"></script>
 </body>
 </html>

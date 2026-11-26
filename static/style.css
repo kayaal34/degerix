@@ -1,37 +1,89 @@
 /* ---------- Tasarım belirteçleri ---------- */
+/*
+ * İki katman var ve ayrı durmaları önemli:
+ *
+ *   1. RAMPALAR (--kagit-*, --yesil-*, --pirinc-*): ham renkler. Temadan
+ *      bağımsız, hiç değişmez. Bileşenler bunları DOĞRUDAN kullanmaz.
+ *   2. ANLAM belirteçleri (--bg, --surface, --ink, --brand …): "bu renk ne
+ *      işe yarıyor". Bileşenler yalnızca bunları kullanır.
+ *
+ * Koyu tema bu yüzden tek blokta yapılabiliyor: ikinci katman yeniden
+ * eşleniyor, bileşenlerin tek satırı değişmiyor. Bileşen doğrudan rampadan
+ * renk alırsa koyu temada yanlış kalır — o yüzden kural: rampa adı yalnızca
+ * bu blokta geçer.
+ */
 
 :root {
   color-scheme: light;
 
-  /* Kağıt tonları. Nötr gri değil, hafif sıcak: ekranda basılı rapor gibi
-     durur ve yeşille yan yana soğuk/kirli görünmez. */
-  --bg: #f6f5f1;
-  --surface: #ffffff;
-  --surface-2: #faf9f5;
-  --ink: #15201c;
-  --muted: #5a6760;
-  --line: #e6e3db;
-  --line-strong: #cdc9bd;
+  /* --- Rampalar --- */
 
-  /* Derin herdemyeşil. Eski #1d6b47 biraz "uygulama yeşili"ydi; koyulaştırmak
-     onu kurumsal/ağırbaşlı tarafa çekiyor. */
-  --brand: #14543a;
-  --brand-hover: #0e4530;
-  --brand-deep: #0a3323;
-  --brand-soft: #e8f0ea;
+  /* Kağıt: nötr gri değil, hafif sıcak. Yeşille yan yana soğuk durmuyor ve
+     ekranda basılı rapor hissi veriyor. */
+  --kagit-50:  #fdfcfa;
+  --kagit-100: #faf9f5;
+  --kagit-200: #f6f5f1;
+  --kagit-300: #ebe9e2;
+  --kagit-400: #e6e3db;
+  --kagit-500: #cdc9bd;
+  --kagit-600: #a8a397;
+  --kagit-700: #6f6a60;
+  --kagit-800: #3a403b;
+  --kagit-900: #252b27;
+  --kagit-950: #15201c;
+  --kagit-990: #0e1512;
+
+  /* Herdemyeşil */
+  --yesil-50:  #eef5f1;
+  --yesil-100: #e8f0ea;
+  --yesil-200: #c9ded2;
+  --yesil-300: #9bc3ae;
+  --yesil-400: #5e9a7a;
+  --yesil-500: #2f7553;
+  --yesil-600: #14543a;
+  --yesil-700: #0e4530;
+  --yesil-800: #0a3323;
+  --yesil-900: #072419;
+
+  /* Pirinç. Az yerde kullanılır: ince çizgiler, göz üstü etiket, seçim.
+     Her yere sürülen altın premium değil, ucuz görünür. */
+  --pirinc-200: #f6f0e3;
+  --pirinc-300: #e3cfa4;
+  --pirinc-400: #c9a763;
+  --pirinc-500: #b4904a;
+  --pirinc-600: #8a6a30;
+  --pirinc-700: #6d5324;
+
+  /* --- Anlam: yüzeyler ve yazı --- */
+
+  --bg: var(--kagit-200);
+  --surface: #ffffff;
+  --surface-2: var(--kagit-100);
+  --surface-3: var(--kagit-300);
+  --ink: var(--kagit-950);
+  --ink-2: var(--kagit-800);
+  --muted: #5a6760;
+  --line: var(--kagit-400);
+  --line-strong: var(--kagit-500);
+
+  /* --- Anlam: marka --- */
+
+  --brand: var(--yesil-600);
+  --brand-hover: var(--yesil-700);
+  --brand-deep: var(--yesil-800);
+  --brand-soft: var(--yesil-100);
   --brand-ring: rgb(20 84 58 / 14%);
   --on-brand: #ffffff;
   --on-brand-line: rgb(255 255 255 / 18%);
   --on-brand-soft: rgb(255 255 255 / 14%);
 
-  /* Pirinç. Bilerek az yerde: üst çizgiler, göz üstü etiket, seçim rengi.
-     Her yere sürülen altın premium değil, ucuz görünür.
-     --accent yazı rengi olarak kullanılıyor; beyaz üstünde 5,0:1 kontrast
-     verecek kadar koyu. Parlak olanı yalnız koyu zeminde süs olarak. */
-  --accent: #8a6a30;
-  --accent-bright: #b4904a;
-  --accent-soft: #f6f0e3;
-  --accent-line: rgb(156 123 63 / 38%);
+  /* --accent yazı rengi olarak kullanılıyor; zemininde en az 4,5:1 olmalı.
+     --accent-bright yalnız koyu zeminde, süs olarak. */
+  --accent: var(--pirinc-600);
+  --accent-bright: var(--pirinc-500);
+  --accent-soft: var(--pirinc-200);
+
+  /* --- Anlam: durum --- */
 
   --up: #1a7246;
   --down: #a93f28;
@@ -45,40 +97,257 @@
   --status-removed-bg: #ecebe7;
   --status-removed-ink: #585d65;
 
+  /* --- Anlam: harita --- */
+
   --map-bg: #e9eae5;
   --map-label: #122f26;
   --map-halo: #ffffff;
+  --map-tiles: none;               /* koyu temada karolara filtre uygulanır */
+  /* Camlaşan yüzeyler (üst çubuk, harita atıfı). Koyu temada beyaz bir
+     örtü yerine koyu bir örtü olmalı, yoksa çubuk sayfadan AÇIK kalıyor. */
+  --cam: rgb(255 255 255 / 82%);
+  --cam-hafif: rgb(255 255 255 / 78%);
+  --perde: rgb(14 22 18 / 52%);
+  --isaretci-halka: rgb(10 51 35 / 55%);
+  /* Türkiye haritasının il renkleri: beş kademe, JS buradan okuyor */
+  --il-0: #eceae4;
+  --il-1: #e8f0ea;
+  --il-2: #c3ddcd;
+  --il-3: #8fbfa4;
+  --il-4: #4e8f6c;
+  --il-5: #14543a;
+  --il-cizgi: #ffffff;
   --paper: #ffffff;
-  --parcel: #e8590c; /* app.js MAP_COLORS.parcel ile aynı tut */
+  --parcel: #e8590c;               /* app.js MAP_COLORS.parcel ile aynı tut */
 
-  --radius: 14px;
-  /* Gölgeler griye değil mürekkebe çalıyor; iki katman: temas + yayılım. */
+  /* --- Boşluk ölçeği --- */
+  /* Dörtlü taban. Gözle seçilmiş px değerleri yerine ölçek: aynı sayfada
+     13px ile 14px boşluğun yan yana durması, tek tek bakınca fark
+     edilmiyor ama bütünde dağınık görünüyor. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* --- Tipografi ölçeği --- */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-base: 15px;
+  --fs-lg: 16px;
+  --fs-xl: clamp(18px, 1.4vw, 20px);
+  --fs-2xl: clamp(21px, 2vw, 24px);
+  --fs-3xl: clamp(26px, 3.4vw, 34px);
+  --fs-4xl: clamp(32px, 5vw, 52px);
+
+  /* --- Köşeler --- */
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius: var(--radius-md);
+  --radius-pill: 999px;
+
+  /* --- Yükselti --- */
+  /* Gölgeler griye değil mürekkebe çalıyor; her biri iki katman:
+     temas (dar, koyu) + yayılım (geniş, soluk). Tek katmanlı gölge
+     "yapışkan etiket" gibi durur. */
   --shadow-sm: 0 1px 2px rgb(21 32 28 / 7%);
   --shadow: 0 1px 2px rgb(21 32 28 / 5%), 0 8px 24px -8px rgb(21 32 28 / 13%);
   --shadow-lg: 0 2px 4px rgb(21 32 28 / 5%), 0 18px 48px -16px rgb(21 32 28 / 22%);
+  --shadow-xl: 0 4px 8px rgb(21 32 28 / 6%), 0 32px 72px -24px rgb(21 32 28 / 28%);
   --shadow-sticky: 0 6px 14px -10px rgb(21 32 28 / 34%);
+  --shadow-brand: 0 1px 2px rgb(10 51 35 / 22%), 0 10px 28px -10px rgb(10 51 35 / 42%);
 
   /* stroke rengi --muted ile aynı; url() içinde var() çalışmaz */
   --icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1.5 5 5 5-5' fill='none' stroke='%235a6760' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
 
+  /* --- Hareket --- */
   --dur-1: 120ms;
   --dur-2: 200ms;
   --dur-3: 320ms;
+  --dur-4: 520ms;
   --stagger: 40ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Hafif geri tepmeli: yalnızca kullanıcının dokunduğu şeyde (düğme,
+     açılan kart). Veri gösteren hiçbir yerde kullanılmaz — oynayan bir
+     rakam, oynamayan bir rakamdan daha az güven verir. */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  --radius-sm: 9px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-pill: 999px;
-  --shadow-brand: 0 1px 2px rgb(10 51 35 / 22%), 0 10px 28px -10px rgb(10 51 35 / 42%);
-
-  /* Başlıklarda serif, arayüzde sans. Değerleme/ekspertiz işinin dili
-     basılı rapora yakın; sayılar her yerde tabular. */
+  /* --- Yazı tipleri --- */
+  /* Başlıklarda serif, arayüzde sans. Değerleme işinin dili basılı rapora
+     yakın; sayılar her yerde tabular. */
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+}
+
+/* ---------- Koyu tema ---------- */
+/*
+ * Yalnızca anlam katmanı yeniden eşleniyor. Üç kural:
+ *
+ *   - Koyu temada saf siyah yok. #000 üstünde beyaz yazı titrer (halation)
+ *     ve gölge görünmez; yüzey ayrımı kaybolur. Taban --kagit-990.
+ *   - Yüzey yükseldikçe AÇILIR, gölge koyu temada iş görmez. Açık temada
+ *     kart gölgeyle, koyu temada tonla ayrılır.
+ *   - Marka yeşili koyu zeminde okunmaz; doygunluğu düşürülüp açılıyor.
+ *     Aynı renk iki temada aynı iş görmez.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  :root:not([data-theme="light"]) { --tema-koyu: 1; }
+}
+:root[data-theme="dark"] { color-scheme: dark; --tema-koyu: 1; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--kagit-990);
+    --surface: #141b18;
+    --surface-2: #1a221e;
+    --surface-3: #222b26;
+    --ink: #eef1ee;
+    --ink-2: #c8cfca;
+    --muted: #96a09a;
+    --line: #273029;
+    --line-strong: #3a453e;
+
+    --brand: #5aa37c;
+    --brand-hover: #6fb68e;
+    --brand-deep: #0e4530;
+    --brand-soft: #16271f;
+    --brand-ring: rgb(90 163 124 / 22%);
+    --on-brand: #06120d;
+
+    --accent: var(--pirinc-400);
+    --accent-bright: var(--pirinc-300);
+    --accent-soft: #2a2317;
+
+    --up: #5cc08b;
+    --down: #e0785f;
+    --warn-bg: #2b2114;
+    --warn-ink: #e8c08a;
+    --error-bg: #2d1917;
+    --error-ink: #f0a197;
+
+    --status-auction-bg: #2e1f14;
+    --status-auction-ink: #e5b084;
+    --status-removed-bg: #22262a;
+    --status-removed-ink: #9aa3ac;
+
+    --map-bg: #101613;
+    --map-label: #dfe8e3;
+    --map-halo: #0e1512;
+    --paper: #141b18;
+  --cam: rgb(20 27 24 / 82%);
+  --cam-hafif: rgb(14 21 18 / 78%);
+  --perde: rgb(4 8 6 / 68%);
+  --isaretci-halka: rgb(0 0 0 / 55%);
+  /* Koyu zeminde açık temanın soluk yeşilleri parlayan bir leke oluyor:
+     ölçek aşağı çekiliyor ve çizgiler beyaz değil koyu. */
+  --il-0: #1d2320;
+  --il-1: #203029;
+  --il-2: #2b4a3a;
+  --il-3: #3c6d52;
+  --il-4: #52936e;
+  --il-5: #7bc096;
+  --il-cizgi: #0e1512;
+    --cam: rgb(20 27 24 / 82%);
+    --cam-hafif: rgb(14 21 18 / 78%);
+    --perde: rgb(4 8 6 / 68%);
+    --isaretci-halka: rgb(0 0 0 / 55%);
+    /* Koyu zeminde açık temanın soluk yeşilleri parlayan bir leke oluyor:
+       ölçek aşağı çekiliyor ve çizgiler beyaz değil koyu. */
+    --il-0: #1d2320;
+    --il-1: #203029;
+    --il-2: #2b4a3a;
+    --il-3: #3c6d52;
+    --il-4: #52936e;
+    --il-5: #7bc096;
+    --il-cizgi: #0e1512;
+
+    --icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1.5 5 5 5-5' fill='none' stroke='%2396a09a' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+
+    /* Gölge yerine tonla ayırmak koyu temada daha okunur; yine de derinlik
+       için çok soluk bir siyah kalıyor. */
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+    --shadow: 0 1px 2px rgb(0 0 0 / 25%), 0 8px 24px -8px rgb(0 0 0 / 45%);
+    --shadow-lg: 0 2px 4px rgb(0 0 0 / 25%), 0 18px 48px -16px rgb(0 0 0 / 55%);
+    --shadow-xl: 0 4px 8px rgb(0 0 0 / 30%), 0 32px 72px -24px rgb(0 0 0 / 60%);
+    --shadow-brand: 0 1px 2px rgb(0 0 0 / 35%), 0 10px 28px -10px rgb(0 0 0 / 55%);
+  }
+}
+
+/* Aynı bildirimler, işletim sistemi açık tema derken kullanıcı koyuyu
+   seçtiğinde. İki blok birebir aynı olmak zorunda; tests/test_tema.py
+   ikisini karşılaştırıyor, biri değişip diğeri kalırsa test kırılır. */
+:root[data-theme="dark"] {
+  --bg: var(--kagit-990);
+  --surface: #141b18;
+  --surface-2: #1a221e;
+  --surface-3: #222b26;
+  --ink: #eef1ee;
+  --ink-2: #c8cfca;
+  --muted: #96a09a;
+  --line: #273029;
+  --line-strong: #3a453e;
+
+  --brand: #5aa37c;
+  --brand-hover: #6fb68e;
+  --brand-deep: #0e4530;
+  --brand-soft: #16271f;
+  --brand-ring: rgb(90 163 124 / 22%);
+  --on-brand: #06120d;
+
+  --accent: var(--pirinc-400);
+  --accent-bright: var(--pirinc-300);
+  --accent-soft: #2a2317;
+
+  --up: #5cc08b;
+  --down: #e0785f;
+  --warn-bg: #2b2114;
+  --warn-ink: #e8c08a;
+  --error-bg: #2d1917;
+  --error-ink: #f0a197;
+
+  --status-auction-bg: #2e1f14;
+  --status-auction-ink: #e5b084;
+  --status-removed-bg: #22262a;
+  --status-removed-ink: #9aa3ac;
+
+  --map-bg: #101613;
+  --map-label: #dfe8e3;
+  --map-halo: #0e1512;
+  --paper: #141b18;
+  --cam: rgb(20 27 24 / 82%);
+  --cam-hafif: rgb(14 21 18 / 78%);
+  --perde: rgb(4 8 6 / 68%);
+  --isaretci-halka: rgb(0 0 0 / 55%);
+  /* Koyu zeminde açık temanın soluk yeşilleri parlayan bir leke oluyor:
+     ölçek aşağı çekiliyor ve çizgiler beyaz değil koyu. */
+  --il-0: #1d2320;
+  --il-1: #203029;
+  --il-2: #2b4a3a;
+  --il-3: #3c6d52;
+  --il-4: #52936e;
+  --il-5: #7bc096;
+  --il-cizgi: #0e1512;
+
+  --icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1.5 5 5 5-5' fill='none' stroke='%2396a09a' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+
+  /* Gölge yerine tonla ayırmak koyu temada daha okunur; yine de derinlik
+     için çok soluk bir siyah kalıyor. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow: 0 1px 2px rgb(0 0 0 / 25%), 0 8px 24px -8px rgb(0 0 0 / 45%);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 25%), 0 18px 48px -16px rgb(0 0 0 / 55%);
+  --shadow-xl: 0 4px 8px rgb(0 0 0 / 30%), 0 32px 72px -24px rgb(0 0 0 / 60%);
+  --shadow-brand: 0 1px 2px rgb(0 0 0 / 35%), 0 10px 28px -10px rgb(0 0 0 / 55%);
 }
 
 /* ---------- Temel ---------- */
@@ -515,7 +784,7 @@ button, input, select { font: inherit; color: inherit; }
   height: 11px;
   border-radius: 50%;
   background: var(--accent-bright);
-  box-shadow: 0 0 0 3px rgb(10 51 35 / 55%);
+  box-shadow: 0 0 0 3px var(--isaretci-halka);
   transform: translate(-50%, -50%);
   transition: left var(--dur-3) var(--ease-out);
 }
@@ -747,7 +1016,7 @@ button, input, select { font: inherit; color: inherit; }
 /* Atıf şart, ama sayfanın en sesli öğesi olmasın. */
 .leaflet-control-attribution {
   padding: 2px 8px;
-  background: rgb(255 255 255 / 78%);
+  background: var(--cam-hafif);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-radius: var(--radius-sm) 0 0 0;
@@ -973,7 +1242,7 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
 .pencere {
   position: fixed; inset: 0; z-index: 1200;
   display: grid; place-items: center; padding: 16px;
-  background: rgb(14 22 18 / 52%);
+  background: var(--perde);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
   animation: fade var(--dur-2) var(--ease-out);
@@ -1043,7 +1312,7 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
   justify-content: space-between;
   gap: 16px;
   padding: 12px clamp(16px, 4vw, 48px);
-  background: rgb(255 255 255 / 82%);
+  background: var(--cam);
   border-bottom: 1px solid var(--line);
   backdrop-filter: saturate(150%) blur(12px);
   -webkit-backdrop-filter: saturate(150%) blur(12px);
@@ -1176,3 +1445,41 @@ h1, h2, .sayfa h1, .kutu h2 {
 
 /* Fiyat senaryolarının altındaki uyarı: oranlar sabit, süre ölçülmedi */
 .scenarios-not { margin: -2px 0 8px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+/* ---------- Tema anahtarı ---------- */
+
+.tema-dugmesi {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease-out),
+              border-color var(--dur-1) var(--ease-out),
+              background-color var(--dur-1) var(--ease-out),
+              transform var(--dur-1) var(--ease-spring);
+}
+.tema-dugmesi:hover { color: var(--ink); border-color: var(--line-strong); background: var(--surface-2); }
+.tema-dugmesi:active { transform: scale(.92); }
+.tema-dugmesi svg { display: block; }
+
+.giris-ust { display: flex; justify-content: flex-end; padding: var(--sp-4) var(--sp-4) 0; }
+
+@media print { .tema-dugmesi, .giris-ust { display: none !important; } }
+
+/* Tema değişince renkler zıplamasın, aksın. Yalnızca renk özellikleri:
+   her şeye geçiş vermek sayfayı ağırlaştırır ve yerleşimi oynatır. */
+@media (prefers-reduced-motion: no-preference) {
+  body, .site-header, .panel, .kutu, .card, .value, .surface,
+  .site-footer, .tema-dugmesi, .field input, .field select {
+    transition: background-color var(--dur-2) var(--ease-out),
+                border-color var(--dur-2) var(--ease-out),
+                color var(--dur-2) var(--ease-out);
+  }
+}

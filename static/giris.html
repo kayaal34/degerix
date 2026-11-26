@@ -2,6 +2,11 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
+  <script>
+    /* Tema, ilk boyamadan ÖNCE. Bu iki satır gövdenin sonuna taşınırsa
+       koyu tema seçmiş kullanıcı her sayfa geçişinde beyaz bir çakma görür. */
+    try { var t = localStorage.getItem("degerix.tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Değerix · Giriş yap</title>
   <meta name="description" content="Değerix hesabınıza girin ya da yeni hesap açın. İlk üç değerleme ücretsiz; doğrulama kodu e-postanıza gelir, SMS gerekmez.">
@@ -17,6 +22,7 @@
 <body class="giris-govde">
   <a class="atla" href="#icerik">İçeriğe atla</a>
 
+  <div class="giris-ust"><button class="tema-dugmesi" id="temaDugmesi" type="button" aria-label="Koyu temaya geç" title="Koyu temaya geç"></button></div>
   <main class="giris" id="icerik" tabindex="-1">
     <!-- Sol sütun: neden hesap açıyorum sorusunun cevabı. Boş bir giriş
          ekranı kullanıcıya "bedelini bilmediğim bir şeye kaydoluyorum"
@@ -113,6 +119,7 @@
   </footer>
 
   <script type="module" src="giris.js"></script>
+  <script src="tema.js"></script>
   <script src="cerez.js"></script>
 </body>
 </html>

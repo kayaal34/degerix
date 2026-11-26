@@ -3,6 +3,11 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
+  <script>
+    /* Tema, ilk boyamadan ÖNCE. Bu iki satır gövdenin sonuna taşınırsa
+       koyu tema seçmiş kullanıcı her sayfa geçişinde beyaz bir çakma görür. */
+    try { var t = localStorage.getItem("degerix.tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Değerix örnek arsa raporu. Tapu kaydı, hesap varsayımları, veri dönemi ve fiyat aralığı.">
   <title>Örnek arsa raporu · Değerix</title>
@@ -25,6 +30,8 @@
       </svg>
       Değerix</a>
     <a class="btn btn-ghost" href="harita.html?lat=40.369137&amp;lng=28.89647&amp;mahalle=39428&amp;ada=1503&amp;parsel=17">Parseli haritada aç</a>
+      <button class="tema-dugmesi" id="temaDugmesi" type="button"
+              aria-label="Koyu temaya geç" title="Koyu temaya geç"></button>
   </header>
   <main class="report-sample" id="icerik" tabindex="-1">
     <header class="sample-title">
@@ -91,6 +98,7 @@
       amaçlıdır, yatırım tavsiyesi ya da resmî işlemlerde dayanak değildir.
       Hukuki metinler taslak hâlindedir.</p>
   </footer>
+  <script src="tema.js"></script>
   <script src="cerez.js"></script>
 </body>
 </html>

@@ -26,17 +26,19 @@ function exploreUrl(province) {
 
 /* Fiyat → renk. Beş kademe, markanın yeşilinden açığa. Sürekli bir
    gradyan yerine kademe: okuyucu "şu il şu bantta" diyebilsin. */
-const KADEMELER = [
-  { ust: 25000, renk: "#e8f0ea" },
-  { ust: 35000, renk: "#c3ddcd" },
-  { ust: 50000, renk: "#8fbfa4" },
-  { ust: 75000, renk: "#4e8f6c" },
-  { ust: Infinity, renk: "#14543a" },
-];
+/* Renkleri CSS'ten okuyoruz, buraya yazmıyoruz. Sabit hex yazsaydık koyu
+   temada harita beyaz bir leke olarak kalırdı — nitekim ilk hâlinde öyleydi.
+   Eşikler burada, renkler temada: hangisinin nerede durması gerektiği belli. */
+const ESIKLER = [25000, 35000, 50000, 75000, Infinity];
+
+function temaRengi(ad) {
+  return getComputedStyle(document.documentElement).getPropertyValue(ad).trim();
+}
 
 function renk(fiyat) {
-  if (!fiyat) return "#eceae4";
-  return KADEMELER.find((k) => fiyat <= k.ust).renk;
+  if (!fiyat) return temaRengi("--il-0");
+  const sira = ESIKLER.findIndex((esik) => fiyat <= esik);
+  return temaRengi(`--il-${sira + 1}`);
 }
 
 const para = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 });
@@ -74,7 +76,7 @@ async function kur() {
       return {
         fillColor: renk(fiyatlar.iller[ad]),
         fillOpacity: 1,
-        color: "#ffffff",
+        color: temaRengi("--il-cizgi"),
         weight: 1,
         dashArray: tahminler.has(ad) ? "3 3" : null,
       };
@@ -89,7 +91,7 @@ async function kur() {
         { sticky: true, className: "il-ipucu" },
       );
       parca.on({
-        mouseover: () => parca.setStyle({ weight: 2.5, color: "#9c7b3f" }),
+        mouseover: () => parca.setStyle({ weight: 2.5, color: temaRengi("--accent-bright") }),
         mouseout: () => katman.resetStyle(parca),
         click: () => { window.location.href = exploreUrl(ad); },
       });
@@ -105,9 +107,9 @@ async function kur() {
   for (const kayit of kayitlar) {
     L.circleMarker([kayit.lat, kayit.lng], {
       radius: 5,
-      color: "#ffffff",
+      color: temaRengi("--il-cizgi"),
       weight: 1.5,
-      fillColor: "#e8590c",
+      fillColor: temaRengi("--parcel"),
       fillOpacity: 1,
     })
       .bindTooltip(
@@ -127,13 +129,25 @@ async function kur() {
   }
 
   const legend = document.querySelector("#heroMapLegend");
-  const bands = KADEMELER.map((step, index) => {
-    const width = 100 / KADEMELER.length;
-    return step.renk + " " + index * width + "% " + (index + 1) * width + "%";
-  });
-  legend.children[1].style.background = "linear-gradient(90deg," + bands.join(",") + ")";
+  const lejantiCiz = () => {
+    const pay = 100 / ESIKLER.length;
+    const bantlar = ESIKLER.map((_, i) =>
+      `${temaRengi(`--il-${i + 1}`)} ${i * pay}% ${(i + 1) * pay}%`);
+    legend.children[1].style.background = `linear-gradient(90deg,${bantlar.join(",")})`;
+  };
+  lejantiCiz();
   legend.hidden = false;
   yaziyiDoldur(fiyatlar, kayitlar.length);
+
+  // Tema değişince renkler yeniden okunsun. Katmanı yeniden kurmuyoruz:
+  // stil fonksiyonu zaten temadan okuyor, resetStyle onu tekrar çağırıyor.
+  document.addEventListener("tema-degisti", () => {
+    katman.setStyle((ozellik) => ({
+      fillColor: renk(fiyatlar.iller[ozellik.properties.text]),
+      color: temaRengi("--il-cizgi"),
+    }));
+    lejantiCiz();   // lejant da aynı ölçeği göstermeli
+  });
 }
 
 function yaziyiDoldur(fiyatlar, kayitSayisi) {

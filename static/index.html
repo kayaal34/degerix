@@ -2,6 +2,11 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
+  <script>
+    /* Tema, ilk boyamadan ÖNCE. Bu iki satır gövdenin sonuna taşınırsa
+       koyu tema seçmiş kullanıcı her sayfa geçişinde beyaz bir çakma görür. */
+    try { var t = localStorage.getItem("degerix.tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Değerix · Arsanız bugün ne eder?</title>
   <meta name="description" content="Arsanız bugün ne eder? Haritada tıklayın, birkaç soruya yanıt verin, satabileceğiniz fiyat aralığını görün. Resmî tapu ve konut verileriyle. İlk üç değerleme ücretsiz.">
@@ -49,6 +54,8 @@
       Değerix
     </a>
     <nav class="site-nav" aria-label="Sayfa bölümleri">
+      <button class="tema-dugmesi" id="temaDugmesi" type="button"
+              aria-label="Koyu temaya geç" title="Koyu temaya geç"></button>
       <a href="harita.html#turkiye">Bölge keşfi</a>
       <a href="ornek-rapor.html">Örnek sonuç</a>
       <a href="abonelik.html">Planlar</a>
@@ -243,6 +250,7 @@
   <script src="anasayfa-harita.js"></script>
   <script src="anasayfa-parsel.js" defer></script>
   <script src="landing.js"></script>
+  <script src="tema.js"></script>
   <script src="cerez.js"></script>
 </body>
 </html>
