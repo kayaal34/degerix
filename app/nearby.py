@@ -56,8 +56,25 @@ way["building"](around:{buildings},{lat},{lng});
 out count;"""
 
 
+CACHE_MAX = 2000
+
+
 def clear_cache() -> None:
     _cache.clear()
+
+
+def _prune_cache(now: float) -> None:
+    """Süresi geçenleri at; hâlâ büyükse en erken sona erecekleri at.
+
+    Önbellek yalnızca eklenip hiç temizlenmiyordu: uzun süre ayakta kalan bir
+    sunucuda her yeni koordinat kalıcı bir satır bırakıyor ve bellek sessizce
+    büyüyor. Ücretsiz sunucu planında bu, süreç ölene kadar sürer.
+    """
+    for anahtar in [k for k, (biter, _) in _cache.items() if biter <= now]:
+        _cache.pop(anahtar, None)
+    if len(_cache) > CACHE_MAX:
+        for anahtar in sorted(_cache, key=lambda k: _cache[k][0])[:len(_cache) - CACHE_MAX]:
+            _cache.pop(anahtar, None)
 
 
 async def fetch(lat: float, lng: float) -> Surroundings:
@@ -66,6 +83,7 @@ async def fetch(lat: float, lng: float) -> Surroundings:
     hit = _cache.get(key)
     if hit is not None and hit[0] > now:
         return hit[1]
+    _prune_cache(now)
 
     async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, timeout=15) as client:
         osm, slope = await asyncio.gather(_osm_context(client, lat, lng), _slope_pct(client, lat, lng))
@@ -106,7 +124,23 @@ def _inside(lat: float, lng: float, ring: list[tuple[float, float]]) -> bool:
     return crossings % 2 == 1
 
 
+class OverpassRemark(ValueError):
+    """Overpass hatayı HTTP 200 ile döndürdü."""
+
+
 def parse_overpass(data: dict[str, Any], lat: float, lng: float) -> OsmContext:
+    # Overpass sunucu hatasını 200 ile, gövdede "remark" alanıyla bildiriyor:
+    # {"version":..., "remark": "runtime error: Query timed out", "elements": []}
+    # Bunu ayırmazsak boş liste "0 bina, kıyı yok, yol yok" diye okunuyor —
+    # ölçülmemiş bir parsel ölçülmüş gibi görünüyor, imar beklentisi primi
+    # sessizce düşüyor ve bu yanlış sonuç 24 saat önbellekte kalıyor.
+    # Eksik ölçüm, yanlış ölçümden iyidir: hata verip None'a düşelim.
+    remark = str(data.get("remark") or "")
+    if remark:
+        raise OverpassRemark(remark[:200])
+    if "elements" not in data:
+        raise OverpassRemark("yanıtta elements alanı yok")
+
     coast = road = built_up = math.inf
     services = buildings = 0
     for element in data.get("elements", []):
@@ -148,6 +182,7 @@ async def _osm_context(client: httpx.AsyncClient, lat: float, lng: float) -> Osm
             response.raise_for_status()
             return parse_overpass(response.json(), lat, lng)
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            # OverpassRemark da ValueError; sıradaki aynaya geçilir
             continue
     return None
 

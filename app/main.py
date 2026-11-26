@@ -17,7 +17,7 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi import Path as PathParam
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from . import accounts, evds, market, nearby, nominatim, tapusor, tkgm, urbanity
 from .data import USAGE, CornerKey, DeedKey, IrrigationKey, RoadKey, UsageKey, UtilitiesKey, ViewKey
@@ -107,6 +107,19 @@ class EstimateRequest(BaseModel):
     )
     district: str | None = Field(default=None, max_length=64, description="Sorgu geçmişine yazılır")
     parcel: str | None = Field(default=None, max_length=64, description="Ada/parsel; sorgu geçmişine yazılır")
+
+    @model_validator(mode="after")
+    def _koordinat_cifti(self) -> "EstimateRequest":
+        """Enlem ve boylam ya birlikte gelir ya hiç gelmez.
+
+        İkisi ayrı ayrı opsiyoneldi: yalnız lat gönderen bir istek kabul
+        ediliyor, konuma bağlı her şey (yerleşim sınıfı, çevre ölçümü, imar
+        beklentisi) sessizce atlanıyor ve kullanıcı bunu hiç öğrenmeden
+        il ortalamasından hesaplanmış bir değer alıyordu.
+        """
+        if (self.lat is None) != (self.lng is None):
+            raise ValueError("lat ve lng birlikte gönderilmeli; yalnızca biri kabul edilmez")
+        return self
 
 
 # ─────────────────────────── Uygulama ───────────────────────────
