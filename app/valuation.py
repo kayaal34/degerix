@@ -748,24 +748,23 @@ def estimate(
     unit_price = nice_round(base_price * math.prod(factor.multiplier for factor in factors))
     total = unit_price * area_m2
 
-    # Bu etiket bir isabet notu DEĞİL: aralığın ne kadar geniş olduğunu söyler.
+    # Burada bir "not" yok ve bilerek yok.
     #
-    # Eskiden "yüksek / orta / düşük" yazıyordu ve "tahmin güveni" diye
-    # sunuluyordu. İkisi de yanlıştı: hesaplandığı tek girdi yayılımın
-    # kendisiydi, yani kullanıcının zaten gördüğü aralık. Aynı sayıyı not
-    # gibi tekrar etmek, modele olmayan bir isabet ölçüsü atfediyordu.
+    # Önce "Tahmin güveni: yüksek/orta/düşük" yazıyordu. Hesaplandığı tek
+    # girdi yayılımın kendisiydi — yani kullanıcının zaten gördüğü aralık —
+    # ve bunu not gibi tekrar etmek modele olmayan bir isabet ölçüsü
+    # atfediyordu. Bu turda "dar / tipik / geniş" yaptım, sonra ölçtüm:
+    # 77 ilanda yayılım dağılımı 0,68 ile 1,54 arasında ama %75, %80, %85
+    # ve %90 yüzdelikleri AYNI sayıda (1,25) yığılıyor. Üç kademeli bir
+    # etiket bu dağılımda gürültüyü bilgi gibi gösterir; etiket, kaydın
+    # hangi tabandan hesaplandığını tekrar etmekten başka bir şey yapmaz.
     #
-    # Eşikler 104 ilanda ölçülen yayılım dağılımının üçte birlik
-    # noktalarından (tools/bant_kalibre.py ile aynı küme): en dar 0,61,
-    # üçte bir 0,99, ortanca 1,03, üçte iki 1,18, en geniş 1,30. Yani
-    # "dar" demek "bu parselin aralığı bizim tipik aralığımızdan dar"
-    # demektir — mutlak bir doğruluk iddiası değil.
-    if spread <= 0.99 + 1e-9:
-        confidence = "dar"
-    elif spread <= 1.18 + 1e-9:
-        confidence = "tipik"
-    else:
-        confidence = "geniş"
+    # Geriye söylenmeye değer tek şey kalıyor: bu aralık alışılmıştan
+    # geniş mi? Eşik ölçülen %75 yüzdeliği. Değilse alan boş kalıyor ve
+    # arayüzde hiç görünmüyor (.confidence:empty gizli). Aralığın neden
+    # geniş olduğu zaten hesap dökümünde satır satır yazıyor:
+    # "Tapu · Yanıtlanmadı, aralık genişletildi".
+    confidence = "alışılmıştan geniş" if spread > 1.25 else ""
 
     scenarios = []
     low, high = band(total, spread)

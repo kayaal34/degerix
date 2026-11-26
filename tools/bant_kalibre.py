@@ -114,7 +114,7 @@ async def kayitlari_olc() -> list[dict]:
     p = load_parameters()
     indirim = p.asking_discount
     cevreler = cevre_olcumleri()
-    satirlar, atlanan, haric, cevresiz = [], 0, 0, 0
+    satirlar, atlanan, haric, cevresiz, mahalle = [], 0, 0, 0, 0
     for k in oku():
         # "haric" işaretli kayıtlar (yapılı parsel, spekülatif fiyat) dosyada
         # kalır ama ölçüme girmez; ilan_karsilastir.py da böyle yapıyor.
@@ -122,6 +122,17 @@ async def kayitlari_olc() -> list[dict]:
         # sayılar üretir ve hangisinin doğru olduğu belirsiz kalır.
         if k.get("haric"):
             haric += 1
+            continue
+        # Koordinatı mahalle merkezi olan kayıtlar da dışarıda. Üretimde böyle
+        # bir istek olmuyor: kullanıcı haritada parselin üstüne tıklıyor ya da
+        # ada/parsel giriyor, iki yolda da koordinat parselin kendisi. O
+        # kayıtlarda model köy çekirdeğinin yerleşim sınıfıyla fiyatlandırılıyor
+        # ve hata parselin değil koordinatın hatası oluyor. Bandı onlarla
+        # kurmak, üretimde hiç görülmeyen bir hatayı kullanıcının aralığına
+        # yazmak demek. (Ölçülen fark büyük: imarlı kayıtlarda ortanca oran
+        # parsel koordinatıyla 0,944, mahalle koordinatıyla 0,550.)
+        if (k.get("konum") or "").strip() != "parsel":
+            mahalle += 1
             continue
         try:
             housing = await market.housing_price(k["il"])
@@ -157,8 +168,9 @@ async def kayitlari_olc() -> list[dict]:
             "ek": ek,
             "oran": oran,
         })
-    if atlanan or haric:
-        print(f"({haric} kayıt 'haric' işaretli, {atlanan} kayıt eksik veri — ölçüme girmedi)")
+    if atlanan or haric or mahalle:
+        print(f"({haric} kayıt 'haric' işaretli, {mahalle} kayıt mahalle merkezi "
+              f"koordinatlı, {atlanan} kayıt eksik veri — ölçüme girmedi)")
     if cevresiz:
         print(f"UYARI: {cevresiz} kaydın çevre ölçümü yok; o kayıtlarda bant "
               f"'çevre ölçülemedi' genişlemesini taşıyor ve yayılım olduğundan geniş ölçülür.")

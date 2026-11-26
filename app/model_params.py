@@ -169,6 +169,11 @@ class Parameters:
     # ne imar ne emsal bilindiğinden en geniş. Aralığı ölçülen hatanın altında
     # tutmak ürünü isabetli göstermez, yalnızca yanlış gösterir.
     # Hedef önce seçildi: aralık ilanların onda yedisini kapsasın (%70).
+# Küme: koordinatı parselin kendisi olan 77 ilan. Mahalle merkezi
+# koordinatlı 27 kayıt dışarıda, çünkü üretimde öyle bir istek
+# olmuyor — kullanıcı ya parsele tıklıyor ya ada/parsel giriyor.
+# Onları içeri almak, üretimde hiç görülmeyen bir koordinat
+# hatasını kullanıcının aralığına yazmak olurdu.
     # Yayılımlar tools/bant_kalibre.py ile 104 ilanda, 5 katlı çapraz
     # doğrulamayla kuruldu: her kat sırayla test oldu, yayılım diğer katlardan
     # geldi, yani hiçbir kayıt kendi bandını kurmadı.
@@ -191,10 +196,10 @@ class Parameters:
     # söylüyor; yedi kayıt bir yüzdelik taşımaz. Bu yüzden geliştirme
     # payına eşitlendi. Kayıt sayısı artarsa yeniden ölçülmeli.
     basis_spread: dict[str, float] = field(default_factory=lambda: {
-        "gelistirme": 1.14,   # n=35 · tek başına kapsama %69, ortanca bant 4,6 kat
-        "taban": 1.14,        # ölçülen 0,81 (n=7) · yapısal tavan olarak gelistirme'ye eşit
-        "arazi": 0.95,        # n=35
-        "beklenti": 0.56,     # n=27 · imar beklentisi primi zaten banda +0,25 ekliyor
+        "gelistirme": 1.13,   # n=29
+        "taban": 1.13,        # ölçülen 0,88 (n=6) · yapısal tavan: gelistirme'ye eşit
+        "arazi": 1.19,        # n=19
+        "beklenti": 0.62,     # n=23 · imar beklentisi primi zaten banda +0,25 ekliyor
     })
 
     # İlan fiyatı ile gerçekleşen satış arasındaki tipik pazarlık payı.

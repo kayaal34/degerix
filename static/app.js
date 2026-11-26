@@ -682,8 +682,10 @@ function renderEstimate(result, parcel) {
   // "Veri tamlığı" değil: güven artık yalnızca yanıtların eksiksizliğini değil,
   // kullanılan yöntemin ölçülmüş isabetini de taşıyor. Her sorusu yanıtlanmış bir
   // tarla da "düşük" çıkabiliyor ve eski etiket kullanıcıyı eksik veri aramaya itiyordu.
-  confidence.textContent = `Aralık: ${result.confidence}`;
-  confidence.dataset.level = result.confidence;
+  // Boşsa hiç görünmez (.confidence:empty gizli). Sunucu yalnızca aralık
+  // alışılmışın üstündeyken bir şey söylüyor; "tipik" demek bilgi değil gürültü.
+  confidence.textContent = result.confidence || "";
+  confidence.dataset.level = result.confidence ? "genis" : "";
 
   const share = $("#valShare");
   share.hidden = result.share_value == null;
@@ -942,7 +944,7 @@ function renderComparisons() {
     ["Aralık", (item) => shortRange(item.low, item.high)],
     ["Acil satış", (item) => (item.urgent ? shortMoney(item.urgent) : "—")],
     ["Tok satıcı", (item) => (item.patient ? shortMoney(item.patient) : "—")],
-    ["Değer aralığı", (item) => item.confidence],
+    ["Aralık uyarısı", (item) => item.confidence || "—"],
   ];
 
   const tableRows = rows.map(([label, value, highlight]) => {

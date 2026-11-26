@@ -77,7 +77,7 @@ def test_village_parcel_falls_back_to_the_floor_value():
     assert result.development.viable is False
     assert result.base_label == "Taban değer"
     assert 100 < result.unit_price < 1_000       # köyde arsa m² fiyatı bu aralıkta beklenir
-    assert result.confidence in ("dar", "tipik", "geniş")
+    assert result.confidence in ("", "alışılmıştan geniş")
 
 
 def test_city_land_is_worth_much_more_than_village_land():
@@ -167,7 +167,7 @@ def test_irrigation_only_applies_to_unzoned_land():
     assert factor(unzoned, "irrigation").multiplier > 1
 
 
-def test_missing_data_widens_the_range_and_lowers_confidence():
+def test_missing_data_widens_the_range():
     known = estimate(
         area_m2=1000, usage="konut", housing=BURSA, urban=place(urbanity.URBAN_CENTRE),
         kaks=1.5, deed="tam", road="var", utilities="var",
@@ -181,7 +181,7 @@ def test_missing_data_widens_the_range_and_lowers_confidence():
     # geliştirme hesabı kurulamadığında devreye girer, yani daha az bilgiyle
     # çalışır. Bu testin kendisi o kısıtın bekçisi.
     assert known.high / known.total <= unknown.high / unknown.total
-    assert unknown.confidence == "geniş"
+    assert unknown.confidence == "alışılmıştan geniş"
     assert width(unknown) > width(known)
 
 
@@ -295,9 +295,10 @@ def test_consistent_comparables_narrow_the_range():
     assert emsalli.comparables is not None
     assert emsalli.comparables.conflict is False
     assert width(emsalli) < 0.5 * width(emsalsiz)
-    # Emsal girilince aralık daralır; etiket de o yönde hareket etmeli
+    # Emsal girilince aralık daralır. Uyarı da o yönde: daralma uyarıyı
+    # kaldırabilir, ama emsal girmek uyarıyı DOĞURAMAZ.
     assert emsalli.high / emsalli.total < emsalsiz.high / emsalsiz.total
-    assert ("dar", "tipik", "geniş").index(emsalli.confidence)         <= ("dar", "tipik", "geniş").index(emsalsiz.confidence)
+    assert not (emsalli.confidence and not emsalsiz.confidence)
 
 
 def _with_settlement(class_code: int, distance_km: float) -> urbanity.Urbanity:

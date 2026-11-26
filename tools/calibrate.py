@@ -29,6 +29,7 @@ import asyncio
 import csv
 import json
 import math
+import random
 import statistics
 import sys
 from dataclasses import replace
@@ -43,8 +44,8 @@ from dotenv import load_dotenv  # noqa: E402
 
 from app import market, urbanity  # noqa: E402
 from app.model_params import CALIBRATION_FILE, DEFAULTS, Parameters  # noqa: E402
-from app.valuation import effective_class, estimate  # noqa: E402
-from olcum_ortak import hedef_tl  # noqa: E402
+from app.valuation import effective_class, estimate, load_parameters  # noqa: E402
+from olcum_ortak import hedef_tl, yarim_kat_icinde  # noqa: E402
 
 PILOT_DIR = ROOT / "data" / "pilot"
 PRIVATE_DIR = ROOT / "data" / "private"
@@ -237,7 +238,7 @@ async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Pa
     # katsayısını döndürüyor ama bir önceki geçişin raporunu yazıyordu: dosyaya
     # yazılan sayı ile ölçülen sayı aynı duruma ait değildi. Dahası fit tek yönlü
     # yakınsamıyor — locality hem imarlıyı hem imarsızı kaydırdığı için ölçüm
-    # 96,8 → 66,8 → 78,2 diye salınıyor. "Son geçiş" bu yüzden doğru cevap değil;
+    # 96,8 -> 66,8 -> 78,2 diye salınıyor. "Son geçiş" bu yüzden doğru cevap değil;
     # ölçülmüş en iyi aday doğru cevaptır ve varsayılanlar da adaylardan biridir.
     summary = report(await evaluate(records, parameters))
     best, best_summary = parameters, summary
@@ -259,9 +260,133 @@ async def fit(records: list[dict[str, str]], parameters: Parameters) -> tuple[Pa
     return best, best_summary
 
 
+CAPRAZ_KATLAR = 5
+CAPRAZ_TOHUM = 20261126
+
+
+def _olcutler(satirlar) -> dict:
+    """Ayrılmış kümede bakılacak sayılar.
+
+    report()'tan farkı: ekrana basmaz ve 1,5 kat ölçütünü taşır — projedeki
+    diğer araçlarla aynı tanım (tools/olcum_ortak.py).
+    """
+    hatalar = [abs(math.log(hedef / tahmin)) for _, hedef, tahmin, _, _ in satirlar]
+    oranlar = [hedef / tahmin for _, hedef, tahmin, _, _ in satirlar]
+    return {
+        "n": len(satirlar),
+        "ortanca_oran": round(statistics.median(oranlar), 3) if oranlar else None,
+        "tipik_sapma_kat": round(math.exp(statistics.mean(hatalar)), 3) if hatalar else None,
+        "bir_bucuk_kat": sum(1 for o in oranlar if yarim_kat_icinde(o)),
+    }
+
+
+def _yazdir(baslik: str, once: dict, sonra: dict) -> None:
+    print(f"  {baslik:<16} n={once['n']:<4} "
+          f"ortanca oran {once['ortanca_oran']} -> {sonra['ortanca_oran']}   "
+          f"tipik ×{once['tipik_sapma_kat']} -> ×{sonra['tipik_sapma_kat']}   "
+          f"1,5 kat içinde {once['bir_bucuk_kat']} -> {sonra['bir_bucuk_kat']}")
+
+
+def _anahtar(satir) -> tuple:
+    k = satir[0]
+    return (k.get("il"), k.get("lat"), k.get("lng"), k.get("ada"), k.get("parsel"), k.get("deger_tl"))
+
+
+async def capraz_dogrula(records: list[dict[str, str]]) -> None:
+    """Katsayıları kuran kayıtlarda ölçmek hiçbir şey kanıtlamaz.
+
+    Her kat sırayla test olur, katsayılar diğer katlardan kurulur. Üç sınav:
+      1. Ayrılmış kümede ölçüt gerçekten iyileşiyor mu?
+      2. Kaç kayıt iyileşti, kaç kayıt bozuldu? Toplam iyileşirken çoğunluk
+         bozulabiliyor; ortalama bunu saklar.
+      3. En uçtaki beş kayıt çıkarılınca kazanç duruyor mu, yoksa kazanç
+         birkaç aykırı kaydın düzelmesinden mi ibaret?
+    """
+    karisik = list(records)
+    random.Random(CAPRAZ_TOHUM).shuffle(karisik)
+    katlar = [karisik[i::CAPRAZ_KATLAR] for i in range(CAPRAZ_KATLAR)]
+
+    simdiki = load_parameters()   # bugün uygulanan hâl (calibration.json okunmuş)
+    oncekiler, sonrakiler, hamlar = [], [], []
+    for i, test in enumerate(katlar):
+        egitim = [r for j, kat in enumerate(katlar) if j != i for r in kat]
+        kurulan, _ = await fit(egitim, DEFAULTS)
+        oncekiler += await evaluate(test, simdiki)
+        sonrakiler += await evaluate(test, kurulan)
+        # Hiç kalibre edilmemiş hâl: bu veriyi hiç görmedi, dürüst taban çizgisi
+        hamlar += await evaluate(test, DEFAULTS)
+
+    once_eslesen = {_anahtar(s): s for s in oncekiler}
+    sonra_eslesen = {_anahtar(s): s for s in sonrakiler}
+    ham_eslesen = {_anahtar(s): s for s in hamlar}
+    ortak = [k for k in once_eslesen if k in sonra_eslesen and k in ham_eslesen]
+    once = [once_eslesen[k] for k in ortak]
+    sonra = [sonra_eslesen[k] for k in ortak]
+    ham = [ham_eslesen[k] for k in ortak]
+
+    # Asıl soru bu. "Bugünkü katsayılar" bu kayıtların hepsiyle kurulmuştu,
+    # yani onları ezbere biliyor; ona karşı kaybetmek bir şey kanıtlamaz.
+    # Kalibre edilmemiş varsayılanlar ise bu veriyi hiç görmedi. Çapraz
+    # doğrulanmış kurulum varsayılanı yenemiyorsa, mekanizma sinyal değil
+    # ezber üretiyor demektir.
+    print()
+    print("=== SINAV 0 · kalibrasyon hiç işe yarıyor mu? ===")
+    print("  kalibre edilmemiş varsayılanlar -> o katı görmeden kurulan katsayılar")
+    for ad, sec in (("tümü", lambda r: True),
+                    ("imarlı arsa", lambda r: not is_unzoned(r)),
+                    ("imarsız arazi", is_unzoned)):
+        h = [s for s in ham if sec(s[0])]
+        y = [s for s in sonra if sec(s[0])]
+        if h:
+            _yazdir(ad, _olcutler(h), _olcutler(y))
+
+    print(f"\n=== SINAV 1 · ayrılmış kümede ({CAPRAZ_KATLAR} kat, tohum {CAPRAZ_TOHUM}) ===")
+    print("  bugünkü katsayılar -> o katı hiç görmeden kurulan katsayılar")
+    for ad, sec in (("tümü", lambda r: True),
+                    ("imarlı arsa", lambda r: not is_unzoned(r)),
+                    ("imarsız arazi", is_unzoned)):
+        o = [s for s in once if sec(s[0])]
+        y = [s for s in sonra if sec(s[0])]
+        if o:
+            _yazdir(ad, _olcutler(o), _olcutler(y))
+
+    print("\n=== SINAV 2 · kayıt kayıt ===")
+    iyilesen = bozulan = ayni = 0
+    farklar = []
+    for o, y in zip(once, sonra):
+        eski = abs(math.log(o[1] / o[2]))
+        yeni = abs(math.log(y[1] / y[2]))
+        farklar.append((eski - yeni, o))
+        if yeni < eski - 1e-9:
+            iyilesen += 1
+        elif yeni > eski + 1e-9:
+            bozulan += 1
+        else:
+            ayni += 1
+    print(f"  iyileşen {iyilesen} · bozulan {bozulan} · değişmeyen {ayni}")
+    for ad, sec in (("imarlı arsa", lambda r: not is_unzoned(r)), ("imarsız arazi", is_unzoned)):
+        i = b = 0
+        for fark, o in farklar:
+            if not sec(o[0]):
+                continue
+            if fark > 1e-9:
+                i += 1
+            elif fark < -1e-9:
+                b += 1
+        print(f"    {ad:<16} iyileşen {i} · bozulan {b}")
+
+    print("\n=== SINAV 3 · en uçtaki beş kayıt çıkarıldığında ===")
+    uclar = {id(o) for _, o in sorted(farklar, key=lambda f: -abs(f[0]))[:5]}
+    o_kirpik = [s for s in once if id(s) not in uclar]
+    y_kirpik = [y for o, y in zip(once, sonra) if id(o) not in uclar]
+    if o_kirpik:
+        _yazdir("aykırısız", _olcutler(o_kirpik), _olcutler(y_kirpik))
+
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Değerix kalibrasyonu")
     parser.add_argument("--uygula", action="store_true", help="katsayıları calibration.json dosyasına yaz")
+    parser.add_argument("--capraz", action="store_true",
+                        help="çapraz doğrulama: katsayıları kurmayan kayıtlarda ölç")
     arguments = parser.parse_args()
 
     load_dotenv(ROOT / ".env")
@@ -273,6 +398,10 @@ async def main() -> None:
             "  Gerekli sütunlar: il, lat, lng, alan_m2, imar, deger_tl, deger_turu"
         )
     print(f"{len(records)} kayıt okundu")
+
+    if arguments.capraz:
+        await capraz_dogrula(records)
+        return
 
     print("\n--- varsayılan katsayılarla ---")
     before = report(await evaluate(records, DEFAULTS))

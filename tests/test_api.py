@@ -125,7 +125,8 @@ def test_estimate_treats_missing_answers_as_unknown(client):
     answers = {key: value for key, value in multipliers(body).items() if key in {"deed", "road", "utilities"}}
 
     assert answers == {"deed": 1.0, "road": 1.0, "utilities": 1.0}
-    assert body["confidence"] in ("dar", "tipik", "geniş")
+    # Not değil, yalnızca uç durum uyarısı: ya boş ya tek bir cümle
+    assert body["confidence"] in ("", "alışılmıştan geniş")
     assert body["share_value"] is None
 
 

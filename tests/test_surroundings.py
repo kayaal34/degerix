@@ -253,4 +253,5 @@ def test_cevre_olculemezse_fiyat_ag_hizina_birakilmaz():
     # primli sonucu kapsar: ağ hızı artık iki kat fark yaratmıyor.
     assert olculemedi.high >= primli.total
     assert olculemedi.low > 0
-    assert olculemedi.confidence == "geniş"
+    # Çevre ölçülemeyince aralık alışılmışın üstüne çıkar ve bunu söyler
+    assert olculemedi.confidence == "alışılmıştan geniş"
