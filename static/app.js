@@ -678,7 +678,7 @@ function renderEstimate(result, parcel) {
   // "Veri tamlığı" değil: güven artık yalnızca yanıtların eksiksizliğini değil,
   // kullanılan yöntemin ölçülmüş isabetini de taşıyor. Her sorusu yanıtlanmış bir
   // tarla da "düşük" çıkabiliyor ve eski etiket kullanıcıyı eksik veri aramaya itiyordu.
-  confidence.textContent = `Tahmin güveni: ${result.confidence}`;
+  confidence.textContent = `Aralık: ${result.confidence}`;
   confidence.dataset.level = result.confidence;
 
   const share = $("#valShare");
@@ -938,7 +938,7 @@ function renderComparisons() {
     ["Aralık", (item) => shortRange(item.low, item.high)],
     ["Acil satış", (item) => (item.urgent ? shortMoney(item.urgent) : "—")],
     ["Tok satıcı", (item) => (item.patient ? shortMoney(item.patient) : "—")],
-    ["Tahmin güveni", (item) => item.confidence],
+    ["Değer aralığı", (item) => item.confidence],
   ];
 
   const tableRows = rows.map(([label, value, highlight]) => {

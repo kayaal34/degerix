@@ -543,8 +543,8 @@ button, input, select { font: inherit; color: inherit; }
 
 .confidence { padding: 3px 10px; border-radius: var(--radius-pill); background: var(--on-brand-soft); font-size: 12px; font-weight: 600; }
 .confidence:empty { display: none; }
-/* "yüksek" ve "orta" bilerek nötr kalır; yalnızca eksik veri uyarı rengine döner */
-.confidence[data-level="düşük"] { background: var(--warn-bg); color: var(--warn-ink); }
+/* "dar" ve "tipik" bilerek nötr kalır; yalnızca alışılmıştan geniş aralık uyarı rengine döner */
+.confidence[data-level="geniş"] { background: var(--warn-bg); color: var(--warn-ink); }
 
 .accuracy { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); }
 .accuracy p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }

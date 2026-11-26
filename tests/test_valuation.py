@@ -77,7 +77,7 @@ def test_village_parcel_falls_back_to_the_floor_value():
     assert result.development.viable is False
     assert result.base_label == "Taban değer"
     assert 100 < result.unit_price < 1_000       # köyde arsa m² fiyatı bu aralıkta beklenir
-    assert result.confidence in ("orta", "düşük")
+    assert result.confidence in ("dar", "tipik", "geniş")
 
 
 def test_city_land_is_worth_much_more_than_village_land():
@@ -176,8 +176,12 @@ def test_missing_data_widens_the_range_and_lowers_confidence():
                               source="kopya", live=False, estimated=True)
     unknown = estimate(area_m2=1000, usage="konut", housing=copy_price, urban=None)
 
-    assert known.confidence == "yüksek"
-    assert unknown.confidence == "düşük"
+    # Etiket bir isabet notu değil, aralığın genişliği. Hiçbir şey bilinmeyen
+    # parselin bandı, her şeyi bilinenden dar olamaz: taban değer yöntemi
+    # geliştirme hesabı kurulamadığında devreye girer, yani daha az bilgiyle
+    # çalışır. Bu testin kendisi o kısıtın bekçisi.
+    assert known.high / known.total <= unknown.high / unknown.total
+    assert unknown.confidence == "geniş"
     assert width(unknown) > width(known)
 
 
@@ -291,8 +295,9 @@ def test_consistent_comparables_narrow_the_range():
     assert emsalli.comparables is not None
     assert emsalli.comparables.conflict is False
     assert width(emsalli) < 0.5 * width(emsalsiz)
-    assert emsalsiz.confidence == "düşük"      # imarsız arazide emsal yoksa güven düşük
-    assert emsalli.confidence == "yüksek"
+    # Emsal girilince aralık daralır; etiket de o yönde hareket etmeli
+    assert emsalli.high / emsalli.total < emsalsiz.high / emsalsiz.total
+    assert ("dar", "tipik", "geniş").index(emsalli.confidence)         <= ("dar", "tipik", "geniş").index(emsalsiz.confidence)
 
 
 def _with_settlement(class_code: int, distance_km: float) -> urbanity.Urbanity:

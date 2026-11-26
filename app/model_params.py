@@ -168,11 +168,33 @@ class Parameters:
     # Geliştirme hesabı en çok bilgiyi kullandığı için en dar, imarsız arazi ise
     # ne imar ne emsal bilindiğinden en geniş. Aralığı ölçülen hatanın altında
     # tutmak ürünü isabetli göstermez, yalnızca yanlış gösterir.
+    # Hedef önce seçildi: aralık ilanların onda yedisini kapsasın (%70).
+    # Yayılımlar tools/bant_kalibre.py ile 104 ilanda, 5 katlı çapraz
+    # doğrulamayla kuruldu: her kat sırayla test oldu, yayılım diğer katlardan
+    # geldi, yani hiçbir kayıt kendi bandını kurmadı.
+    #
+    # %80 de ölçüldü ve reddedildi: kapsama %79'a çıkıyor ama bant ortanca
+    # 7,1 kat (imarlıda 10,1 kat) genişliyor. "Değeriniz 5,6 ile 57 milyon
+    # arasında" bir bilgi değil. Daha yüksek kapsamayı dar bir bantla almanın
+    # yolu bandı büyütmek değil, nokta tahmini düzeltmektir.
+    #
+    # Önceki değerler (0,45 / 0,50 / 0,70 / 0,85) ölçülen hataya oturtulmuş
+    # sayılıyordu; aynı çapraz doğrulamada kapsamaları %58 çıktı, imarlı
+    # arsada yalnızca %45. Yani kullanıcıya gösterilen aralık, imarlı arsada
+    # yarıdan az isabet ediyormuş. Geliştirme payının ikiye katlanması bunun
+    # düzeltilmesidir, modelin kötüleşmesi değil.
+    #
+    # "taban" ölçümde 0,81 çıktı ama yazılmadı. Sebep yapısal: taban değer
+    # yöntemi, geliştirme hesabı KURULAMADIĞINDA devreye giriyor — imar yok,
+    # emsal yok. Daha az bilgiyle çalışan bir yöntemin bandı, daha çok
+    # bilgiyle çalışanınkinden dar olamaz. Ölçüm bunu 7 kayda dayanarak
+    # söylüyor; yedi kayıt bir yüzdelik taşımaz. Bu yüzden geliştirme
+    # payına eşitlendi. Kayıt sayısı artarsa yeniden ölçülmeli.
     basis_spread: dict[str, float] = field(default_factory=lambda: {
-        "gelistirme": 0.45,   # ölçülen: 2/3 kapsama için ±%50 (n=12)
-        "taban": 0.50,        # ölçülen: ±%101 ama n=4, o yüzden tamamı yazılmadı
-        "arazi": 0.70,        # ölçülen: ±%76 (n=26)
-        "beklenti": 0.85,     # imar beklentisi: gelir de gelmez de, en belirsiz okuma
+        "gelistirme": 1.14,   # n=35 · tek başına kapsama %69, ortanca bant 4,6 kat
+        "taban": 1.14,        # ölçülen 0,81 (n=7) · yapısal tavan olarak gelistirme'ye eşit
+        "arazi": 0.95,        # n=35
+        "beklenti": 0.56,     # n=27 · imar beklentisi primi zaten banda +0,25 ekliyor
     })
 
     # İlan fiyatı ile gerçekleşen satış arasındaki tipik pazarlık payı.

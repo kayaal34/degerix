@@ -748,16 +748,24 @@ def estimate(
     unit_price = nice_round(base_price * math.prod(factor.multiplier for factor in factors))
     total = unit_price * area_m2
 
-    # Eşikler yöntemlerin ölçülen isabetine göre: "yüksek" ancak geliştirme hesabı
-    # eksiksiz bilgiyle çalıştığında (taban 0,30) mümkün; emsal varsayılmışsa bile
-    # "orta"ya iner. İmarsız arazi en iyi hâlde "orta", imar beklentisi hep "düşük".
-    # Eski eşikler (0,12 / 0,22) 0,08'lik taban genişliğe göreydi.
-    if spread <= 0.46 + 1e-9:
-        confidence = "yüksek"
-    elif spread <= 0.60 + 1e-9:
-        confidence = "orta"
+    # Bu etiket bir isabet notu DEĞİL: aralığın ne kadar geniş olduğunu söyler.
+    #
+    # Eskiden "yüksek / orta / düşük" yazıyordu ve "tahmin güveni" diye
+    # sunuluyordu. İkisi de yanlıştı: hesaplandığı tek girdi yayılımın
+    # kendisiydi, yani kullanıcının zaten gördüğü aralık. Aynı sayıyı not
+    # gibi tekrar etmek, modele olmayan bir isabet ölçüsü atfediyordu.
+    #
+    # Eşikler 104 ilanda ölçülen yayılım dağılımının üçte birlik
+    # noktalarından (tools/bant_kalibre.py ile aynı küme): en dar 0,61,
+    # üçte bir 0,99, ortanca 1,03, üçte iki 1,18, en geniş 1,30. Yani
+    # "dar" demek "bu parselin aralığı bizim tipik aralığımızdan dar"
+    # demektir — mutlak bir doğruluk iddiası değil.
+    if spread <= 0.99 + 1e-9:
+        confidence = "dar"
+    elif spread <= 1.18 + 1e-9:
+        confidence = "tipik"
     else:
-        confidence = "düşük"
+        confidence = "geniş"
 
     scenarios = []
     low, high = band(total, spread)
