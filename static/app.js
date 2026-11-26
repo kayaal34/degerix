@@ -1463,19 +1463,21 @@ async function init() {
 
   if (tabFromHash() === "number") selectTab("number"); // tanıtım sayfasındaki "Ada / parsel ile ara"
 
-  // Paylaşılan bağlantı: ?lat=..&lng=..[&alan=..&imar=..&hesapla=1]
   const params = new URLSearchParams(location.search);
+  const parcelKey = ["mahalle", "ada", "parsel"].map(name => params.get(name) || "");
+  if (parcelKey.every(part => /^\d{1,7}$/.test(part))) {
+    state.presetAnswers = params;
+    lookup("/api/parcels/" + parcelKey.join("/"), { fit: true });
+    return;
+  }
+
+  // Eski konum bağlantıları parsel kimliği bulunmadığında çalışmaya devam eder.
   const lat = Number.parseFloat(params.get("lat"));
   const lng = Number.parseFloat(params.get("lng"));
   if (Number.isFinite(lat) && Number.isFinite(lng) && TURKEY.contains([lat, lng])) {
     state.presetAnswers = params;
     map.setView([lat, lng], 17);
-    const parcelKey = ["mahalle", "ada", "parsel"].map(name => params.get(name) || "");
-    if (parcelKey.every(part => /^\d{1,7}$/.test(part))) {
-      lookup("/api/parcels/" + parcelKey.join("/"), {fit: true});
-    } else {
-      lookupPoint(lat, lng);
-    }
+    lookupPoint(lat, lng);
   }
 }
 

@@ -110,25 +110,6 @@ a.btn-ghost { color: var(--ink); }
 
 /* Sol sütun düğmelerden sonra boş kalıyordu. Buraya yöntem değil, elinize
    ne geçeceği yazılı: üç satır, her biri bir çıktı. */
-.hero-alirsiniz {
-  display: grid;
-  gap: 0;
-  margin: 28px 0 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--line);
-}
-.hero-alirsiniz li {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--line);
-}
-.hero-alirsiniz b { font-size: 14.5px; font-weight: 600; min-width: 148px; }
-.hero-alirsiniz span { font-size: 13.5px; color: var(--muted); }
-
 .hero-foot { margin: 16px 0 0; font-size: 13px; color: var(--muted); }
 .hero-card-foot { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
 
@@ -213,10 +194,7 @@ a.btn-ghost { color: var(--ink); }
 }
 @media (max-width: 560px) {
   .kaynak-seridi { grid-template-columns: 1fr; }
-  /* Dar ekranda satırlardan biri sarıp ikiye bölünüyor, diğerleri tek
-     satırda kalıyordu; hepsi aynı biçimde dizilsin. */
-  .hero-alirsiniz li { display: grid; gap: 1px; }
-  .hero-alirsiniz b { min-width: 0; }
+
 }
 
 /* ---------- Ana sayfa Türkiye haritası ---------- */
@@ -239,7 +217,7 @@ a.btn-ghost { color: var(--ink); }
 .harita-hata { display: grid; place-items: center; height: 100%; padding: 24px; text-align: center; }
 
 /* Leaflet'in kendi arka planı gri; kağıt tonumuz olsun */
-#anaHarita .leaflet-container { background: var(--surface); }
+#anaHarita.leaflet-container { background: var(--surface); }
 
 .il-ipucu {
   padding: 7px 10px;
@@ -262,3 +240,46 @@ a.btn-ghost { color: var(--ink); }
 @media (max-width: 900px) {
   #anaHarita { aspect-ratio: 1 / 1; }
 }
+
+/* İlk ekranda parsel sorgusu ve konut haritası */
+.hero-section {
+  background: linear-gradient(160deg, var(--surface) 45%, var(--bg));
+  border-bottom: 1px solid var(--line);
+}
+.hero { grid-template-columns: minmax(0, 1fr) minmax(0, .98fr); align-items: start; }
+.hero .lead { margin-top: 14px; }
+.hero .hero-actions { margin-top: 14px; }
+.parcel-quick {
+  margin-top: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+}
+.parcel-quick fieldset { min-width: 0; margin: 0; padding: 16px; border: 0; }
+.parcel-quick legend { padding: 0 6px; font-weight: 650; margin-left: 8px; }
+.parcel-quick-places, .parcel-quick-numbers { display: grid; gap: 8px; margin-bottom: 10px; }
+.parcel-quick-places { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.parcel-quick-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.parcel-quick label, .hero-map-picker { display: grid; gap: 4px; font-size: 13px; font-weight: 600; min-width: 0; }
+.parcel-quick input, .parcel-quick select, .hero-map-picker select { min-height: 44px; width: 100%; min-width: 0; font-size: 16px; }
+.parcel-quick .btn { min-height: 44px; width: 100%; }
+.quick-status { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.quick-status:empty { margin: 0; }
+.hero-harita { min-width: 0; gap: 10px; padding: clamp(14px, 3vw, 22px); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.hero-map-title { display: flex; align-items: start; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; }
+.hero-map-title h2 { margin: 0; font-size: 20px; }
+.hero-map-title p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.hero-map-title a { font-size: 13px; color: var(--brand); }
+#anaHarita { aspect-ratio: 1.52; box-shadow: none; background: var(--bg); }
+@media (max-width: 900px) {
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+}
+@media (max-width: 520px) {
+  .parcel-quick-places { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .parcel-quick-places label:last-child { grid-column: 1 / -1; }
+  .hero .hero-actions .btn { width: auto; flex: 1 1 auto; }
+}
+
+.hero-map-legend { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.hero-map-legend span:nth-child(2) { height: 8px; border-radius: var(--radius-pill); }

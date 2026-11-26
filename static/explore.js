@@ -9,6 +9,7 @@
   let listings;
   let loading;
   let active = false;
+  let initialCity = new URLSearchParams(location.search).get("il");
 
   function loadCatalog() {
     loading ??= Promise.all([api("turkiye.json"), api("orhaneli-archive.json"), api("listings.json"), api("iller.geojson")])
@@ -347,7 +348,13 @@
     $("#exploreStatus").textContent = "Bölge verileri yükleniyor…";
     try {
       await loadCatalog();
-      if (active) { borders.addTo(map); layer.addTo(map); drill("city"); }
+      if (active) {
+        if (initialCity && Object.hasOwn(catalog.cities, initialCity)) citySelect.value = initialCity;
+        initialCity = null;
+        borders.addTo(map);
+        layer.addTo(map);
+        drill("city");
+      }
     } catch { $("#exploreStatus").textContent = "Veriler alınamadı. Bölge keşfine tekrar dokunun."; }
   });
   const savedKey = "degerix-parsel-gecmisi-v1";

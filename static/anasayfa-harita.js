@@ -12,17 +12,16 @@
 
 const HARITA_ALANI = document.getElementById("anaHarita");
 
-if (HARITA_ALANI && window.L) {
-  kur().catch((hata) => {
-    // Harita süs değil ama sayfanın kalanı onsuz da çalışır: sessizce
-    // düşmek yerine yerinde ne olduğunu yazıyoruz.
-    HARITA_ALANI.innerHTML = "";
-    const not = document.createElement("p");
-    not.className = "harita-hata";
-    not.textContent = "Harita şu an yüklenemedi. Haritayı aç düğmesiyle devam edebilirsiniz.";
-    HARITA_ALANI.append(not);
-    console.warn("Ana sayfa haritası:", hata);
-  });
+function showMapUnavailable() {
+  const message = document.createElement("p");
+  message.className = "harita-hata";
+  message.textContent = "Harita önizlemesi şu an yüklenemedi. Bölge keşfi bağlantısıyla devam edebilirsiniz.";
+  HARITA_ALANI.replaceChildren(message);
+  document.querySelector("#haritaAlt").textContent = "Türkiye bölge keşfi ayrı ekranda açılır.";
+}
+
+function exploreUrl(province) {
+  return "harita.html?" + new URLSearchParams({il: province}) + "#turkiye";
 }
 
 /* Fiyat → renk. Beş kademe, markanın yeşilinden açığa. Sürekli bir
@@ -59,6 +58,14 @@ async function kur() {
     keyboard: false,
   });
 
+  const names = iller.features.map(feature => feature.properties.text);
+  const picker = document.querySelector("#heroMapProvince");
+  picker.replaceChildren(new Option("İl seçin", ""), ...names.sort((a, b) => a.localeCompare(b, "tr")).map(name => new Option(name, name)));
+  picker.addEventListener("change", () => {
+    if (picker.value) window.location.href = exploreUrl(picker.value);
+  });
+  document.querySelector("#heroMapPicker").hidden = false;
+
   const tahminler = new Set(fiyatlar.tahmin_edilen || []);
 
   const katman = L.geoJSON(iller, {
@@ -84,7 +91,7 @@ async function kur() {
       parca.on({
         mouseover: () => parca.setStyle({ weight: 2.5, color: "#9c7b3f" }),
         mouseout: () => katman.resetStyle(parca),
-        click: () => { window.location.href = `harita.html#turkiye`; },
+        click: () => { window.location.href = exploreUrl(ad); },
       });
     },
   }).addTo(harita);
@@ -119,6 +126,13 @@ async function kur() {
       .addTo(harita);
   }
 
+  const legend = document.querySelector("#heroMapLegend");
+  const bands = KADEMELER.map((step, index) => {
+    const width = 100 / KADEMELER.length;
+    return step.renk + " " + index * width + "% " + (index + 1) * width + "%";
+  });
+  legend.children[1].style.background = "linear-gradient(90deg," + bands.join(",") + ")";
+  legend.hidden = false;
   yaziyiDoldur(fiyatlar, kayitlar.length);
 }
 
@@ -128,4 +142,10 @@ function yaziyiDoldur(fiyatlar, kayitSayisi) {
   alt.textContent =
     `İl renkleri: ${fiyatlar.donem} konut m² fiyatı (${fiyatlar.kaynak}). ` +
     (kayitSayisi ? `Turuncu noktalar: kaynağı belli ${kayitSayisi} belediye ihale ilanı.` : "");
+}
+
+
+if (HARITA_ALANI) {
+  if (window.L) kur().catch(showMapUnavailable);
+  else showMapUnavailable();
 }

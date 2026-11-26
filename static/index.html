@@ -49,9 +49,9 @@
       Değerix
     </a>
     <nav class="site-nav" aria-label="Sayfa bölümleri">
-      <a href="#nasil-calisir">Nasıl çalışır</a>
-      <a href="#yontem">Yöntem</a>
-      <a href="#kaynaklar">Veri kaynakları</a>
+      <a href="harita.html#turkiye">Bölge keşfi</a>
+      <a href="#ornek">Örnek sonuç</a>
+      <a href="abonelik.html">Planlar</a>
       <a href="giris.html">Giriş yap</a>
       <a class="btn btn-primary" href="harita.html">Haritayı aç</a>
     </nav>
@@ -61,29 +61,50 @@
     <section class="section hero-section">
       <div class="container hero">
         <div class="hero-text">
-          <p class="eyebrow">İlk üç sorgu ücretsiz</p>
-          <h1>Arsanız bugün ne eder?</h1>
-          <p class="lead">
-            Haritada arsanıza tıklayın. Birkaç soruya yanıt verin.
-            Tek bir rakam değil, satabileceğiniz fiyat aralığını görün.
-          </p>
+          <p class="eyebrow">Arsa ve tarla değerleme</p>
+          <h1>Arsanızın değerini verilerle inceleyin</h1>
+          <p class="lead">Parselin sınırını bulun. Arsanın özelliklerine göre oluşan tahmini değer aralığını, hesabın dayanaklarını ve PDF raporunu görün.</p>
+
+          <form class="parcel-quick" id="parcelQuick" action="harita.html#harita" hidden>
+            <fieldset>
+              <legend>Ada / parsel ile bul</legend>
+              <div class="parcel-quick-places">
+                <label for="quickProvince">İl<select id="quickProvince" required disabled></select></label>
+                <label for="quickDistrict">İlçe<select id="quickDistrict" required disabled></select></label>
+                <label for="quickNeighborhood">Köy / mahalle<select id="quickNeighborhood" name="mahalle" required disabled></select></label>
+              </div>
+              <div class="parcel-quick-numbers">
+                <label for="quickBlock">Ada<input id="quickBlock" name="ada" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" required placeholder="Ör. 115"></label>
+                <label for="quickParcel">Parsel<input id="quickParcel" name="parsel" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" required placeholder="Ör. 3"></label>
+              </div>
+              <button class="btn btn-primary" id="quickSubmit" type="submit" disabled>Parseli bul</button>
+              <p class="quick-status" id="quickStatus" role="status"></p>
+            </fieldset>
+          </form>
           <div class="hero-actions">
-            <a class="btn btn-primary btn-lg" href="harita.html">Haritada arsanı bul</a>
-            <a class="btn btn-ghost btn-lg" href="harita.html#ada-parsel">Ada / parsel ile ara</a>
+            <a class="btn btn-ghost" href="harita.html#harita">Haritadan seç</a>
+            <a class="btn btn-ghost" href="#ornek">Örnek sonucu incele</a>
           </div>
-          <ul class="hero-alirsiniz">
-            <li><b>Gerçek parsel</b><span>Sınır, alan ve nitelik tapu kaydından</span></li>
-            <li><b>Üç satış senaryosu</b><span>Acele satıştan tok satıcıya</span></li>
-            <li><b>İndirilebilir rapor</b><span>Hesabın tamamıyla, PDF</span></li>
-          </ul>
-          <p class="hero-foot">Tapu kaydı TKGM’den, konut fiyatları Merkez Bankası’ndan gelir.</p>
+          <p class="hero-foot">Parsel bilgisi TKGM’den gelir. Kayıtlı hesaplara ilk üç değerleme ücretsiz.</p>
         </div>
 
         <figure class="hero-harita">
-          <div id="anaHarita" role="img"
-               aria-label="Türkiye il haritası: iller konut metrekare fiyatına göre renklendirilmiş,
-                           turuncu noktalar kaynağı belli belediye ihale ilanları"></div>
-          <figcaption id="haritaAlt">Harita yükleniyor…</figcaption>
+          <div class="hero-map-title">
+            <div>
+              <h2>Türkiye konut fiyat haritası</h2>
+              <p>İl geneli konut birim fiyatı · TL/m²</p>
+            </div>
+            <a href="harita.html#turkiye">Bölge keşfini aç</a>
+          </div>
+          <div id="anaHarita" aria-label="Türkiye konut birim fiyatları ve belediye ihale ilanları"></div>
+          <div class="hero-map-legend" id="heroMapLegend" hidden>
+            <span>≤ 25 bin</span><span aria-hidden="true"></span><span>&gt; 75 bin TL/m²</span>
+          </div>
+          <figcaption id="haritaAlt">Harita ve veri dönemi yükleniyor…</figcaption>
+          <label class="hero-map-picker" id="heroMapPicker" hidden>
+            <span>İle göre keşfet</span>
+            <select id="heroMapProvince" aria-label="Keşfedilecek il"></select>
+          </label>
         </figure>
       </div>
     </section>
@@ -92,7 +113,7 @@
       <div class="container">
         <div class="section-head" data-beliren>
           <h2>Sonuç nasıl görünüyor?</h2>
-          <p>Gerçek bir parselin gerçek çıktısı. Rakamlar modelden üretildi, elle yazılmadı.</p>
+          <p>Mudanya, Ömerbey’de bir parsel için 26 Kasım 2026’da üretilmiş örnek ön tahmin.</p>
         </div>
         <div class="ornek-sarmal" data-beliren>
           <figure class="hero-card">
@@ -116,10 +137,10 @@
             </div>
             <p class="value-caveat">Ön tahmindir: model henüz gerçek satışlarla doğrulanmadı; satış fiyatı bu aralığın dışında kalabilir.</p>
           </div>
-          <ul aria-label="Satış süresine göre fiyat">
-            <li class="scenario"><div class="scenario-text"><b>Acil satış</b><span>1–2 ay içinde</span></div><div class="scenario-numbers"><b>48,2 milyon ₺</b></div></li>
-            <li class="scenario is-market"><div class="scenario-text"><b>Piyasa değeri</b><span>3–6 ay</span></div><div class="scenario-numbers"><b>56,7 milyon ₺</b></div></li>
-            <li class="scenario"><div class="scenario-text"><b>Tok satıcı</b><span>6 ay ve üzeri</span></div><div class="scenario-numbers"><b>61,2 milyon ₺</b></div></li>
+          <ul aria-label="Fiyat senaryoları">
+            <li class="scenario"><div class="scenario-text"><b>Acil satış</b></div><div class="scenario-numbers"><b>48,2 milyon ₺</b></div></li>
+            <li class="scenario is-market"><div class="scenario-text"><b>Piyasa değeri</b></div><div class="scenario-numbers"><b>56,7 milyon ₺</b></div></li>
+            <li class="scenario"><div class="scenario-text"><b>Tok satıcı</b></div><div class="scenario-numbers"><b>61,2 milyon ₺</b></div></li>
           </ul>
           <p class="hero-card-foot">Bu rakamın nasıl çıktığı, adım adım, raporun içinde yazar.</p>
           </figure>
@@ -157,7 +178,7 @@
       <div class="container">
         <div class="section-head" data-beliren>
           <h2>Arsanın değeri, üstüne yapılabilecek şeyden geriye kalandır</h2>
-          <p>Lisanslı değerleme uzmanlarının kullandığı hesap bu. Değerix de aynısını yapar, sonra size gösterir.</p>
+          <p>İmarlı arsa örneklerinde kullanılan geliştirme hesabının özeti. Arazi türüne göre hesap değişebilir.</p>
         </div>
 
         <div class="denklem" aria-label="Konut hasılatı eksi inşaat maliyeti eksi geliştirici payı eşittir arsa değeri">
@@ -247,6 +268,7 @@
   </footer>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="anasayfa-harita.js"></script>
+  <script src="anasayfa-parsel.js" defer></script>
   <script src="landing.js"></script>
   <script src="cerez.js"></script>
 </body>
