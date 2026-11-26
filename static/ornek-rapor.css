@@ -6,7 +6,10 @@
 .sample-title p, .sample-card p, .sample-note { color: var(--muted); }
 .sample-summary, .sample-card { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: clamp(16px, 4vw, 30px); }
 .sample-summary { background: var(--brand-soft); }
-.sample-total { display: block; color: var(--brand-deep); font: 650 clamp(31px, 6vw, 50px)/1.1 var(--font-display); }
+/* --brand-deep gradyanın koyu ucu; koyu temada zemin de koyu olduğu için
+   sayfanın en önemli rakamı 1,42:1 kontrastla neredeyse görünmez oluyordu.
+   --brand iki temada da zemine göre ayarlanıyor. */
+.sample-total { display: block; color: var(--brand); font: 650 clamp(31px, 6vw, 50px)/1.1 var(--font-display); }
 .sample-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .sample-card { min-width: 0; background: var(--surface); }
 .sample-card dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px 12px; margin: 0; }

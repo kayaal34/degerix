@@ -324,15 +324,17 @@ a.btn-ghost { color: var(--ink); }
 }
 .hero-map-legend span:nth-child(2) { height: 8px; min-width: 56px; border-radius: var(--radius-pill); }
 
-.hero-map-kesfet {
-  position: absolute;
-  right: var(--sp-3);
-  bottom: calc(var(--sp-3) + 68px);   /* yakınlaştırma düğmelerinin üstünde */
-  z-index: 500;
-  min-height: 36px;
-  padding: var(--sp-2) var(--sp-4);
-  font-size: var(--fs-md);
+/* Haritanın üstünde yüzerken yakınlaştırma düğmeleriyle ve lejantla
+   yarışıyordu; alt satırda, altyazının yanında duruyor. */
+.hero-map-alt {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
 }
+.hero-map-alt figcaption { flex: 1 1 260px; }
+.hero-map-kesfet { flex: none; min-height: 40px; padding: var(--sp-2) var(--sp-4); font-size: var(--fs-md); }
 
 /* Harita / Liste geçişi */
 .hero-map-gorunum {
@@ -413,6 +415,133 @@ a.btn-ghost { color: var(--ink); }
 #anaHarita .leaflet-bar a:hover { background: var(--brand-soft); }
 
 @media (max-width: 560px) {
-  .hero-map-kesfet { right: var(--sp-2); bottom: calc(var(--sp-2) + 64px); }
   .hero-map-legend { max-width: calc(100% - 24px); }
+}
+
+/* Dokunma hedefleri. Parmak ucu kabaca 9 mm; 40px altındaki bir düğmeye
+   isabet ettirmek için kullanıcı bakmak zorunda kalıyor. Fare ile sorun
+   değil, o yüzden yalnız dar ekranda büyüyorlar. */
+@media (max-width: 860px) {
+  .hero-map-gorunum button { min-height: 40px; padding: 0 var(--sp-4); }
+  .hero-map-kesfet { min-height: 44px; width: 100%; }
+  #anaHarita .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; font-size: 20px; }
+}
+
+/* ---------- Giriş bölümü: ayrıntı geçişi ---------- */
+/*
+ * Ekrandaki en önemli şey bu form: kullanıcı buraya parselini girip
+ * cevabı alacak. Düz beyaz bir kutu olarak durmasının sebebi yok.
+ */
+
+.parcel-quick {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transition: box-shadow var(--dur-3) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              transform var(--dur-3) var(--ease-out);
+}
+/* Değer kartındaki ve pencerelerdeki aynı pirinç çizgi: ürünün parçası
+   olduğu buradan belli oluyor. */
+.parcel-quick::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent) 22%, var(--accent) 78%, transparent);
+  opacity: .5;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+/* Kullanıcı forma girince kart öne çıksın: hangi işin içinde olduğu belli
+   olsun. Kalkma değil derinleşme — kalkan kart yerleşimi oynatıyor. */
+.parcel-quick:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-xl), 0 0 0 4px var(--brand-ring);
+}
+.parcel-quick:focus-within::before { opacity: 1; }
+
+.parcel-quick fieldset { padding: var(--sp-5); }
+.parcel-quick legend {
+  padding: 0;
+  margin: 0 0 var(--sp-1);
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Seçiciler yerel görünümden çıksın: üç tanesi yan yana duruyor ve
+   tarayıcının kendi oku bizim girdilerimizle aynı dili konuşmuyor. */
+.parcel-quick select, .hero-map-picker select {
+  appearance: none;
+  padding: var(--sp-2) 34px var(--sp-2) var(--sp-3);
+  background-color: var(--surface);
+  background-image: var(--icon-chevron);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+}
+.parcel-quick select:disabled, .parcel-quick input:disabled {
+  background-color: var(--surface-2);
+  color: var(--muted);
+}
+
+/* Ana eylem. Devre dışıyken "bozuk" değil "sırası gelmedi" görünmeli:
+   opacity .5 ile soluklaşan yeşil düğme ölü duruyordu. */
+#quickSubmit {
+  position: relative;
+  overflow: hidden;
+  font-size: var(--fs-lg);
+  transition: background var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out),
+              opacity var(--dur-2) var(--ease-out);
+}
+#quickSubmit:disabled {
+  opacity: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  box-shadow: none;
+}
+/* Etkinleşince bir kez ışık geçsin: kullanıcı formu doldurdu, düğmenin
+   artık basılabilir olduğunu fark etmeli. */
+#quickSubmit:not(:disabled) { animation: dugme-canlan var(--dur-4) var(--ease-out); }
+@keyframes dugme-canlan {
+  from { box-shadow: 0 0 0 0 var(--brand-ring); }
+  60%  { box-shadow: 0 0 0 10px rgb(20 84 58 / 0%); }
+  to   { box-shadow: var(--shadow-brand); }
+}
+
+/* Alanlar sırayla gelsin. Hepsi birden belirince form "patlıyor". */
+.parcel-quick label, .parcel-quick .btn {
+  animation: rise var(--dur-3) var(--ease-out) backwards;
+}
+.parcel-quick-places label:nth-child(1) { animation-delay: calc(var(--stagger) * 1); }
+.parcel-quick-places label:nth-child(2) { animation-delay: calc(var(--stagger) * 2); }
+.parcel-quick-places label:nth-child(3) { animation-delay: calc(var(--stagger) * 3); }
+.parcel-quick-numbers label:nth-child(1) { animation-delay: calc(var(--stagger) * 4); }
+.parcel-quick-numbers label:nth-child(2) { animation-delay: calc(var(--stagger) * 5); }
+.parcel-quick .btn { animation-delay: calc(var(--stagger) * 6); }
+
+/* Göz üstü etiket: kısa bir pirinç çizgiyle. */
+.eyebrow { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); }
+.eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  flex: none;
+  background: currentColor;
+  opacity: .6;
+}
+
+/* Harita kartında çift çerçeve vardı: dış kart + iç harita kutusu. */
+#anaHarita { border: 0; border-radius: var(--radius-md); box-shadow: none; }
+.hero-harita { box-shadow: var(--shadow); }
+
+@media (prefers-reduced-motion: reduce) {
+  .parcel-quick label, .parcel-quick .btn, #quickSubmit:not(:disabled) { animation: none; }
 }

@@ -364,6 +364,17 @@ body {
 }
 
 button, input, select { font: inherit; color: inherit; }
+
+/* Temel bağlantı rengi. Bu kural yokken ornek-rapor ve 404 gibi kendi
+   bağlantı stili tanımlamayan sayfalarda tarayıcının mor varsayılanı
+   çıkıyordu — tek bir sayfanın başka bir siteden gelmiş gibi durmasına
+   yetiyor. */
+a { color: var(--brand); text-underline-offset: 2px; }
+a:hover { color: var(--brand-hover); }
+
+/* Düğme bir bağlantı olabilir ama bağlantı gibi görünmemeli: .btn
+   sınıfı taşıyan <a>'larda tarayıcının alt çizgisi kalıyordu. */
+.btn, .btn:hover { text-decoration: none; }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* ---------- Yerleşim ---------- */
@@ -1629,4 +1640,71 @@ h1, h2, .sayfa h1, .kutu h2 {
   .value.is-loading .value-range { animation: none; }
   .value.is-loading .value-total,
   .value.is-loading .value-range { color: inherit; background: none; }
+}
+
+/* ---------- Sayfalar arası geçiş ---------- */
+/* Destekleyen tarayıcıda sayfa geçişleri kesik değil akışkan olur;
+   desteklemeyende hiçbir şey olmaz, kural sessizce yok sayılır. Kendi
+   animasyonumuzu yazmıyoruz: tarayıcının varsayılanı kısa ve ölçülü,
+   üstüne binmek gezinmeyi yavaşlatır. */
+@view-transition { navigation: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Marka işareti sayfalar arasında yerinde kalsın, yeniden belirmesin. */
+.site-brand svg, .brand-mark { view-transition-name: degerix-marka; }
+
+/* ---------- Denetimden çıkan düzeltmeler ---------- */
+
+/* Çerez bandı dar ekranda 170px, yani ekranın beşte biri, ve içeriğin
+   üstüne biniyordu. Tek satıra indi ve düğme metnin yanında. */
+@media (max-width: 560px) {
+  .cerez-bildirim {
+    left: var(--sp-2);
+    right: var(--sp-2);
+    bottom: var(--sp-2);
+    width: auto;
+    transform: none;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .cerez-bildirim p { flex: 1 1 auto; font-size: var(--fs-xs); line-height: 1.4; }
+  .cerez-bildirim .btn { min-height: 36px; padding: var(--sp-1) var(--sp-3); font-size: var(--fs-sm); }
+}
+
+/* Alt bilgi bağlantıları 18-20px yüksekliğindeydi; parmakla yanlış
+   bağlantıya basmak kolaydı. */
+@media (max-width: 860px) {
+  .footer-baglantilar, .panel-foot-baglantilar { gap: 0 var(--sp-3); }
+  .footer-baglantilar a, .panel-foot-baglantilar a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .tema-dugmesi { width: 44px; height: 44px; }
+  .sss-liste summary, .sayfa details summary { min-height: 44px; display: flex; align-items: center; }
+}
+
+/* Yatay kaydırılan tablolarda kaydırma ipucu. Dar ekranda karşılaştırma
+   tablosunun "Değerix" sütunu görünmüyordu ve görünmediği de belli
+   değildi: sağ kenardaki solma, altında devam ettiğini söylüyor. */
+.compare-wrap, .tablo-kaydir {
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent),
+    linear-gradient(to left, var(--surface) 30%, transparent) 100% 0,
+    radial-gradient(farthest-side at 0 50%, rgb(21 32 28 / 18%), transparent),
+    radial-gradient(farthest-side at 100% 50%, rgb(21 32 28 / 18%), transparent) 100% 0;
+  background-repeat: no-repeat;
+  background-size: 48px 100%, 48px 100%, 18px 100%, 18px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+/* Yazdırırken kaydırmayla beliren bölümler her zaman görünür olmalı:
+   kâğıtta kaydırma yok, IntersectionObserver hiç tetiklenmez. */
+@media print {
+  [data-beliren] { opacity: 1 !important; transform: none !important; }
 }
