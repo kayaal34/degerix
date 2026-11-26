@@ -494,6 +494,32 @@ button, input, select { font: inherit; color: inherit; }
   overflow-wrap: anywhere;
 }
 .value-range { font-size: 14px; opacity: 0.9; }
+
+/* Aralık şeridi: değerin bir nokta değil bant olduğunu tek bakışta söyler.
+   Kart aralık üretemediğinde (.has-bar yoksa) hiç görünmez. */
+.value-bar { display: none; }
+.value.has-bar .value-bar {
+  display: block;
+  position: relative;
+  height: 5px;
+  margin: 12px 2px 4px;
+  border-radius: var(--radius-pill);
+  background: var(--on-brand-soft);
+  animation: bar-open var(--dur-3) var(--ease-out) backwards 120ms;
+}
+.value-bar-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px rgb(10 51 35 / 55%);
+  transform: translate(-50%, -50%);
+  transition: left var(--dur-3) var(--ease-out);
+}
+@keyframes bar-open { from { transform: scaleX(.2); opacity: 0; } }
 .value-share { margin-top: 6px; font-size: 14px; font-weight: 600; }
 .value-foot {
   display: flex;

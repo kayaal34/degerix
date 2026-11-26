@@ -634,6 +634,12 @@ function renderEstimate(result, parcel) {
   state.lastResult = result;
   $("#valTotal").textContent = money.format(result.total);
   $("#valRange").textContent = `Model aralığı: ${shortRange(result.low, result.high)}`;
+  // Aralığı yazıyla söylemek yetmiyor: tek rakam sanılan şeyin aslında bir
+  // bant olduğunu şerit bir bakışta anlatıyor. İşaretçi yanıt değişince kayar.
+  const yayilim = result.high - result.low;
+  const oran = yayilim > 0 ? (result.total - result.low) / yayilim : 0.5;
+  $("#valMark").style.left = `${Math.min(Math.max(oran, 0), 1) * 100}%`;
+  $("#valueCard").classList.add("has-bar");
   $("#valUnit").textContent = money.format(result.unit_price);
   const confidence = $("#valConfidence");
   // "Veri tamlığı" değil: güven artık yalnızca yanıtların eksiksizliğini değil,
@@ -727,6 +733,7 @@ function renderInvalid(message) {
   $("#valueCard").classList.remove("is-loading");
   $("#valTotal").textContent = "—";
   $("#valRange").textContent = message;
+  $("#valueCard").classList.remove("has-bar");   // aralık yoksa şerit de olmasın
   $("#valUnit").textContent = "—";
   $("#valConfidence").textContent = "";
   $("#valShare").hidden = true;

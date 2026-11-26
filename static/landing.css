@@ -15,7 +15,8 @@ a.btn-ghost { color: var(--ink); }
 
 /* ---------- Giriş ---------- */
 
-.hero { animation: rise var(--dur-3) var(--ease-out) backwards; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
+.hero { animation: rise var(--dur-3) var(--ease-out) backwards; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(32px, 5vw, 56px); align-items: center; }
+.hero-section { padding-top: clamp(32px, 5vw, 56px); }
 .eyebrow { margin: 0 0 14px; color: var(--accent); font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 .hero h1 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(34px, 5.2vw, 56px); line-height: 1.06; letter-spacing: -0.018em; }
 .lead { max-width: 56ch; margin: 18px 0 0; color: var(--muted); font-size: clamp(16px, 1.6vw, 18px); }
@@ -65,7 +66,6 @@ a.btn-ghost { color: var(--ink); }
 
 /* ---------- Kaynaklar ve sınırlar ---------- */
 
-.sources { grid-template-columns: repeat(4, 1fr); }
 
 .limits { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: start; }
 .limits .section-head { margin-bottom: 0; }
@@ -78,10 +78,143 @@ a.btn-ghost { color: var(--ink); }
 
 @media (max-width: 900px) {
   .hero, .limits { grid-template-columns: 1fr; }
-  .card-grid, .sources { grid-template-columns: 1fr 1fr; }
+  .card-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 560px) {
-  .card-grid, .sources { grid-template-columns: 1fr; }
+  .card-grid { grid-template-columns: 1fr; }
   .hero-actions .btn { width: 100%; }
+}
+
+
+/* ---------- Kaydırınca beliren bölümler ---------- */
+/* .beliren-acik yalnızca JavaScript varken <head>'de ekleniyor; betik
+   gelmezse hiçbir şey gizlenmez. */
+
+.beliren-acik [data-beliren] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.beliren-acik [data-beliren].belirdi {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--dur-3) var(--ease-out) calc(var(--sira, 0) * var(--stagger)),
+    transform var(--dur-3) var(--ease-out) calc(var(--sira, 0) * var(--stagger));
+}
+@media (prefers-reduced-motion: reduce) {
+  .beliren-acik [data-beliren] { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---------- Giriş bölümü ---------- */
+
+/* Sol sütun düğmelerden sonra boş kalıyordu. Buraya yöntem değil, elinize
+   ne geçeceği yazılı: üç satır, her biri bir çıktı. */
+.hero-alirsiniz {
+  display: grid;
+  gap: 0;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.hero-alirsiniz li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.hero-alirsiniz b { font-size: 14.5px; font-weight: 600; min-width: 148px; }
+.hero-alirsiniz span { font-size: 13.5px; color: var(--muted); }
+
+.hero-foot { margin: 16px 0 0; font-size: 13px; color: var(--muted); }
+.hero-card-foot { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+/* ---------- Denklem şeridi ---------- */
+/* Üç paragraf yerine tek bakışta okunan bir satır: yöntemi anlatmanın en
+   kısa yolu, yöntemi yazmak değil göstermek. */
+
+.denklem {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.denklem-ogesi {
+  flex: 1 1 180px;
+  max-width: 260px;
+  display: grid;
+  gap: 2px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.denklem-ogesi b {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+}
+.denklem-ogesi i { font-style: normal; font-size: 12.5px; color: var(--muted); }
+
+.denklem-islec {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Sonuç kutusu: aranan rakam bu, kart da onu söylüyor. */
+.denklem-sonuc {
+  background: linear-gradient(152deg, var(--brand) 0%, var(--brand-deep) 100%);
+  border-color: transparent;
+  box-shadow: var(--shadow-brand);
+  color: var(--on-brand);
+}
+.denklem-sonuc i { color: rgb(255 255 255 / 78%); }
+
+/* ---------- Kaynak şeridi ---------- */
+
+.kaynak-seridi {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kaynak-seridi li {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur-2) var(--ease-out);
+}
+.kaynak-seridi li:hover { border-color: var(--line-strong); }
+.kaynak-seridi b { font-size: 14px; font-weight: 600; }
+.kaynak-seridi span { font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 900px) {
+  /* Dikey dizilişte işleç kartların arasında kalıyor; 6px yüksekliğe
+     sıkışınca işaretin kendisi kırpılıyordu. */
+  .denklem-islec { width: 100%; height: 20px; font-size: 18px; line-height: 1; }
+  .denklem-ogesi { max-width: none; }
+  .kaynak-seridi { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .kaynak-seridi { grid-template-columns: 1fr; }
+  /* Dar ekranda satırlardan biri sarıp ikiye bölünüyor, diğerleri tek
+     satırda kalıyordu; hepsi aynı biçimde dizilsin. */
+  .hero-alirsiniz li { display: grid; gap: 1px; }
+  .hero-alirsiniz b { min-width: 0; }
 }
