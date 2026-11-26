@@ -71,12 +71,23 @@ CORNER: dict[str, tuple[str, float]] = {
     "hayir": ("Köşe parsel değil", 1.00),
 }
 
-# Satış süresine göre fiyat: (anahtar, etiket, süre, imarlı arsada katsayı, imarsız arazide katsayı).
 # Arazi daha yavaş el değiştirdiğinden acele satışta indirim daha derindir.
+# Fiyat senaryoları: tahmine uygulanan SABİT oranlar.
+#
+# Üçüncü sütun eskiden süre yazıyordu — "1–2 ay içinde", "3–6 ay",
+# "6 ay ve üzeri". Hiçbiri ölçülmedi: elimizde tek bir satışın ne kadar
+# sürdüğüne dair veri yok, olmadığı gibi ilan verisinden de çıkmaz.
+# Kullanıcıya "bu fiyata koyarsan iki ayda satarsın" demek, bilmediğimiz
+# bir şeyi söylemekti. Artık üçüncü sütun süre değil, senaryonun ne
+# anlama geldiği; oranın kendisi arayüzde çarpandan üretiliyor.
+#
+# Oranlar da ölçülmedi, sektörde yaygın kabul edilen değerlerdir ve
+# arayüzde bu açıkça yazıyor. İmarsız arazide makas daha geniş, çünkü
+# alıcı havuzu dar.
 SALE_SCENARIOS: list[tuple[str, str, str, float, float]] = [
-    ("acil", "Acil satış", "1–2 ay içinde", 0.85, 0.78),
-    ("piyasa", "Piyasa değeri", "3–6 ay", 1.00, 1.00),
-    ("tok", "Tok satıcı", "Acelesi yok, 6 ay ve üzeri", 1.08, 1.10),
+    ("acil", "Acil satış", "Hızlı satmak isteyen için alt uç", 0.85, 0.78),
+    ("piyasa", "Piyasa değeri", "Modelin tahmini", 1.00, 1.00),
+    ("tok", "Tok satıcı", "Beklemeye razı olan için üst uç", 1.08, 1.10),
 ]
 
 

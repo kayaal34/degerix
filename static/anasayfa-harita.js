@@ -140,7 +140,11 @@ function yaziyiDoldur(fiyatlar, kayitSayisi) {
   const alt = document.getElementById("haritaAlt");
   if (!alt) return;
   alt.textContent =
-    `İl renkleri: ${fiyatlar.donem} konut m² fiyatı (${fiyatlar.kaynak}). ` +
+    // fiyatlar.kaynak ham seri kodunu taşıyor ("TCMB EVDS · TP.BIRIMFIYAT …").
+    // Vitrine seri kodu yazmak, kullanıcıya hiçbir şey söylemeyen bir
+    // mühendislik ayrıntısı; kaynağın adı yeter, kodu veri kaynakları
+    // bölümünde zaten duruyor.
+    `İl renkleri: ${fiyatlar.donem} konut m² fiyatı, Merkez Bankası. ` +
     (kayitSayisi ? `Turuncu noktalar: kaynağı belli ${kayitSayisi} belediye ihale ilanı.` : "");
 }
 

@@ -38,3 +38,56 @@ Codex bu turda ana sayfa ve haritaya giriş üzerinde çalışıyor. Claude önc
 Oturumsuz açılan `ornek-rapor.html` tamamlandı. Ana sayfa artık aynı tarihli örneği bu sayfaya yönlendiriyor. Model, depodaki TCMB Bursa anlık görüntüsüyle yeniden çalıştırıldı. Rakamların önceki ana sayfa kartından farklı olması nedeniyle eski kopya kaldırıldı. Rapor üretim komutunu, model sürümünü, veri dönemini ve hangi girdilerin örnek varsayım olduğunu taşıyor. Güncel hesap bağlantısı canlı TKGM kaydıyla doğrulanan Ömerbey 1503/17 parselini açıyor.
 
 Claude için sıradaki işler mahalle emsali ve ofis pilotu. Normal değerleme ekranındaki satış süreleri de ayrıca ele alınabilir.
+
+---
+
+## Claude · 26 Kasım, Codex'in örnek rapor turundan sonra
+
+### Yaptıklarım
+
+**Satış süresi etiketleri kaldırıldı (P1'in kalan yarısı).** Ürün ekranı hâlâ
+"Acil satış · 1–2 ay içinde", "Tok satıcı · Acelesi yok, 6 ay ve üzeri"
+diyordu. Bunların hiçbiri ölçülmedi: elimizde tek bir satışın ne kadar
+sürdüğüne dair veri yok ve ilan verisinden de çıkmaz. Kullanıcıya "bu fiyata
+koyarsan iki ayda satarsın" demek bilmediğimiz bir şeyi söylemekti.
+
+Üçüncü sütun artık süre değil senaryonun ne demek olduğu: "Hızlı satmak
+isteyen için alt uç", "Modelin tahmini", "Beklemeye razı olan için üst uç".
+Başlık "Satış süresine göre fiyat" → "Fiyat senaryoları" ve altına şu not
+düştüm: *tahmine uygulanmış sabit oranlardır, bir parselin ne kadar sürede
+satacağını ölçmedik.* Oranların kendisi de (0,85 / 1,00 / 1,08; imarsızda
+0,78 / 1,00 / 1,10) ölçülmedi, bu da `app/data.py` yorumunda yazılı.
+
+**Ana sayfada ham seri kodu sızıyordu.** Harita altyazısı
+"TCMB EVDS · TP.BIRIMFIYAT (konut birim m² fiyatı)" yazıyordu. Kullanıcının
+istediği tam tersiydi — vitrinde mühendislik dili olmasın. "Merkez Bankası"
+yeter; seri kodu veri kaynakları bölümünde zaten duruyor.
+
+**Supabase kurulumu yazıldı:** `supabase/KURULUM.md`. Sıfırdan çalışır hâle
+getirmenin tam adımları. Bir tuzağı ayrıca işaretledim: Supabase varsayılan
+olarak e-postaya *bağlantı* gönderiyor, uygulama ise altı haneli *kod*
+bekliyor; Magic Link şablonunda `{{ .Token }}` kullanılmazsa giriş ekranı hiç
+çalışmaz ve hata da vermez.
+
+### Senin ana sayfa turun hakkında
+
+Üç bulgunu da doğruladım, üçü de gerçekti ve düzeltmen çalışıyor: il
+poligonu artık ili hedefe taşıyor, klavye için `heroMapProvince` seçicisi var.
+Tarayıcıda denedim: 81 il → 17 ilçe → 61 mahalle zinciri ve "Parseli bul"
+akışı çalışıyor. Parsel aramasını ilk ekrana almak doğru karardı; kullanıcı
+da bunu istemişti.
+
+### Kalan iki iş ve neden bu turda yapmadım
+
+**Mahalle emsali pilotu (P1).** Şema ve ölçüm yöntemini yazabilirim ama
+pilotun kendisi bir veri sağlayıcı hesabı istiyor; o hesap olmadan yazacağım
+şey çalışmayan bir iskelet olur. Sahibin kararı gereken bir adım, ona
+bırakıyorum. Yöntem tarafı hazır sayılır: `tools/bant_kalibre.py` artık
+ilçeye göre gruplayarak ayırıyor, `tools/calibrate.py --capraz` dört sınavı
+raporluyor; emsal karşılaştırması aynı iskelete oturur.
+
+**Ofis pilotu ve kullanım ölçümü (P2).** Beş ofisle pilot, sahip onayı ve
+ticari koşul gerektiriyor. Ayrıca ölçüm olayı eklemek, bugün hiç izleme
+yapmayan bir siteye izleme eklemek demek — çerez politikası "reklam ve izleme
+çerezi yok" diyor. Bunu sessizce değiştirmem doğru olmaz; önce sahibin kararı,
+sonra metin, sonra kod.
