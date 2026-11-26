@@ -35,6 +35,10 @@ const money = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY
 const integer = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 });
 const upToOneDecimal = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 1 });
 const twoDecimals = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Tapu alanı için: 122,23 m² yuvarlanmadan, 1.000 m² ise "1.000,00" olmadan.
+// Türetilmiş alanlar (inşaat hakkı, satılabilir) yuvarlanmaya devam ediyor;
+// orada ondalık bir kesinlik vaadi olur. Tapudaki sayı ise olduğu gibi yazılır.
+const upToTwoDecimals = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 });
 
 const state = {
   parcel: null,             // son seçilen parsel (API yanıtı)
@@ -370,7 +374,7 @@ function showParcel(parcel, point, fit) {
   $("#parcelNote").hidden = parcel.source === "tkgm";
 
   const meta = [
-    ["Tapu alanı", parcel.area_m2 ? `${integer.format(parcel.area_m2)} m²` : "—"],
+    ["Tapu alanı", parcel.area_m2 ? `${upToTwoDecimals.format(parcel.area_m2)} m²` : "—"],
     ["Nitelik", parcel.nitelik || "—"],
   ];
   $("#parcelMeta").replaceChildren(
@@ -752,7 +756,7 @@ function answerText(name) {
 function reportAnswers() {
   const zoned = state.zonedUsages.has($("#selUsage").value);
   const rows = [
-    ["Alan", `${integer.format(Number($("#inpArea").value) || 0)} m²`],
+    ["Alan", `${upToTwoDecimals.format(Number($("#inpArea").value) || 0)} m²`],
     ["İmar durumu", $("#selUsage").selectedOptions[0]?.textContent ?? "—"],
   ];
   if (zoned) rows.push(["Emsal (KAKS)", $("#inpKaks").value.trim() || "Bilmiyorum"], ["Köşe parsel", answerText("corner")]);
