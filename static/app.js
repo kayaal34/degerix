@@ -1197,6 +1197,10 @@ function tabFromHash() {
   if (location.hash === "#ada-parsel") return "number";
   if (location.hash === "#turkiye") return "explore";
   if (location.hash === "#harita") return "map";
+  // Hash yoksa varsayılan sekme. Bu satır olmadan geri tuşu çalışmıyordu:
+  // #turkiye'den hash'siz adrese dönünce hashchange tetikleniyor, null
+  // dönüyor, selectTab atlanıyor ve kullanıcı geldiği sekmede kalıyordu.
+  if (!location.hash) return "map";
   return null;
 }
 

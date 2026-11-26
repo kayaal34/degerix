@@ -57,28 +57,30 @@
 
         <figure class="hero-card">
           <!-- Örnek: emsal 1,20 · müstakil tapu · yola cepheli · elektrik-su var · manzara yok.
-       Model değiştiğinde tools/sanity_check.py ile yeniden hesaplayıp güncelleyin. -->
+       Model değişince yeniden üretin, elle düzeltmeyin:
+       curl -s -X POST localhost:8000/api/estimate -H 'Content-Type: application/json' -d '{"province":"Bursa","district":"Mudanya","parcel":"1503/17","area_m2":4683.02,"usage":"konut","lat":40.369137,"lng":28.89647,"kaks":1.2,"deed":"tam","road":"var","utilities":"var","view":"yok"}'
+       Son üretim: 26 Kasım 2026. -->
           <figcaption>Örnek sonuç · Mudanya, Ömerbey 1503 ada 17 parsel, 4.683 m²</figcaption>
           <div class="value">
             <span class="value-label">Tahmini piyasa değeri</span>
-            <strong class="value-total">₺55.300.000</strong>
-            <span class="value-range">Model aralığı: 50,8 – 59,7 milyon ₺</span>
+            <strong class="value-total">₺56.700.000</strong>
+            <span class="value-range">Model aralığı: 31,2 – 82,2 milyon ₺</span>
             <div class="value-foot">
-              <span><b>₺11.800</b> / m²</span>
+              <span><b>₺12.100</b> / m²</span>
               <span class="confidence">Tahmin güveni: yüksek</span>
             </div>
             <p class="value-caveat">Ön tahmindir: model henüz gerçek satışlarla doğrulanmadı; satış fiyatı bu aralığın dışında kalabilir.</p>
           </div>
           <ul aria-label="Satış süresine göre fiyat">
-            <li class="scenario"><div class="scenario-text"><b>Acil satış</b><span>1–2 ay içinde</span></div><div class="scenario-numbers"><b>47,0 milyon ₺</b></div></li>
-            <li class="scenario is-market"><div class="scenario-text"><b>Piyasa değeri</b><span>3–6 ay</span></div><div class="scenario-numbers"><b>55,3 milyon ₺</b></div></li>
-            <li class="scenario"><div class="scenario-text"><b>Tok satıcı</b><span>6 ay ve üzeri</span></div><div class="scenario-numbers"><b>59,7 milyon ₺</b></div></li>
+            <li class="scenario"><div class="scenario-text"><b>Acil satış</b><span>1–2 ay içinde</span></div><div class="scenario-numbers"><b>48,2 milyon ₺</b></div></li>
+            <li class="scenario is-market"><div class="scenario-text"><b>Piyasa değeri</b><span>3–6 ay</span></div><div class="scenario-numbers"><b>56,7 milyon ₺</b></div></li>
+            <li class="scenario"><div class="scenario-text"><b>Tok satıcı</b><span>6 ay ve üzeri</span></div><div class="scenario-numbers"><b>61,2 milyon ₺</b></div></li>
           </ul>
           <ul aria-label="Hesaptan örnek satırlar">
-            <li class="factor"><div class="factor-text"><b>Geliştirme hesabı</b><span>5.620 m² inşaat hakkı · hasılat − maliyet − geliştirici payı</span></div><span class="factor-value">₺10.600/m²</span></li>
-            <li class="factor"><div class="factor-text"><b>Bölgedeki konut fiyatı</b><span>Bursa · 2026 2. çeyrek · TCMB EVDS</span></div><span class="factor-value">₺41.264/m²</span></li>
+            <li class="factor"><div class="factor-text"><b>Geliştirme hesabı</b><span>5.620 m² inşaat hakkı · hasılat − maliyet − geliştirici payı</span></div><span class="factor-value">₺14.100/m²</span></li>
+            <li class="factor"><div class="factor-text"><b>Bölgedeki konut fiyatı</b><span>Bursa · 2026 3. çeyrek · TCMB EVDS</span></div><span class="factor-value">₺42.656/m²</span></li>
             <li class="factor"><div class="factor-text"><b>İnşaat maliyeti</b><span>III-A sınıfı · Bakanlık 2026 tebliği</span></div><span class="factor-value">₺19.800/m²</span></li>
-            <li class="factor"><div class="factor-text"><b>Denize yakınlık</b><span>Kıyıya 30 m · OpenStreetMap</span></div><span class="factor-value up">× 1,19</span></li>
+            <li class="factor"><div class="factor-text"><b>Büyüklük</b><span>4.683 m² parsel · büyük parselde m² fiyatı düşer</span></div><span class="factor-value down">× 0,86</span></li>
           </ul>
         </figure>
       </div>
@@ -88,7 +90,7 @@
       <div class="container">
         <div class="section-head">
           <h2>Üç adımda değer</h2>
-          <p>Kayıt olmadan, telefon numarası vermeden, birkaç dakikada.</p>
+          <p>Hesabınızla girin, ilk üç değerleme ücretsiz; birkaç dakikada.</p>
         </div>
         <div class="card-grid">
           <article class="card">
