@@ -143,10 +143,12 @@ def parse_overpass(data: dict[str, Any], lat: float, lng: float) -> OsmContext:
 
     coast = road = built_up = math.inf
     services = buildings = 0
+    sayim_geldi = False
     for element in data.get("elements", []):
         tags = element.get("tags") or {}
         if element.get("type") == "count":
             buildings = int(tags.get("ways", 0) or 0)
+            sayim_geldi = True
         elif "geometry" in element and "landuse" in tags:
             ring = [(point["lat"], point["lon"]) for point in element["geometry"] if point]
             if len(ring) >= 3:
@@ -161,6 +163,14 @@ def parse_overpass(data: dict[str, Any], lat: float, lng: float) -> OsmContext:
                 road = min(road, distance)
         elif "amenity" in tags or "shop" in tags:
             services += 1
+
+    # Sorgu "out count;" ile bitiyor, yani eksiksiz her yanıtta — kırın
+    # ortasında bile — sıfır değerli bir sayım satırı bulunur. Satır yoksa
+    # yanıt yarım kesilmiştir; "0 bina" diye okumak, ölçülmemiş bir parseli
+    # ölçülmüş saymak olur ve imar beklentisi primini sessizce düşürür.
+    if not sayim_geldi:
+        raise OverpassRemark("yanıtta bina sayım satırı yok, ölçüm yarım")
+
     return OsmContext(
         coast_m=None if math.isinf(coast) else round(coast),
         main_road_m=None if math.isinf(road) else round(road),

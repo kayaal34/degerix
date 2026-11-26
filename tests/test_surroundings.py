@@ -70,6 +70,8 @@ def test_parse_overpass_classifies_elements():
         {"type": "way", "tags": {"highway": "primary"}, "geometry": [{"lat": 40.0, "lon": 28.905}, {"lat": 40.0, "lon": 28.915}]},
         {"type": "node", "tags": {"amenity": "school"}},
         {"type": "way", "tags": {"shop": "supermarket"}, "center": {"lat": 40.0, "lon": 28.91}},
+        # Sorgu "out count;" ile bitiyor: eksiksiz her yanıtta sayım satırı olur
+        {"type": "count", "tags": {"ways": "0"}},
     ]}
     assert nearby.parse_overpass(data, 40.0, 28.91) == OsmContext(coast_m=111, main_road_m=0, services=2)
 

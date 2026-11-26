@@ -579,6 +579,10 @@ function setResultActions(enabled) {
 function invalidateEstimate() {
   state.estimateSeq++;
   setResultActions(false);
+  // Düğmeleri kapatmak yetmiyor: ekrandaki rakam duruyor ve güncel görünüyor.
+  // Aynı sınıf hesap sürerken de kullanılıyor; anlamı "bu sayı şu an geçerli
+  // değil" ve ikisi için de doğru.
+  $("#valueCard").classList.add("is-loading");
 }
 
 function postEstimate(parcel, inputs) {
@@ -1345,6 +1349,11 @@ const searchInput = $("#searchInput");
 
 searchInput.addEventListener("input", () => {
   clearTimeout(searchTimer);
+  // Metin değişti: uçuştaki yanıt artık bu sorguya ait değil. Sıra numarasını
+  // yalnız üç karakterin altına inince artırmak yetmiyordu — "Bursa"dan
+  // "Balıkesir"e geçerken Bursa'nın yanıtı bekleme içinde dönüp listeyi
+  // yeniden açıyordu.
+  state.searchSeq++;
   const query = searchInput.value.trim();
   if (query.length < 3) {
     hideResults();

@@ -34,9 +34,24 @@ def test_overpass_elements_yoksa_olcum_sayilmaz():
 
 
 def test_overpass_gercekten_bos_yanit_gecerlidir():
-    """Kırın ortasında hiçbir şey bulunmaması geçerli bir ölçümdür."""
-    bag = nearby.parse_overpass({"elements": []}, 40.0, 29.0)
+    """Kırın ortasında hiçbir şey bulunmaması geçerli bir ölçümdür.
+
+    Ama "hiçbir şey yok" sıfır değerli bir sayım satırıyla gelir: sorgu
+    "out count;" ile bitiyor, yani eksiksiz yanıt her zaman o satırı taşır.
+    """
+    bos = {"elements": [{"type": "count", "tags": {"ways": "0"}}]}
+    bag = nearby.parse_overpass(bos, 40.0, 29.0)
     assert bag.buildings == 0 and bag.coast_m is None
+
+
+def test_overpass_sayim_satirsiz_yanit_olcum_sayilmaz():
+    """Sayım satırı yoksa yanıt yarım kesilmiştir, "0 bina" değil.
+
+    Bu ayrım imar beklentisi primini belirliyor: 400 m içindeki bina sayısı
+    sıfır okunursa prim düşer ve parsel iki kat ucuz görünür.
+    """
+    with pytest.raises(nearby.OverpassRemark):
+        nearby.parse_overpass({"elements": []}, 40.0, 29.0)
 
 
 def test_onbellek_sinirsiz_buyumez():
