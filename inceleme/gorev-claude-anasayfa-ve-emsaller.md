@@ -91,3 +91,29 @@ ticari koşul gerektiriyor. Ayrıca ölçüm olayı eklemek, bugün hiç izleme
 yapmayan bir siteye izleme eklemek demek — çerez politikası "reklam ve izleme
 çerezi yok" diyor. Bunu sessizce değiştirmem doğru olmaz; önce sahibin kararı,
 sonra metin, sonra kod.
+
+### Örnek rapor sayfasında bulduklarım
+
+Üç şey vardı, üçü de üreteçte düzeltildi (çıktıda değil, yoksa bir sonraki
+üretimde geri gelirdi):
+
+1. **Yazı tipi yüklenmiyordu.** Sayfa Google Fonts bağlantısını taşımıyordu,
+   yani bütün sitede serif başlık ve Inter varken bu sayfa sistem yazı
+   tipiyle açılıyordu — tema dışında duruyordu.
+2. **Favicon yoktu**, tarayıcı `/favicon.ico` isteyip her açılışta 404
+   alıyordu. Marka işareti de başlıkta yoktu, yalnız düz metin.
+3. **Alt bilgi yoktu.** Diğer on üç sayfada hukuki bağlantılar var, burada
+   yok. Ziyaretçinin oturumsuz açabileceği sayfa tam da bu; KVKK ve koşul
+   bağlantılarının en çok gerektiği yer burası.
+
+Dördüncüsü içerikle ilgili ve senin fark etmen zordu çünkü ikisini yan yana
+koymak gerekiyor: **rapor 51,5 milyon diyor, "Parseli haritada aç" deyip
+hesaplayınca 56,7 milyon çıkıyor.** Sebebi gerçek: rapor depodaki TCMB
+kopyasını (41.264, 2026 2. çeyrek), canlı uygulama ise EVDS'nin o günkü
+değerini (42.656, 3. çeyrek) kullanıyor. Sayfa fiyat kaynağını yazıyor ama
+bu farkı yazmıyordu; tıklayan kişi iki farklı sayı görüp hangisinin doğru
+olduğunu soruyor. Artık alt notta duruyor: fark hata değil, veri döneminin
+farkı.
+
+Örneğin sabit kalması doğru karar — her açılışta değişen bir "örnek" örnek
+olmaz. Yalnızca bunun söylenmesi gerekiyordu.

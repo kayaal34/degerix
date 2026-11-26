@@ -47,13 +47,24 @@ def render(generated: date, revision: str) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Değerix örnek arsa raporu. Tapu kaydı, hesap varsayımları, veri dönemi ve fiyat aralığı.">
   <title>Örnek arsa raporu · Değerix</title>
+  <meta name="theme-color" content="#14543a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314543a'/%3E%3Cpath d='M8 8h4.2v16H8z' fill='%23fff' fill-opacity='.62'/%3E%3Cpath d='M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z' fill='%23fff'/%3E%3Cpath d='M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z' fill='%23fff' fill-opacity='.62'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Source+Serif+4:opsz,wght@8..60,500..700&amp;display=swap">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="ornek-rapor.css">
 </head>
 <body>
   <a class="atla" href="#icerik">İçeriğe atla</a>
   <header class="site-header">
-    <a class="site-brand" href="./">Değerix</a>
+    <a class="site-brand" href="./"><svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="8" fill="currentColor"/>
+        <path d="M8 8h4.2v16H8z" fill="#fff" fill-opacity=".62"/>
+        <path d="M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z" fill="#fff"/>
+        <path d="M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z" fill="#fff" fill-opacity=".62"/>
+      </svg>
+      Değerix</a>
     <a class="btn btn-ghost" href="{escape(url)}">Parseli haritada aç</a>
   </header>
   <main class="report-sample" id="icerik" tabindex="-1">
@@ -99,9 +110,29 @@ def render(generated: date, revision: str) -> str:
     </section>
     <footer class="sample-note">
       <p>Bu sayfa tarihli bir ön tahmindir. Lisanslı değerleme raporu yerine geçmez ve resmî işlemlerde dayanak olarak kullanılamaz.</p>
+      <p>Buradaki rakamlar <b>depodaki fiyat kopyasıyla</b> üretildi; örnek her
+        açılışta aynı kalsın diye. Aşağıdaki bağlantıdan aynı parseli haritada
+        hesaplarsanız Merkez Bankası’nın o günkü verisi kullanılır ve sonuç
+        farklı çıkabilir. Fark hata değil, veri döneminin farkıdır.</p>
       <a href="{escape(url)}">Güncel sorgu için parseli haritada aç</a>
     </footer>
   </main>
+
+  <footer class="site-footer">
+    <nav class="footer-baglantilar" aria-label="Hukuki metinler ve yardım">
+      <a href="./">Ana sayfa</a>
+      <a href="harita.html">Haritayı aç</a>
+      <a href="sss.html">Sıkça sorulan sorular</a>
+      <a href="abonelik.html">Abonelik</a>
+      <a href="kvkk.html">KVKK aydınlatma metni</a>
+      <a href="gizlilik.html">Gizlilik</a>
+      <a href="kosullar.html">Kullanım koşulları</a>
+    </nav>
+    <p class="footer-not">Değerix lisanslı değerleme raporu üretmez; çıktısı bilgilendirme
+      amaçlıdır, yatırım tavsiyesi ya da resmî işlemlerde dayanak değildir.
+      Hukuki metinler taslak hâlindedir.</p>
+  </footer>
+  <script src="cerez.js"></script>
 </body>
 </html>
 """
