@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1d6b47">
+  <title>Değerix · Abonelik ve sorgu hakları</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="landing.css">
+  <link rel="stylesheet" href="abonelik.css">
+</head>
+<body class="landing plan-page">
+  <header class="site-header">
+    <a class="site-brand" href="./">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="8" fill="currentColor"/>
+        <path d="M8 8h4.2v16H8z" fill="#fff" fill-opacity=".62"/>
+        <path d="M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z" fill="#fff"/>
+        <path d="M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z" fill="#fff" fill-opacity=".62"/>
+      </svg>
+      Değerix
+    </a>
+    <a class="btn btn-ghost" href="harita.html#harita">Haritaya dön</a>
+  </header>
+
+  <main class="plan-shell">
+    <header class="plan-intro">
+      <h1>Abonelik ve sorgu hakları</h1>
+      <p>Değerix’te parsel değerlemesi için sunulacak planları inceleyin.</p>
+    </header>
+
+    <section class="plan-account" id="plan-account" aria-label="Hesap ve sorgu hakları" hidden>
+      <div id="plan-account-text"></div>
+      <a class="btn btn-primary" id="plan-sign-in" href="harita.html#harita" hidden>Haritada giriş yap</a>
+    </section>
+
+    <section class="plan-free" aria-labelledby="plan-free-heading">
+      <div>
+        <h2 id="plan-free-heading">Ücretsiz başlangıç</h2>
+        <p>Kayıtlı hesaplara ilk 3 değerleme sorgusu ücretsiz.</p>
+      </div>
+      <a class="btn btn-primary" href="harita.html#ada-parsel">Parsel sorgula</a>
+    </section>
+
+    <section class="plan-section" aria-labelledby="paid-plans">
+      <h2 id="paid-plans">Ücretli planlar</h2>
+      <p>Satış açıldığında fiyatlar ve sorgu hakları burada yayımlanacak.</p>
+      <div class="plan-grid" id="plan-grid">
+        <article class="plan-card" data-plan-card="aylik">
+          <h3>Aylık plan</h3>
+          <p>Her ay düzenli parsel sorgulayanlar için.</p>
+        </article>
+        <article class="plan-card" data-plan-card="yillik">
+          <h3>Yıllık plan</h3>
+          <p>Yıl boyunca arsa ve tarla inceleyenler için.</p>
+        </article>
+        <article class="plan-card" data-plan-card="paket">
+          <h3>Sorgu paketi</h3>
+          <p>İhtiyaç duydukça birden fazla parsel inceleyenler için.</p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="plan-disclosure">
+      <h2>Değerleme hakkında</h2>
+      <p>Değerix bilgilendirme amaçlı bir ön tahmin sunar. Lisanslı değerleme raporu yerine geçmez. Kredi, ipotek, vergi ve diğer resmî işlemlerde delil veya dayanak olarak kullanılamaz.</p>
+    </footer>
+  </main>
+
+  <script type="module">
+    import * as hesap from "./hesap.js";
+
+    const plans = {
+      aylik: { name: "Aylık plan", price: null, allowance: null },
+      yillik: { name: "Yıllık plan", price: null, allowance: null },
+      paket: { name: "Sorgu paketi", price: null, allowance: null },
+    };
+    const currency = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" });
+    const count = new Intl.NumberFormat("tr-TR");
+    const date = new Intl.DateTimeFormat("tr-TR", { dateStyle: "long", timeZone: "Europe/Istanbul" });
+
+    function renderPlans() {
+      for (const card of document.querySelectorAll("[data-plan-card]")) {
+        const key = card.dataset.planCard;
+        const plan = plans[key];
+        const price = document.createElement("strong");
+        price.className = "plan-price";
+        price.textContent = plan.price == null ? "Fiyat açıklanacak" : currency.format(plan.price);
+        const allowance = document.createElement("p");
+        allowance.textContent = plan.allowance == null ? "Sorgu hakkı açıklanacak" : count.format(plan.allowance) + " sorgu";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn-ghost";
+        button.dataset.plan = key;
+        button.textContent = "Satın alma bilgisi";
+        button.setAttribute("aria-label", plan.name + " satın alma bilgisi");
+        const status = document.createElement("p");
+        status.className = "plan-feedback";
+        status.setAttribute("role", "status");
+        button.addEventListener("click", () => {
+          status.textContent = "Ödeme altyapısı hazırlanıyor. Satış henüz açılmadı.";
+        });
+        card.append(price, allowance, button, status);
+      }
+    }
+
+    async function renderAccount() {
+      try {
+        if (!await hesap.kur()) return;
+        const account = hesap.hak();
+        if (!account?.uyelik) return;
+
+        const text = document.querySelector("#plan-account-text");
+        const signIn = document.querySelector("#plan-sign-in");
+        if (!account.oturum) {
+          text.textContent = "Sorgu haklarınızı görmek için hesabınıza giriş yapın.";
+          signIn.hidden = false;
+        } else {
+          const parts = [];
+          if (Number.isFinite(account.ucretsiz_kalan)) {
+            parts.push(count.format(account.ucretsiz_kalan) + " ücretsiz sorgu kaldı");
+          }
+          const subscription = account.abonelik;
+          if (subscription) {
+            parts.push(plans[subscription.plan]?.name ?? "Abonelik");
+            if (subscription.kalan === null) parts.push("Sınırsız sorgu");
+            else if (Number.isFinite(subscription.kalan)) parts.push(count.format(subscription.kalan) + " ücretli sorgu kaldı");
+            if (subscription.bitis) {
+              const end = new Date(subscription.bitis);
+              if (!Number.isNaN(end.getTime())) parts.push(date.format(end) + " tarihine kadar");
+            }
+          }
+          text.textContent = parts.join(" · ") || "Hesabınıza giriş yapıldı.";
+        }
+        document.querySelector("#plan-account").hidden = false;
+      } catch {
+        // Planlar hesap servisine erişilemediğinde de görülebilir.
+      }
+    }
+
+    renderPlans();
+    renderAccount();
+  </script>
+</body>
+</html>

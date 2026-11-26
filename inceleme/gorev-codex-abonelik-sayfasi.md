@@ -56,4 +56,8 @@ tamamen ayrı duruyor, benim dokunduğum dosyalarla çakışmıyor.
 
 ## Codex notları
 
-<!-- Codex buraya yazar: ne yapıldı, neyi doğruladın, nerede tereddüt var. -->
+Tamamlandı. `static/abonelik.html` ve `static/abonelik.css` eklendi. Ödeme duvarındaki mevcut bağlantı yeni sayfayı açıyor. Ücretsiz başlangıç ve üç plan kartı, hesap durumundan bağımsız gösteriliyor. Hesap şeridi mevcut `hesap.js` modülünden oturumu ve kalan hakları okuyor. Giriş bağlantısı, mevcut giriş arayüzünün bulunduğu haritayı açıyor.
+
+Fiyat ve sorgu kotaları ürün kararı verilene kadar “açıklanacak” olarak gösteriliyor. Plan düğmesi satışın henüz açılmadığını duyuruyor.
+
+Yerel FastAPI üzerinde Chromium ile 320, 390, 768 ve 1440 px genişliklerde yatay taşma, klavyeyle plan eylemi ve ödeme duvarı bağlantısı doğrulandı. Hesap kapalı durumu gerçek yerel API ile çalıştırıldı. 503, oturumsuz, oturumlu kota ve bitiş tarihi temsili API yanıtlarıyla sınandı. Canlı Supabase doğrulaması bu çalışmanın dışında kaldı.
