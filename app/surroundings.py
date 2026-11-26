@@ -99,8 +99,10 @@ def factor_rows(surroundings: Surroundings) -> list[tuple[str, str, float, str]]
     1,52 görünüyordu. Üç sınavın hiçbirini geçmedi — dışarıda bırakmalı ölçümde
     tipik sapma ×1,80'den ×1,82'ye çıktı ve ±%50 53'ten 50'ye düştü, iyileşen/bozulan
     10'a 9, aykırı beş kayıt çıkarıldığında kazanç tamamen kayboldu (×1,68 → ×1,68).
-    O 1,52, kovaların birbirine bölünmesinden doğan bir yankıydı; primin gerçek
-    büyüklüğü 1,21 ve 19 kaydı oynatıp hiçbir şey kazandırmıyor.
+    Primin doğrudan ölçülen büyüklüğü 1,21 ve 19 kaydı oynatıp hiçbir şey
+    kazandırmıyor. İlk yazdığımda 1,52'yi "kovaların birbirine bölünmesinden doğan
+    bir yankı" diye açıklamıştım; o açıklamayı geri çekiyorum, çünkü ölçmeden
+    verilmiş bir hükümdü. 1,52'nin nereden geldiği açıklanmamış durumdadır.
 
     Reddedilen dört katsayının kendisi tools/cevre_olc.py içinde duruyor; veri
     büyüdüğünde aynı betikle yeniden sınanabilirler.

@@ -140,20 +140,28 @@ def kur(satirlar: list[dict], tur_sayisi: int = 4) -> dict[str, dict[str, float]
     """Her etkeni kendi kovalarında ortanca oranla kurar; diğerleri bölünür."""
     kat: dict[str, dict[str, float]] = {
         etken: {s["kova"][etken]: 1.0 for s in satirlar} for etken in ETKENLER}
+    # Dörtten az kayıtlı kova hiç kurulmaz ve normalizasyona da girmez.
+    notr = {etken: {ad for ad in kat[etken]
+                    if sum(1 for s in satirlar if s["kova"][etken] == ad) < 4}
+            for etken in ETKENLER}
     for _ in range(tur_sayisi):
         for etken in ETKENLER:
             for ad in list(kat[etken]):
-                grup = [s for s in satirlar if s["kova"][etken] == ad]
-                if len(grup) < 4:        # az kayıtlı kova kurulmaz, nötr kalır
+                if ad in notr[etken]:
                     kat[etken][ad] = 1.0
                     continue
+                grup = [s for s in satirlar if s["kova"][etken] == ad]
                 kat[etken][ad] = statistics.median(
                     s["oran"] / _carpim(kat, s, haric=etken) for s in grup)
-        # Seviyeyi bozmamak için: tipik kayıt ×1,00 alsın.
+        # Seviyeyi bozmamak için: tipik kayıt ×1,00 alsın. Az kayıtlı kovalar
+        # bu bölmenin dışında tutulur -- Codex'in DX-17'de yakaladığı hata buydu:
+        # kova 1,00'e sabitlenip hemen ardından ortancaya bölününce nötr kalmıyor,
+        # ortancası 1,25 olan bir etkende sessizce 0,80'e dönüyordu.
         for etken in ETKENLER:
             orta = statistics.median(kat[etken][s["kova"][etken]] for s in satirlar)
             for ad in kat[etken]:
-                kat[etken][ad] /= orta
+                if ad not in notr[etken]:
+                    kat[etken][ad] /= orta
     return kat
 
 

@@ -190,6 +190,20 @@ def blended_locality(urban: Urbanity | None, parameters: Parameters) -> float:
     return blended
 
 
+def band(value: float, spread: float) -> tuple[float, float]:
+    """Değer aralığı: alt sınır bölerek, üst sınır çarparak bulunur.
+
+    Toplamalı aralık (değer × (1 ∓ yayılım)) iki yerde yanlış davranıyordu.
+    Yayılım 1'e ulaştığında alt sınır 0 TL'ye iniyordu — hiçbir arsa bedava
+    değildir ve ölçümde bu gerçekten oluyordu: imar beklentili bir tarlada
+    aralık 0 – 9,95 milyon TL çıkıyordu. İkincisi, "bu parsel iki katı da
+    edebilir" gibi çarpımsal bir bilinmezlik toplamalı aralıkta hiç ifade
+    edilemiyordu. Modelin hatası zaten log2 ile ölçülüyor; aralık da aynı
+    ölçekte olmalı. Yayılım 1,00 artık "×2 belirsizlik" demek: [değer/2, değer×2].
+    """
+    return value / (1 + spread), value * (1 + spread)
+
+
 def fringe_factor(surroundings: Surroundings | None, parameters: Parameters) -> Factor | None:
     """Yerleşimin kıyısındaki imarsız parselin primi; ölçülemezse None.
 
@@ -651,6 +665,17 @@ def estimate(
         if fringe is not None:
             factors.append(fringe)
             spread += parameters.fringe_spread
+        elif surroundings is None or surroundings.osm is None:
+            # Ölçüm gelmedi: parselin yerleşim kıyısında olup olmadığı, dolayısıyla
+            # primin uygulanıp uygulanmayacağı bilinmiyor. Bu sessizce geçilirse
+            # aynı parsel Overpass yetiştiğinde iki katı fiyat alıyor — ölçüldü:
+            # 2,45 milyon TL'ye karşı 4,90 milyon TL. Fiyatı ağ hızına bırakmak
+            # yerine bilinmezliği aralığa yazıyoruz.
+            factors.append(Factor(
+                "fringe_unknown", "Çevre ölçülemedi", 1.0,
+                "Yerleşim kıyısı okunamadı; imar beklentisi primi uygulanamadı, "
+                "aralık iki katı belirsizliği kapsayacak kadar genişletildi"))
+            spread += parameters.fringe_premium - 1
 
     # Yöntemin kendi belirsizliği. Eksik bilgi payları bunun üstüne biner.
     spread += parameters.basis_spread[basis]
@@ -735,13 +760,14 @@ def estimate(
         confidence = "düşük"
 
     scenarios = []
+    low, high = band(total, spread)
     for key, label, timeframe, zoned_multiplier, rural_multiplier in SALE_SCENARIOS:
         value = total * (zoned_multiplier if zoned else rural_multiplier)
         scenarios.append(Scenario(
             key=key, label=label, timeframe=timeframe,
             value=nice_round(value),
-            low=nice_round(value * (1 - spread)),
-            high=nice_round(value * (1 + spread)),
+            low=nice_round(band(value, spread)[0]),
+            high=nice_round(band(value, spread)[1]),
         ))
 
     has_share = deed == "hisseli" and share_pct is not None
@@ -752,8 +778,8 @@ def estimate(
         basis=basis,
         unit_price=unit_price,
         total=nice_round(total),
-        low=nice_round(total * (1 - spread)),
-        high=nice_round(total * (1 + spread)),
+        low=nice_round(low),
+        high=nice_round(high),
         confidence=confidence,
         settlement=settlement_label,
         housing=housing,

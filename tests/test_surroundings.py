@@ -227,5 +227,28 @@ def test_fringe_widens_the_band_as_well_as_the_value():
     kirda, kiyida = estimate(**ortak, surroundings=kir), estimate(**ortak, surroundings=kiyi)
     genislik = lambda s: (s.high - s.low) / s.total            # noqa: E731
     assert genislik(kiyida) > genislik(kirda)
-    assert genislik(kiyida) == pytest.approx(
-        genislik(kirda) + 2 * DEFAULTS.fringe_spread, rel=0.02)
+    # Aralık çarpımsaldır: değer, alt ve üst sınırın ortasında değil, oranların
+    # ortasında durur. Alt sınır bu yüzden hiçbir yayılımda sıfıra inemez.
+    for sonuc in (kirda, kiyida):
+        assert sonuc.low > 0
+        assert sonuc.high / sonuc.total == pytest.approx(sonuc.total / sonuc.low, rel=0.02)
+
+
+def test_cevre_olculemezse_fiyat_ag_hizina_birakilmaz():
+    """Ölçülen hata: Overpass yetişmediğinde aynı tarla 2,45 milyon TL, yetiştiğinde
+    4,90 milyon TL ediyordu. Artık bilinmezlik banda yazılıyor."""
+    yer = _kirsal()
+    assert yer is not None
+    ortak = dict(area_m2=10_000, usage="tarla", housing=BURSA, urban=yer)
+    kiyi = Surroundings(osm=OsmContext(coast_m=None, main_road_m=400, services=0,
+                                       buildings=6, built_up_m=700), slope_pct=2.0)
+
+    olculemedi = estimate(**ortak, surroundings=None)
+    primli = estimate(**ortak, surroundings=kiyi)
+
+    assert "fringe_unknown" in {f.key for f in olculemedi.factors}
+    # Nokta tahmin primsiz kalır (kayıtların çoğunda prim yok) ama aralık
+    # primli sonucu kapsar: ağ hızı artık iki kat fark yaratmıyor.
+    assert olculemedi.high >= primli.total
+    assert olculemedi.low > 0
+    assert olculemedi.confidence == "düşük"
