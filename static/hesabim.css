@@ -3,13 +3,13 @@
 .sayfa-govde { background: var(--paper); color: var(--ink); }
 
 .sayfa {
-  max-width: 760px;
+  max-width: var(--kolon-metin);
   margin: 0 auto;
   padding: 28px 16px 56px;
   display: grid;
   gap: 18px;
 }
-.sayfa h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); }
+.sayfa h1 { margin: 0; font-size: var(--fs-h1); }
 
 .sayfa-mesaj {
   margin: 0;

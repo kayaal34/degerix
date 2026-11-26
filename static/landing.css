@@ -6,7 +6,7 @@ a.btn { text-decoration: none; }
 a.btn-ghost { color: var(--ink); }
 .btn-lg { min-height: 50px; padding: 12px 22px; font-size: 16px; }
 
-.container { max-width: 1120px; margin: 0 auto; }
+.container { max-width: var(--kolon-genis); margin: 0 auto; }
 .section { padding: clamp(48px, 8vw, 96px) clamp(16px, 4vw, 48px); }
 .section-alt { background: var(--bg); }
 .section-head { max-width: 660px; margin-bottom: 36px; }
@@ -18,7 +18,7 @@ a.btn-ghost { color: var(--ink); }
 .hero { animation: rise var(--dur-3) var(--ease-out) backwards; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(32px, 5vw, 56px); align-items: center; }
 .hero-section { padding-top: clamp(32px, 5vw, 56px); }
 .eyebrow { margin: 0 0 14px; color: var(--accent); font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
-.hero h1 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(34px, 5.2vw, 56px); line-height: 1.06; letter-spacing: -0.018em; }
+.hero h1 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-h1-giris); line-height: 1.06; letter-spacing: -0.018em; }
 .lead { max-width: 56ch; margin: 18px 0 0; color: var(--muted); font-size: clamp(16px, 1.6vw, 18px); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 

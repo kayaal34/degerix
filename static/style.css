@@ -146,6 +146,23 @@
   --fs-3xl: clamp(26px, 3.4vw, 34px);
   --fs-4xl: clamp(32px, 5vw, 52px);
 
+  /* İki H1 ölçüsü. Denetim altı farklı boyut saydı (56/54/48/36/32/23);
+     her biri kendi sayfasında makul ama yan yana konunca ürün tek bir
+     sistemden çıkmamış gibi duruyor.
+       --fs-h1-giris : yalnız ana sayfanın kahraman başlığı
+       --fs-h1       : diğer bütün sayfalar */
+  --fs-h1-giris: clamp(34px, 5.2vw, 56px);
+  --fs-h1: clamp(26px, 3.4vw, 36px);
+
+  /* Üç kolon genişliği, üçü de adlandırılmış. Önceki hâlde 728, 948, 960,
+     1080 ve 1120 vardı ve hangisinin neden o olduğu hiçbir yerde yazmıyordu.
+       --kolon-metin : uzun metin okunan sayfalar (yasal metinler, hesabım)
+       --kolon-rapor : kart ızgarası olan rapor sayfası
+       --kolon-genis : iki sütunlu yerleşimler */
+  --kolon-metin: 760px;
+  --kolon-rapor: 980px;
+  --kolon-genis: 1120px;
+
   /* --- Köşeler --- */
   --radius-sm: 9px;
   --radius-md: 14px;

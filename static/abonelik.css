@@ -3,7 +3,7 @@
 }
 
 .plan-shell {
-  width: min(1080px, calc(100% - 32px));
+  width: min(var(--kolon-genis), calc(100% - 32px));
   margin-inline: auto;
   padding-block: clamp(36px, 7vw, 84px) 48px;
 }
@@ -14,7 +14,7 @@
 
 .plan-intro h1 {
   margin: 0;
-  font-size: clamp(32px, 6vw, 54px);
+  font-size: var(--fs-h1);
   line-height: 1.08;
   letter-spacing: -.035em;
 }
@@ -63,14 +63,19 @@
   box-shadow: var(--shadow-sm);
 }
 
-.plan-card h3 { margin: 0 0 8px; font-size: 21px; }
+.plan-card { display: flex; flex-direction: column; }
+.plan-card h3 { margin: 0 0 8px; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-xl); }
+/* Fiyat ve düğme kartın altına yapışsın: açıklama uzunluğu
+   kartlar arasında değişince alt satırlar kayıyordu. */
+.plan-card .plan-price { margin-top: auto; }
+.plan-card .btn { margin-top: 12px; }
 .plan-card p { margin: 6px 0 14px; }
 .plan-price { display: block; margin-top: 22px; color: var(--brand); }
 .plan-card .btn { min-height: 44px; }
 .plan-card .plan-feedback { margin: 12px 0 0; }
 .plan-feedback:empty { margin: 0; }
 .plan-disclosure { border-top: 1px solid var(--line); margin-top: 36px; padding-top: 20px; }
-.plan-disclosure h2 { margin: 0; font-size: 16px; }
+.plan-disclosure h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-xl); }
 .plan-disclosure p { margin: 8px 0 0; max-width: 72ch; }
 .plan-page a:focus-visible, .plan-page button:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
 

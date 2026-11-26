@@ -1,6 +1,6 @@
 .site-header { gap: 12px; }
-.report-sample { max-width: 980px; margin: 0 auto; padding: 30px 16px 56px; display: grid; gap: 16px; }
-.report-sample h1 { margin: 0; font-size: clamp(32px, 6vw, 48px); }
+.report-sample { max-width: var(--kolon-rapor); margin: 0 auto; padding: 30px 16px 56px; display: grid; gap: 16px; }
+.report-sample h1 { margin: 0; font-size: var(--fs-h1); }
 .report-sample h2 { margin: 0 0 10px; font-size: clamp(20px, 3vw, 26px); }
 .report-sample p { margin: 7px 0 0; }
 .sample-title p, .sample-card p, .sample-note { color: var(--muted); }
