@@ -13,13 +13,13 @@ from pathlib import Path
 from typing import Any, Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi import Path as PathParam
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import evds, market, nearby, nominatim, tapusor, tkgm, urbanity
+from . import accounts, evds, market, nearby, nominatim, tapusor, tkgm, urbanity
 from .data import USAGE, CornerKey, DeedKey, IrrigationKey, RoadKey, UsageKey, UtilitiesKey, ViewKey
 from .errors import NotFound, UpstreamError
 from .geo import centroid_and_area
@@ -105,6 +105,8 @@ class EstimateRequest(BaseModel):
         default_factory=list, max_length=10,
         description="Yakındaki emsaller; hesaba ağırlıklı olarak katılır, kaydedilmez",
     )
+    district: str | None = Field(default=None, max_length=64, description="Sorgu geçmişine yazılır")
+    parcel: str | None = Field(default=None, max_length=64, description="Ada/parsel; sorgu geçmişine yazılır")
 
 
 # ─────────────────────────── Uygulama ───────────────────────────
@@ -245,10 +247,55 @@ async def parcel_by_number(
 
 # ─────────────────────────── Değerleme ───────────────────────────
 
+@app.get("/api/account", tags=["üyelik"])
+async def account(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    """Oturumun durumu ve kalan sorgu hakkı. Üyelik kapalıysa uygulama
+    üyeliksiz çalışır ve ön yüz hiçbir kapı göstermez."""
+    if not accounts.configured():
+        return {"uyelik": False}
+    user = await accounts.current_user(accounts.bearer(authorization))
+    if user is None:
+        return {"uyelik": True, "oturum": False}
+    return {"uyelik": True, "telefon": user.phone, "eposta": user.email,
+            **await accounts.status(user)}
+
+
 @app.post("/api/estimate", response_model=Estimate, tags=["değerleme"])
-async def estimate_value(request: EstimateRequest) -> Estimate:
+async def estimate_value(request: EstimateRequest,
+                         authorization: str | None = Header(default=None)) -> Estimate:
     """Arsanın tahmini değeri: TCMB konut fiyatı, Bakanlık inşaat maliyeti ve
-    parselin yerleşim sınıfıyla hesaplanır; her adım gerekçesiyle döner."""
+    parselin yerleşim sınıfıyla hesaplanır; her adım gerekçesiyle döner.
+
+    Üyelik açıksa hak değerlemeden önce veritabanında tüketilir: kota istemciye
+    sorulmaz. Hesap tamamlanamazsa hak geri verilir."""
+    user = grant = None
+    if accounts.configured():
+        user = await accounts.current_user(accounts.bearer(authorization))
+        if user is None:
+            raise HTTPException(status_code=401, detail={
+                "kod": "oturum_yok", "mesaj": "Değerleme için giriş yapın."})
+        grant = await accounts.open_query(
+            user, province=request.province, district=request.district,
+            lat=request.lat, lng=request.lng, area_m2=request.area_m2,
+            usage=request.usage, parcel=request.parcel)
+        if grant is None:
+            raise HTTPException(status_code=402, detail={
+                "kod": "hak_bitti",
+                "mesaj": "Ücretsiz sorgu hakkınız doldu. Devam etmek için abone olun."})
+
+    try:
+        result = await _estimate(request)
+    except BaseException:
+        if user is not None and grant is not None:
+            await accounts.cancel_query(user, grant)
+        raise
+
+    if user is not None and grant is not None:
+        await accounts.close_query(user, grant, result.unit_price, result.total)
+    return result
+
+
+async def _estimate(request: EstimateRequest) -> Estimate:
     housing = await market.housing_price(request.province)
 
     place = None
