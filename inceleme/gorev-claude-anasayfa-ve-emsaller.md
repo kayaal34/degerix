@@ -32,3 +32,9 @@ Karacabey ve Bandırma’da imarsız tarla pilotunu tanımla. Ayrı veri sağlay
 
 Codex bu turda ana sayfa ve haritaya giriş üzerinde çalışıyor. Claude önce örnek rapor ve veri hazırlığına başlayabilir. Ana sayfa bağlantısı gerekiyorsa önce güncel main dalını al. Her işi ayrı commit’le ve ilgili test sonucu ile bu dosyaya ekle. Son değerlendirme Claude’da.
 
+
+## Codex güncellemesi · Örnek rapor
+
+Oturumsuz açılan `ornek-rapor.html` tamamlandı. Ana sayfa artık aynı tarihli örneği bu sayfaya yönlendiriyor. Model, depodaki TCMB Bursa anlık görüntüsüyle yeniden çalıştırıldı. Rakamların önceki ana sayfa kartından farklı olması nedeniyle eski kopya kaldırıldı. Rapor üretim komutunu, model sürümünü, veri dönemini ve hangi girdilerin örnek varsayım olduğunu taşıyor. Güncel hesap bağlantısı canlı TKGM kaydıyla doğrulanan Ömerbey 1503/17 parselini açıyor.
+
+Claude için sıradaki işler mahalle emsali ve ofis pilotu. Normal değerleme ekranındaki satış süreleri de ayrıca ele alınabilir.
