@@ -14,8 +14,9 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <a class="atla" href="#icerik">İçeriğe atla</a>
   <div class="app">
-    <aside class="panel">
+    <aside class="panel" id="icerik" tabindex="-1">
       <div class="print-head" aria-hidden="true">
         <div class="print-head-brand">
           <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true" focusable="false">
@@ -52,8 +53,8 @@
 
       <div class="tabs" role="tablist">
         <button class="tab is-active" id="tabbtn-map" type="button" role="tab" aria-selected="true" aria-controls="tab-map" data-tab="map">Haritadan seç</button>
-        <button class="tab" id="tabbtn-number" type="button" role="tab" aria-selected="false" aria-controls="tab-number" data-tab="number">Ada / parsel</button>
-        <button class="tab" id="tabbtn-explore" type="button" role="tab" aria-selected="false" aria-controls="tab-explore" data-tab="explore">Bölge keşfi</button>
+        <button class="tab" id="tabbtn-number" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="tab-number" data-tab="number">Ada / parsel</button>
+        <button class="tab" id="tabbtn-explore" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="tab-explore" data-tab="explore">Bölge keşfi</button>
       </div>
 
       <section id="tab-explore" class="tab-panel explore" role="tabpanel" aria-labelledby="tabbtn-explore" hidden>
@@ -359,8 +360,16 @@
       </section>
 
       <footer class="panel-foot">
-        Tahminler örnek referans fiyatlarla hesaplanır ve yalnızca bilgilendirme amaçlıdır; lisanslı değerleme raporu yerine geçmez.
-        Parsel verisi: TKGM.
+        <p>Tahminler örnek referans fiyatlarla hesaplanır ve yalnızca bilgilendirme amaçlıdır;
+          lisanslı değerleme raporu yerine geçmez. Parsel verisi: TKGM.</p>
+        <nav class="panel-foot-baglantilar" aria-label="Hukuki metinler ve yardım">
+          <a href="sss.html">SSS</a>
+          <a href="kvkk.html">KVKK</a>
+          <a href="gizlilik.html">Gizlilik</a>
+          <a href="cerez.html">Çerezler</a>
+          <a href="kosullar.html">Koşullar</a>
+          <a href="iptal-iade.html">İptal ve iade</a>
+        </nav>
       </footer>
     </aside>
 

@@ -176,21 +176,84 @@ function ciz() {
   $("#btnCikis").hidden = !girisli;
 }
 
+/* ---------- pencereler ---------- */
+/* Bunlar aria-modal="true" diyor ama modal gibi davranmıyordu: açılınca odak
+ * içeri girmiyor, Tab arkadaki sayfada geziniyor, Escape kapatmıyor ve
+ * kapanınca odak hiçbir yere dönmüyordu. Ödeme duvarı klavyeyle kullanılamaz
+ * hâldeydi — paranın istendiği ekran. Dördünü de burada kapatıyoruz. */
+
+const ODAKLANABILIR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+let acikPencere = null;
+let odakDonusu = null;   // pencere açılmadan önce odakta olan öğe
+
+function odaklar(kutu) {
+  return Array.from(kutu.querySelectorAll(ODAKLANABILIR))
+    .filter((e) => e.offsetParent !== null || e === document.activeElement);
+}
+
 function pencere(ad, acik) {
   const kutu = $(ad);
-  if (kutu) kutu.hidden = !acik;
+  if (!kutu) return;
+  const degisiyor = kutu.hidden === acik;
+  kutu.hidden = !acik;
+  if (!degisiyor) return;
+
+  if (acik) {
+    // Bir pencereden diğerine geçerken ilk dönüş hedefini koru
+    if (!acikPencere) odakDonusu = document.activeElement;
+    acikPencere = kutu;
+  } else if (acikPencere === kutu) {
+    acikPencere = null;
+    const hedef = odakDonusu;
+    odakDonusu = null;
+    // Odak hiçbir yere düşmesin: açan düğme hâlâ sayfadaysa oraya dönsün
+    if (hedef && document.contains(hedef) && hedef.offsetParent !== null) hedef.focus();
+  }
 }
+
+function pencereyeOdaklan(kutu, ilk) {
+  const hedef = (ilk && ilk.offsetParent !== null) ? ilk : odaklar(kutu)[0];
+  hedef?.focus();
+}
+
+document.addEventListener("keydown", (olay) => {
+  if (!acikPencere) return;
+
+  if (olay.key === "Escape") {
+    olay.preventDefault();
+    pencere(`#${acikPencere.id}`, false);
+    return;
+  }
+
+  if (olay.key !== "Tab") return;
+  // Odak tuzağı: Tab pencerenin içinde dönsün, arkadaki sayfaya geçmesin
+  const liste = odaklar(acikPencere);
+  if (liste.length === 0) return;
+  const ilk = liste[0];
+  const son = liste[liste.length - 1];
+  const simdiki = document.activeElement;
+  if (olay.shiftKey && (simdiki === ilk || !acikPencere.contains(simdiki))) {
+    olay.preventDefault();
+    son.focus();
+  } else if (!olay.shiftKey && (simdiki === son || !acikPencere.contains(simdiki))) {
+    olay.preventDefault();
+    ilk.focus();
+  }
+});
 
 export function girisAc() {
   pencere("#odemePenceresi", false);
   pencere("#girisPenceresi", true);
   $("#girisHata").hidden = true;
-  $("#girisTelefon")?.focus();
+  pencereyeOdaklan($("#girisPenceresi"), $("#girisTelefon"));
 }
 
 export function odemeDuvari() {
   pencere("#girisPenceresi", false);
   pencere("#odemePenceresi", true);
+  pencereyeOdaklan($("#odemePenceresi"));
 }
 
 /* ---------- kurulum ---------- */

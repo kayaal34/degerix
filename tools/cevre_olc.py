@@ -1,7 +1,7 @@
 """Ölçüm: çevre modülünün dört katsayısı (kıyı, ana yol, hizmet, eğim) doğru mu?
 
 Bu dört katsayı projeye ölçülmeden, makul görünen değerlerle girdi. Kıyı primi
-ölçülürken yapılan kontrol koşusu şunu gösterdi: modül açıkken ±%50 içindeki kayıt
+ölçülürken yapılan kontrol koşusu şunu gösterdi: modül açıkken 1,5 kat içindeki kayıt
 63'ten 57'ye düşüyor, ortanca oran 0,96'dan 1,07'ye çıkıyor — yani dördü birlikte
 değeri sistematik olarak aşağı çekiyor. Sebebi anlaşılır: "ana yol 1,5 km içinde
 yoksa ×0,90", "hizmet yoksa ×0,95" gibi varsayımlar hiç prim vermiyor, yalnızca
@@ -17,8 +17,8 @@ normalize edilir: bu katsayılar bölgenin seviyesini değil, bölge içindeki f
 taşır; seviye ilçe katsayısı ve pazarlık payıyla zaten kalibre edilmiştir.
 
 Sonuç (25 Kasım 2026, 103 ilan): dördü de reddedildi, app/surroundings.py'den
-kaldırıldılar. Katsayısız tipik sapma ×1,80 ve ±%50 içinde 53 kayıt; eski
-katsayılarla aynı ×1,80 ama ±%50 47'ye düşüyor, veriden yeniden kurulduklarında
+kaldırıldılar. Katsayısız tipik sapma ×1,80 ve 1,5 kat içinde 53 kayıt; eski
+katsayılarla aynı ×1,80 ama 1,5 kat 47'ye düşüyor, veriden yeniden kurulduklarında
 bile 49'da kalıyor. En umutlu aday ana yol primi de üç sınavı geçemedi (--aday).
 
     python -P tools/cevre_olc.py --topla    # Overpass + yükselti, CSV yazar (~20 dk)
@@ -45,6 +45,7 @@ from app import market, nearby, urbanity  # noqa: E402
 from app.model_params import DEFAULTS  # noqa: E402
 from app.surroundings import settlement_position  # noqa: E402
 from app.valuation import estimate, load_parameters  # noqa: E402
+from olcum_ortak import hedef_tl, yarim_kat_icinde  # noqa: E402
 
 CIKTI = ROOT_DIR / "data" / "private" / "ciktilar" / "cevre_olcum.csv"
 IMARLI = {"konut", "ticari", "sanayi"}
@@ -172,7 +173,7 @@ def puan(satirlar: list[dict], kat_fn) -> tuple[float, int, int, list[float]]:
         sapmalar.append(abs(math.log2(oran)))
     tipik = 2 ** statistics.mean(sapmalar)
     icinde = sum(1 for s in satirlar
-                 if 1 / 1.5 <= s["oran"] / kat_fn(s) <= 1.5)
+                 if yarim_kat_icinde(s["oran"] / kat_fn(s)))
     return tipik, icinde, len(satirlar), sapmalar
 
 
@@ -198,7 +199,7 @@ def rapor(satirlar: list[dict], kat: dict[str, dict[str, float]]) -> None:
                    ("eski katsayilar       ", _eski_carpim),
                    ("olculen katsayilar    ", lambda s: _carpim(kat, s))):
         tipik, icinde, n, _ = puan(satirlar, fn)
-        print(f"  {ad} tipik sapma=x{tipik:4.2f}  +-%50 icinde={icinde:3}/{n}")
+        print(f"  {ad} tipik sapma=x{tipik:4.2f}  1,5 kat icinde={icinde:3}/{n}")
 
     _, _, _, bugun = puan(satirlar, _eski_carpim)
     _, _, _, olcum = puan(satirlar, lambda s: _carpim(kat, s))
@@ -220,10 +221,10 @@ def rapor(satirlar: list[dict], kat: dict[str, dict[str, float]]) -> None:
             tipik, icinde, n, sapma = puan(satirlar, fn)
             iyi = sum(1 for a, b in zip(yoksuz, sapma) if b < a - 1e-9)
             kotu = sum(1 for a, b in zip(yoksuz, sapma) if b > a + 1e-9)
-            print(f"  {ad:22} tipik sapma=x{tipik:4.2f}  +-%50={icinde:3}/{n}"
+            print(f"  {ad:22} tipik sapma=x{tipik:4.2f}  1,5 kat icinde={icinde:3}/{n}"
                   f"   {iyi} iyi / {kotu} bozuk")
     tipik, icinde, n, _ = puan(satirlar, lambda s: 1.0)
-    print(f"  {'(katsayisiz taban)':22} tipik sapma=x{tipik:4.2f}  +-%50={icinde:3}/{n}")
+    print(f"  {'(katsayisiz taban)':22} tipik sapma=x{tipik:4.2f}  1,5 kat icinde={icinde:3}/{n}")
 
     print("\n== IMARLI / IMARSIZ AYRIMI ==")
     for ad, sart in (("imarli ", lambda s: s["imarsiz"] == "0"),
@@ -234,7 +235,7 @@ def rapor(satirlar: list[dict], kat: dict[str, dict[str, float]]) -> None:
         for etiket, fn in (("katsayisiz", lambda s: 1.0), ("eski      ", _eski_carpim),
                            ("olculen   ", lambda s: _carpim(kat, s))):
             tipik, icinde, n, _ = puan(grup, fn)
-            print(f"  {ad} {etiket} tipik sapma=x{tipik:4.2f}  +-%50={icinde:3}/{n}")
+            print(f"  {ad} {etiket} tipik sapma=x{tipik:4.2f}  1,5 kat icinde={icinde:3}/{n}")
 
 
 def _yol_primi(esik_m: float, prim: float, ceza: float = 1.0):
@@ -257,10 +258,10 @@ def adaylar(satirlar: list[dict]) -> None:
         grup = grup if grup is not None else satirlar
         taban = [abs(math.log2(s["oran"])) for s in grup]
         yeni = [abs(math.log2(s["oran"] / fn(s))) for s in grup]
-        icinde = sum(1 for s in grup if 1 / 1.5 <= s["oran"] / fn(s) <= 1.5)
+        icinde = sum(1 for s in grup if yarim_kat_icinde(s["oran"] / fn(s)))
         iyi = sum(1 for a, b in zip(taban, yeni) if b < a - 1e-9)
         kotu = sum(1 for a, b in zip(taban, yeni) if b > a + 1e-9)
-        print(f"  {ad:30} x{2 ** statistics.mean(yeni):4.2f}  +-%50={icinde:3}/{len(grup)}"
+        print(f"  {ad:30} x{2 ** statistics.mean(yeni):4.2f}  1,5 kat icinde={icinde:3}/{len(grup)}"
               f"  {iyi:3} iyi / {kotu:3} bozuk")
 
     print("\n== TEK YANLI ADAYLAR (notr tabana karsi) ==")
@@ -291,7 +292,7 @@ def adaylar(satirlar: list[dict]) -> None:
         primli.append(s["oran"] / (prim if yakin(s) else 1.0))
     for ad, o in (("notr", notr), ("LOO yol primi", primli)):
         print(f"  {ad:16} x{2 ** statistics.mean(abs(math.log2(x)) for x in o):4.2f}"
-              f"  +-%50={sum(1 for x in o if 1 / 1.5 <= x <= 1.5):3}/{len(o)}")
+              f"  1,5 kat icinde={sum(1 for x in o if yarim_kat_icinde(x)):3}/{len(o)}")
     iyi = sum(1 for a, b in zip(notr, primli) if abs(math.log2(b)) < abs(math.log2(a)) - 1e-9)
     kotu = sum(1 for a, b in zip(notr, primli) if abs(math.log2(b)) > abs(math.log2(a)) + 1e-9)
     print(f"  {iyi} kayit iyilesiyor, {kotu} kayit bozuluyor;  "
@@ -309,8 +310,8 @@ def loo(satirlar: list[dict]) -> None:
         sonuc["olcum"].append(s["oran"] / _carpim(kat, s))
     for ad, oranlar in sonuc.items():
         tipik = 2 ** statistics.mean(abs(math.log2(o)) for o in oranlar)
-        icinde = sum(1 for o in oranlar if 1 / 1.5 <= o <= 1.5)
-        print(f"  {ad:8} tipik sapma=x{tipik:4.2f}  +-%50 icinde={icinde:3}/{len(oranlar)}")
+        icinde = sum(1 for o in oranlar if yarim_kat_icinde(o))
+        print(f"  {ad:8} tipik sapma=x{tipik:4.2f}  1,5 kat icinde={icinde:3}/{len(oranlar)}")
 
 
 # --- veri toplama ------------------------------------------------------------
@@ -354,7 +355,12 @@ async def topla(bekle_s: float = 1.0) -> None:
             print(f"  {sira}/{len(kayitlar)} {k['etiket']}: {type(hata).__name__}: {hata}",
                   flush=True)
             continue
-        hedef = k["deger"] * (1 - indirim) / k["alan"]
+        hedef = hedef_tl(k["deger"], k["tur"], indirim)
+        if hedef is None:
+            print(f"  {sira}/{len(kayitlar)} {k['etiket']}: bilinmeyen deger_turu, olcum disi",
+                  flush=True)
+            continue
+        hedef /= k["alan"]
         satirlar.append(dict(
             il=k["il"], ilce=k["ilce"], konum=k["konum"], imar=k["usage"],
             imarsiz="0" if k["usage"] in IMARLI else "1",

@@ -26,6 +26,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
+sys.path.insert(0, str(ROOT_DIR / "tools"))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -38,6 +39,7 @@ load_dotenv(ROOT_DIR / ".env")
 
 from app import market, nearby, urbanity  # noqa: E402
 from app.valuation import estimate, load_parameters  # noqa: E402
+from olcum_ortak import ETIKET, hedef_tl, yarim_kat_icinde  # noqa: E402
 
 VERI_DIZINI = ROOT_DIR / "data" / "private"
 IMARLI = {"konut", "ticari", "sanayi"}
@@ -90,7 +92,8 @@ def oku() -> list[dict]:
                 etiket=f"{satir['il'].strip()}/{satir['ilce'].strip() or '?'}",
                 lat=lat, lng=lng, alan=alan, deger=deger,
                 usage=satir["imar"].strip(), kaks=sayi(satir.get("emsal", "")),
-                haric=satir.get("haric", "").strip(), cevaplar=cevaplar))
+                haric=satir.get("haric", "").strip(), cevaplar=cevaplar,
+                tur=satir["deger_turu"].strip()))
     return kayitlar
 
 
@@ -106,7 +109,7 @@ def ozet(ad: str, grup: list[dict]) -> str:
     # düz ortalama ise yukarı sapmaları ağırlıklandırıp tabloyu yanıltır.
     log_hata = statistics.mean(abs(math.log2(s["oran"])) for s in grup)
     return (f"{ad:34} n={len(grup):3}  medyan={med(oranlar):5.2f}  "
-            f"ort|log2|={log_hata:4.2f}  ±%50 içinde={sum(abs(o - 1) <= 0.5 for o in oranlar)}/{len(grup)}")
+            f"ort|log2|={log_hata:4.2f}  {ETIKET}={sum(yarim_kat_icinde(o) for o in oranlar)}/{len(grup)}")
 
 
 async def main() -> None:
@@ -135,7 +138,10 @@ async def main() -> None:
         # Hedef ilan fiyatının kendisi değil: ilan, satışın üstünde durur. Model
         # gerçekleşen satışı tahmin ettiği için karşılaştırma da pazarlık payı
         # düşülmüş fiyata yapılır — tools/calibrate.py ile aynı hedef.
-        hedef = k["deger"] * (1 - indirim)
+        hedef = hedef_tl(k["deger"], k["tur"], indirim)
+        if hedef is None:
+            hatalar.append(f"{k['etiket']}: bilinmeyen deger_turu {k['tur']!r}, ölçüm dışı")
+            continue
         hedef_m2 = hedef / k["alan"]
         satirlar.append(dict(k, e=e, ilan=hedef_m2, model=e.unit_price,
                              oran=hedef_m2 / e.unit_price, yer=yer,

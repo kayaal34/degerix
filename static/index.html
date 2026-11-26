@@ -17,11 +17,26 @@
     if (/[?&]lat=/.test(location.search)) location.replace("harita.html" + location.search);
     // Beliren bölümler yalnızca JavaScript varken gizlenir. Bu satır burada,
     // <head>'de: landing.js gövdenin sonunda çalışsaydı içerik önce görünüp
-    // sonra kaybolurdu. Betik hiç gelmezse de sayfa eksiksiz kalır.
+    // sonra kaybolurdu.
+    //
+    // Ama gizlemeyi burada açıp göstermeyi landing.js'e bırakmak tek başına
+    // tehlikeli: o dosya 404 verirse, ağda takılırsa ya da bir hata atarsa
+    // kaynaklar, sınırlar ve kapanış düğmesi kalıcı olarak görünmez kalır.
+    // Bu yüzden gizleme kendi kendini iptal ediyor: landing.js kurulumu
+    // bitirince bayrağı diker; dikmemişse sayfa yüklenir yüklenmez (ya da en
+    // geç üç saniyede) gizleme kalkar ve içerik olduğu gibi görünür.
     document.documentElement.classList.add("beliren-acik");
+    (function () {
+      var vazgec = function () {
+        if (!window.__belirenHazir) document.documentElement.classList.remove("beliren-acik");
+      };
+      window.addEventListener("load", vazgec, { once: true });
+      setTimeout(vazgec, 3000);
+    })();
   </script>
 </head>
 <body class="landing">
+  <a class="atla" href="#icerik">İçeriğe atla</a>
   <header class="site-header">
     <a class="site-brand" href="./">
       <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
@@ -40,7 +55,7 @@
     </nav>
   </header>
 
-  <main>
+  <main id="icerik" tabindex="-1">
     <section class="section hero-section">
       <div class="container hero">
         <div class="hero-text">
@@ -143,7 +158,7 @@
               <tr><th scope="row">Yöntem</th><td>“Yapay zekâ” denir, hesap açıklanmaz</td><td>Hesabın her adımı raporda görünür</td></tr>
               <tr><th scope="row">Sonuç</th><td>Tek rakam, ya da açıklanmayan bir aralık</td><td>Yanıtlarınıza göre daralan bir aralık</td></tr>
               <tr><th scope="row">Doğruluk</th><td>Hata payı söylenmez</td><td>Ölçülen sapma açıkça yayımlanır</td></tr>
-              <tr><th scope="row">Kod</th><td>Kapalı</td><td>Açık kaynak</td></tr>
+              <tr><th scope="row">Kod</th><td>Kapalı</td><td>Kaynak kodu herkese açık</td></tr>
             </tbody>
           </table>
         </div>
@@ -194,8 +209,20 @@
   </main>
 
   <footer class="site-footer">
-    <span>Değerix bir portfolyo projesidir. Tahminler bilgilendirme amaçlıdır, yatırım tavsiyesi değildir.</span>
-    <a href="https://github.com/kayaal34/degerix">Kaynak kod: GitHub</a>
+    <nav class="footer-baglantilar" aria-label="Hukuki metinler ve yardım">
+      <a href="sss.html">Sıkça sorulan sorular</a>
+      <a href="abonelik.html">Abonelik</a>
+      <a href="kvkk.html">KVKK aydınlatma metni</a>
+      <a href="gizlilik.html">Gizlilik</a>
+      <a href="cerez.html">Çerezler</a>
+      <a href="kosullar.html">Kullanım koşulları</a>
+      <a href="mesafeli-satis.html">Mesafeli satış</a>
+      <a href="iptal-iade.html">İptal ve iade</a>
+      <a href="https://github.com/kayaal34/degerix">Kaynak kod</a>
+    </nav>
+    <p class="footer-not">Değerix lisanslı değerleme raporu üretmez; çıktısı bilgilendirme
+      amaçlıdır, yatırım tavsiyesi ya da resmî işlemlerde dayanak değildir.
+      Hukuki metinler taslak hâlindedir.</p>
   </footer>
   <script src="landing.js"></script>
   <script src="cerez.js"></script>

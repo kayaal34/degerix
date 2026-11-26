@@ -37,12 +37,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tools"))
 
 from dotenv import load_dotenv  # noqa: E402
 
 from app import market, urbanity  # noqa: E402
 from app.model_params import CALIBRATION_FILE, DEFAULTS, Parameters  # noqa: E402
 from app.valuation import effective_class, estimate  # noqa: E402
+from olcum_ortak import hedef_tl  # noqa: E402
 
 PILOT_DIR = ROOT / "data" / "pilot"
 PRIVATE_DIR = ROOT / "data" / "private"
@@ -154,8 +156,10 @@ async def evaluate(records: list[dict[str, str]], parameters: Parameters) -> lis
         prediction = await predict(record, parameters)
         if not target or not prediction:
             continue
-        if (record.get("deger_turu") or "").strip() == "ilan":
-            target *= 1 - parameters.asking_discount
+        # Tanınmayan/boş deger_turu ölçüm dışı (sessizce satış sayılmaz).
+        target = hedef_tl(target, record.get("deger_turu"), parameters.asking_discount)
+        if target is None:
+            continue
         place = urbanity.describe(float(record["lat"]), float(record["lng"]))
         rows.append((record, target, prediction[0], effective_class(place), prediction[1]))
     return rows

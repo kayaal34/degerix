@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Değerix · Sıkça Sorulan Sorular</title>
+  <meta name="description" content="Değerix değeri nasıl buluyor, ne kadar isabetli, banka kabul eder mi, ücretsiz haklar ve verilerinizin silinmesi hakkında sorular ve yanıtlar.">
+  <meta name="theme-color" content="#14543a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314543a'/%3E%3Cpath d='M8 8h4.2v16H8z' fill='%23fff' fill-opacity='.62'/%3E%3Cpath d='M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z' fill='%23fff'/%3E%3Cpath d='M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z' fill='%23fff' fill-opacity='.62'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sayfa.css">
+</head>
+<body class="sayfa-govde">
+  <header class="site-header">
+    <a class="site-brand" href="./">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="8" fill="currentColor"/>
+        <path d="M8 8h4.2v16H8z" fill="#fff" fill-opacity=".62"/>
+        <path d="M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z" fill="#fff"/>
+        <path d="M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z" fill="#fff" fill-opacity=".62"/>
+      </svg>
+      Değerix
+    </a>
+    <nav class="site-nav" aria-label="Sayfa bölümleri">
+      <a href="abonelik.html">Abonelik</a>
+      <a class="btn btn-primary" href="harita.html">Haritayı aç</a>
+    </nav>
+  </header>
+
+  <main class="sayfa">
+    <div class="sayfa-ust">
+      <h1>Sıkça Sorulan Sorular</h1>
+      <p class="son-guncelleme">Son güncelleme: 26 Kasım 2026</p>
+    </div>
+    <p class="taslak-uyari" role="note"><strong>Taslak metin.</strong> Bu metin avukat incelemesinden geçmemiştir ve hukuki görüş değildir; yayına girmeden önce bir hukukçu tarafından gözden geçirilmelidir. Köşeli çift parantezle işaretli alanlar (<span class="yt">[[ÖRNEK]]</span>) henüz bilinmeyen şirket bilgileridir ve doldurulmayı bekler.</p>
+    <nav class="icindekiler" aria-label="İçindekiler">
+      <h2>İçindekiler</h2>
+      <ol>
+        <li><a href="#yontem">Değerleme nasıl çalışıyor?</a></li>
+        <li><a href="#isabet">Sonuç ne kadar güvenilir?</a></li>
+        <li><a href="#kullanim">Rapor ve kullanım</a></li>
+        <li><a href="#hesap">Hesap, ücretsiz haklar ve ödeme</a></li>
+        <li><a href="#veri">Verilerim</a></li>
+      </ol>
+    </nav>
+    <section class="kutu" id="yontem">
+      <h2>Değerleme nasıl çalışıyor?</h2>
+      <details class="soru" open>
+        <summary>Değerix değeri nasıl buluyor?</summary>
+        <div>
+          <p>Haritada parseli seçince sınırı, alanı ve niteliği tapu ve kadastro kaydından gelir. Üzerine ilin konut fiyatı verisi, imar durumu, yol, elektrik-su gibi sorulara verdiğiniz yanıtlar ve çevre ölçümleri (yükselti, yol, bina yoğunluğu) eklenir. Her adım raporda görünür; sonuç tek bir rakam değil, bir değer aralığıdır.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Veriler nereden geliyor?</summary>
+        <div>
+          <p>Parsel bilgisi TKGM’den, il düzeyinde konut fiyatları ve endeks TCMB EVDS’den, çevre bilgisi OpenStreetMap’ten, yükselti Open-Meteo’dan, yer arama Nominatim’den gelir. Hiçbir ilan sitesinden veri kopyalanmaz.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Ada ve parsel numarasını bilmiyorum, ne yapmalıyım?</summary>
+        <div>
+          <p>Bilmeniz gerekmez: haritada parselin üzerine tıklamanız yeterli, ada ve parsel TKGM’den otomatik gelir. Numarayı biliyorsanız “Ada / parsel ile ara” seçeneğiyle il, ilçe, mahalle seçip doğrudan da bulabilirsiniz.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Bir soruyu bilmiyorsam ne olur?</summary>
+        <div>
+          <p>“Bilmiyorum” diyebilirsiniz. Bu durumda Değerix uydurma bir varsayım yapıp kesinmiş gibi göstermez; değer aralığı o oranda genişler.</p>
+        </div>
+      </details>
+    </section>
+    <section class="kutu" id="isabet">
+      <h2>Sonuç ne kadar güvenilir?</h2>
+      <details class="soru" open>
+        <summary>Tahmin ne kadar isabetli?</summary>
+        <div>
+          <p>Ölçülmüş bir sayı veriyoruz. 104 gerçek ilanla karşılaştırıldığında tipik sapma ×1,79 çıktı ve ilanların 66’sı modelin verdiği ±%50 bandının içinde kaldı. Yani tahmin ilan fiyatından çoğu zaman yarı yarıya ya da iki katına kadar sapabilir. Bu ilan (istenen) fiyatlarıyla yapılan bir ölçümdür, gerçekleşen satışlarla değil.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Değer neden bu kadar geniş bir aralık?</summary>
+        <div>
+          <p>Çünkü gerçek belirsizlik o kadar geniş. Aralığın genişliği ölçülen hataya göre belirlenir ve imar durumuna göre değişir: imarsız arazide daha geniş, imarlı arsada daha dardır. Dar bir aralık göstermek daha güven verici görünürdü ama ölçümün desteklemediği bir kesinlik olurdu. Emsal ilan girdikçe aralık daralır.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Fiyat neden ilandan düşük (ya da yüksek) çıkıyor?</summary>
+        <div>
+          <p>İlan fiyatı satıcının istediği fiyattır, satış fiyatı değildir; pazarlık payı genelde düşer. Ayrıca model ilana değil resmî verilere dayanır, parselinizin ilanındaki özel niteliklerini (manzara, hisse, acil satış) bilemez. İlanı biliyorsanız emsal olarak girerseniz model onu hesaba katar.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>İmarsız tarlaya neden imarlı gibi değer çıktı?</summary>
+        <div>
+          <p>Büyük olasılıkla imar durumunu “imarlı” ya da “bilmiyorum” olarak yanıtladınız ya da parsel yerleşimin kenarında olduğu için imar beklentisi payı eklendi. Gösterilen imar durumu bir tahmindir; gerçeğini belediyeden öğrenmeniz gerekir. Yanıtınızı düzeltip yeniden sorgulayabilirsiniz.</p>
+        </div>
+      </details>
+    </section>
+    <section class="kutu" id="kullanim">
+      <h2>Rapor ve kullanım</h2>
+      <details class="soru" open>
+        <summary>Bu rapor bankada geçer mi?</summary>
+        <div>
+          <p>Hayır. Değerix lisanslı bir değerleme raporu değildir; SPK lisanslı bir değerleme kuruluşu değildir. Çıktısı kredi, ipotek, teminat, vergi ya da başka resmî işlemlerde kullanılamaz. Böyle bir iş için lisanslı bir değerleme kuruluşuna başvurmalısınız. Değerix, o aşamadan önce kabaca bir fikir edinmeniz içindir.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Raporu yazdırabilir ya da PDF olarak kaydedebilir miyim?</summary>
+        <div>
+          <p>Evet. Sonuç ekranındaki “Raporu yazdır / PDF” düğmesiyle çıktı alabilirsiniz. Raporun ön tahmin olduğu belirtilir.</p>
+        </div>
+      </details>
+    </section>
+    <section class="kutu" id="hesap">
+      <h2>Hesap, ücretsiz haklar ve ödeme</h2>
+      <details class="soru" open>
+        <summary>İlk üç sorgu neden ücretsiz?</summary>
+        <div>
+          <p>Hizmeti satın almadan önce denemeniz için. Kayıtlı hesaplara ilk üç değerleme sorgusu ücretsizdir; hesap açmak e-posta doğrulaması gerektirir.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Ücretsiz hakkım bitince ne olur?</summary>
+        <div>
+          <p>Yeni sorgu başlatamazsınız; daha önceki sorgularınızı ve geçmişinizi Hesabım sayfasında görmeye devam edersiniz. Devam etmek için paket ya da abonelik satın alabilirsiniz. Fiyatlar henüz açıklanmadı; açıklandığında <a href="abonelik.html">Abonelik</a> sayfasında yer alacak.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Aboneliğimi nasıl iptal ederim, para iadesi var mı?</summary>
+        <div>
+          <p>Koşullar <a href="iptal-iade.html">İptal ve İade Koşulları</a> sayfasında. Kısaca: iptal, yenilemeyi durdurur; kullanılmamış hak için on dört gün içinde cayma hakkınız vardır.</p>
+        </div>
+      </details>
+    </section>
+    <section class="kutu" id="veri">
+      <h2>Verilerim</h2>
+      <details class="soru" open>
+        <summary>Verilerimi ne yapıyorsunuz?</summary>
+        <div>
+          <p>Hesap açarsanız e-posta adresinizi, yazdıysanız telefonunuzu ve yaptığınız sorguları (konum, parsel, alan, çıkan değer) saklarız; reklam için kullanmaz, satmayız. Ayrıntı için <a href="gizlilik.html">Gizlilik Politikası</a> ve <a href="kvkk.html">KVKK Aydınlatma Metni</a>.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Verilerimi nasıl silerim?</summary>
+        <div>
+          <p><a href="hesabim.html">Hesabım</a> sayfasından sorgu geçmişinizi tek başına temizleyebilir ya da hesabınızı ve bağlı bütün kayıtları silebilirsiniz. Hesap silme geri alınamaz. Verinizin bir kopyasını da aynı sayfadan indirebilirsiniz.</p>
+        </div>
+      </details>
+      <details class="soru">
+        <summary>Sitede çerez ya da izleme var mı?</summary>
+        <div>
+          <p>Reklam ve izleme çerezi yok. Tarayıcıda yalnızca oturumunuzu ve tercihlerinizi hatırlayan zorunlu kayıtlar tutulur. Ayrıntı: <a href="cerez.html">Çerez Politikası</a>.</p>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <nav class="footer-baglantilar" aria-label="Hukuki metinler ve yardım">
+      <a href="sss.html">Sıkça sorulan sorular</a>
+      <a href="abonelik.html">Abonelik</a>
+      <a href="kvkk.html">KVKK aydınlatma metni</a>
+      <a href="gizlilik.html">Gizlilik</a>
+      <a href="cerez.html">Çerezler</a>
+      <a href="kosullar.html">Kullanım koşulları</a>
+      <a href="mesafeli-satis.html">Mesafeli satış</a>
+      <a href="iptal-iade.html">İptal ve iade</a>
+      <a href="https://github.com/kayaal34/degerix">Kaynak kod</a>
+    </nav>
+    <p class="footer-not">Değerix lisanslı değerleme raporu üretmez; çıktısı bilgilendirme
+      amaçlıdır, yatırım tavsiyesi ya da resmî işlemlerde dayanak değildir.
+      Hukuki metinler taslak hâlindedir.</p>
+  </footer>
+  <script src="cerez.js"></script>
+</body>
+</html>

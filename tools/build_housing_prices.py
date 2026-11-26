@@ -16,6 +16,7 @@ ve "tahmin_edilen" listesinde işaretlenir.
 
 import asyncio
 import json
+import os
 import statistics
 import sys
 from datetime import date
@@ -32,6 +33,7 @@ from app.evds_series import PRICE_INDEX_REGIONS, UNIT_PRICE_PREFIX, UNIT_PRICE_S
 OUTPUT = ROOT / "app" / "static_data" / "konut_birim_fiyat.json"
 COUNTRY_SERIES = f"{UNIT_PRICE_PREFIX}TR"
 CONCURRENCY = 4
+MIN_PROVINCES = 60  # TCMB kesintisinde eksik dosya yazılmasın diye alt sınır
 
 
 async def latest_value(code: str, start: date, end: date, limiter: asyncio.Semaphore) -> tuple[str, float] | None:
@@ -94,8 +96,17 @@ async def main() -> None:
         "tahmin_edilen": sorted(estimated),
         "iller": dict(sorted(prices.items())),
     }
+    # Eksik/bozuk veriyle mevcut yedeğin üzerine yazma: önce doğrula, sonra atomik değiştir.
+    bad = [name for name, price in prices.items() if not isinstance(price, (int, float)) or price <= 0]
+    if len(prices) < MIN_PROVINCES or bad:
+        sys.exit(
+            f"Doğrulama başarısız: {len(prices)} il (en az {MIN_PROVINCES} gerekli), "
+            f"pozitif olmayan fiyat: {', '.join(bad) or 'yok'}. Mevcut dosyaya dokunulmadı."
+        )
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(snapshot, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    temp = OUTPUT.with_suffix(OUTPUT.suffix + ".tmp")
+    temp.write_text(json.dumps(snapshot, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    os.replace(temp, OUTPUT)
 
     values = sorted(prices.values())
     print(f"yazıldı: {OUTPUT.relative_to(ROOT)} · dönem {period} · {len(prices)} il")

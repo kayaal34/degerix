@@ -13,7 +13,16 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: JavaScript sözdizimi
+        run: |
+          for f in static/*.js; do
+            echo "node --check $f"
+            node --check "$f"
+          done
       - run: pytest
       - name: 81 ilde model taraması
         run: python tools/province_sweep.py

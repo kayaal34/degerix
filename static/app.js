@@ -353,6 +353,8 @@ function lookupPoint(lat, lng) {
 }
 
 function showParcel(parcel, point, fit) {
+  // Önceki parselin uçuştaki hesabı bu parsele yazılmasın
+  if (state.parcel !== parcel) invalidateEstimate();
   state.parcel = parcel;
   document.dispatchEvent(new CustomEvent("parcel-selected", { detail: parcel }));
   $("#mapLocation").textContent = ["Türkiye", parcel.province, parcel.district, parcel.neighborhood,
@@ -410,7 +412,11 @@ function showParcel(parcel, point, fit) {
   $("#result").hidden = false;
   updateShareUrl();
   runEstimate();
-  if (parcel.province !== state.analysisProvince) loadAnalysis(parcel.province);
+  // Gösterilen ile eşit olsa bile yükle: B'ye geçip A'ya dönüldüğünde
+  // state.analysisProvince hâlâ A'yı gösterirken B'nin uçuştaki yanıtı
+  // seq eşleştiği için A'nın ekranına yazılabiliyordu. Yeni istek açmak
+  // sırayı artırır ve o yanıtı sahipsiz bırakır.
+  loadAnalysis(parcel.province);
 
   if (MOBILE.matches) {
     map.invalidateSize({ animate: false }); // #result görünür olunca yapışkan harita kısaldı
@@ -523,6 +529,9 @@ function applyAnswers(params) {
 
 let estimateTimer;
 function scheduleEstimate() {
+  // Bekleme sırasında ekrandaki rakam artık girdilere ait değil; düğmeleri
+  // hemen kapat ki 350 ms içinde "PDF" denip eski tutarın raporu alınmasın.
+  invalidateEstimate();
   clearTimeout(estimateTimer);
   estimateTimer = setTimeout(runEstimate, 350);
 }
@@ -552,6 +561,24 @@ function showOutput(visible) {
 function setResultActions(enabled) {
   $("#btnPrint").disabled = !enabled;
   $("#btnCompare").disabled = !enabled;
+}
+
+/* Ekrandaki sonuç artık geçerli değil.
+ *
+ * Sıra numarasını yalnızca yeni istek açarken artırmak yetmiyordu: kullanıcı
+ * A parseli hesaplanırken haritada B'ye tıkladığında showParcel ->
+ * resetQuestions, state.calculated'ı false yapıyor ve runEstimate sıra
+ * numarasına dokunmadan erken dönüyordu. A'nın yanıtı geldiğinde
+ * seq === state.estimateSeq olduğu için B'nin ekranına A'nın tutarı
+ * yazılıyordu — üstelik PDF ve paylaşım düğmeleri açık, yani kullanıcı
+ * yanlış parselin raporunu alabiliyordu.
+ *
+ * Artık sonucu geçersiz kılan her yol burayı çağırıyor: uçuştaki yanıt
+ * dönüşte sahipsiz kalır ve atılır.
+ */
+function invalidateEstimate() {
+  state.estimateSeq++;
+  setResultActions(false);
 }
 
 function postEstimate(parcel, inputs) {
@@ -613,7 +640,9 @@ async function runEstimate() {
   setResultActions(false);
   try {
     const result = await postEstimate(parcel, inputs);
-    if (seq !== state.estimateSeq) return;
+    // Sıra numarasının yanında kimlik kontrolü: gözden kaçan bir yol sırayı
+    // artırmayı unutursa bile başka parselin ekranına yazılmasın.
+    if (seq !== state.estimateSeq || state.parcel !== parcel) return;
     hideAlert();
     renderEstimate(result, parcel);
     window.Hesap?.hakYenile?.();      // kalan sorgu rozeti tazelensin
@@ -963,7 +992,9 @@ async function loadAnalysis(province) {
   $("#analysis").hidden = true;
   try {
     const stats = await api(`/api/stats/${encodeURIComponent(province)}`);
-    if (seq !== state.analysisSeq) return;
+    // Kimlik kontrolü sıra numarasının yanında: yanıt döndüğünde ekrandaki
+    // parsel başka bir ile geçmiş olabilir.
+    if (seq !== state.analysisSeq || state.parcel?.province !== province) return;
     state.analysisProvince = province;
     renderAnalysis(stats);
   } catch {
@@ -1195,6 +1226,11 @@ function selectTab(name) {
     const active = tab.dataset.tab === name;
     tab.classList.toggle("is-active", active);
     tab.setAttribute("aria-selected", String(active));
+    // Gezinen tabindex: role="tablist" içinde Tab bütün sekmelere tek tek
+    // uğramaz, yalnızca seçili olana gelir; sekmeler arasında ok tuşlarıyla
+    // gezilir. Üçü de tabindex=0 iken klavye kullanıcısı içeriğe varmak için
+    // üç durak fazladan geçiyordu.
+    tab.tabIndex = active ? 0 : -1;
   });
   $("#tab-explore").hidden = name !== "explore";
   document.dispatchEvent(new CustomEvent("map-tab", { detail: name }));
@@ -1202,6 +1238,31 @@ function selectTab(name) {
   $("#tab-number").hidden = name !== "number";
   if (name === "number") loadProvinces();
 }
+
+/* Sekmelerde ok tuşları: WAI-ARIA tablist davranışı. Ok tuşu hem seçer hem
+   odaklar, Home/End uçlara gider, liste başa sarar. */
+(function sekmeOklari() {
+  const sekmeler = Array.from(document.querySelectorAll(".tab"));
+  if (sekmeler.length === 0) return;
+  for (const sekme of sekmeler) {
+    sekme.addEventListener("keydown", (olay) => {
+      const yon = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[olay.key];
+      let hedef = null;
+      if (yon) {
+        const simdi = sekmeler.indexOf(sekme);
+        hedef = sekmeler[(simdi + yon + sekmeler.length) % sekmeler.length];
+      } else if (olay.key === "Home") {
+        hedef = sekmeler[0];
+      } else if (olay.key === "End") {
+        hedef = sekmeler[sekmeler.length - 1];
+      }
+      if (!hedef) return;
+      olay.preventDefault();
+      selectTab(hedef.dataset.tab);
+      hedef.focus();
+    });
+  }
+})();
 
 // Adres çubuğundaki bağlantı → sekme adı; tanınmayan hash için null
 function tabFromHash() {
@@ -1336,6 +1397,10 @@ function renderResults(places, message) {
 }
 
 function hideResults() {
+  // Sıra numarasını burada da artırmak şart: kullanıcı Escape'e bastığında ya
+  // da metni üç karakterin altına indirdiğinde eski istek hâlâ uçuşta oluyor,
+  // dönünce seq eşleşiyor ve kapattığı listeyi geri açıyordu.
+  state.searchSeq++;
   $("#searchResults").hidden = true;
 }
 

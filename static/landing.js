@@ -8,6 +8,10 @@
  *  - Hareket azaltma açıksa animasyon yok; CSS bunu kendi hallediyor.
  */
 
+// <head>'deki güvenlik ağına "ben geldim" demek. Bu satır çalışmazsa oradaki
+// vazgeçme kurulumu gizlemeyi kaldırıyor ve içerik görünür kalıyor.
+window.__belirenHazir = true;
+
 const OGELER = Array.from(document.querySelectorAll("[data-beliren]"));
 
 function hepsiniGoster() {

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Değerix · Çerez Politikası</title>
+  <meta name="description" content="Değerix’te reklam ve izleme çerezi yoktur. Tarayıcıda tutulan zorunlu kayıtlar ve sayfaların yüklediği üçüncü taraf kaynaklar.">
+  <meta name="theme-color" content="#14543a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314543a'/%3E%3Cpath d='M8 8h4.2v16H8z' fill='%23fff' fill-opacity='.62'/%3E%3Cpath d='M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z' fill='%23fff'/%3E%3Cpath d='M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z' fill='%23fff' fill-opacity='.62'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sayfa.css">
+</head>
+<body class="sayfa-govde">
+  <header class="site-header">
+    <a class="site-brand" href="./">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="8" fill="currentColor"/>
+        <path d="M8 8h4.2v16H8z" fill="#fff" fill-opacity=".62"/>
+        <path d="M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z" fill="#fff"/>
+        <path d="M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z" fill="#fff" fill-opacity=".62"/>
+      </svg>
+      Değerix
+    </a>
+    <nav class="site-nav" aria-label="Sayfa bölümleri">
+      <a href="abonelik.html">Abonelik</a>
+      <a class="btn btn-primary" href="harita.html">Haritayı aç</a>
+    </nav>
+  </header>
+
+  <main class="sayfa">
+    <div class="sayfa-ust">
+      <h1>Çerez Politikası</h1>
+      <p class="son-guncelleme">Son güncelleme: 26 Kasım 2026</p>
+    </div>
+    <p class="taslak-uyari" role="note"><strong>Taslak metin.</strong> Bu metin avukat incelemesinden geçmemiştir ve hukuki görüş değildir; yayına girmeden önce bir hukukçu tarafından gözden geçirilmelidir. Köşeli çift parantezle işaretli alanlar (<span class="yt">[[ÖRNEK]]</span>) henüz bilinmeyen şirket bilgileridir ve doldurulmayı bekler.</p>
+    <nav class="icindekiler" aria-label="İçindekiler">
+      <h2>İçindekiler</h2>
+      <ol>
+        <li><a href="#ozet">Özet</a></li>
+        <li><a href="#kayitlar">Tarayıcıda tutulan kayıtlar</a></li>
+        <li><a href="#ucuncu">Üçüncü taraf kaynaklar</a></li>
+        <li><a href="#yonetim">Kayıtları nasıl silersiniz?</a></li>
+        <li><a href="#iletisim">İletişim</a></li>
+      </ol>
+    </nav>
+    <section class="kutu" id="ozet">
+      <h2>Özet</h2>
+      <p>Değerix’te reklam çerezi, izleme çerezi, analiz aracı ya da sosyal medya eklentisi yoktur. Sizi siteler arasında takip eden hiçbir şey kullanmıyoruz. Bu yüzden “kabul et / reddet” düğmesi de yok: onay istenecek bir şey olmadığı için onay istemek, olmayan bir izlemeyi varmış gibi göstermek olurdu.</p>
+      <p>Sitenin çalışması için tarayıcınızın yerel depolamasına (<code>localStorage</code>) birkaç zorunlu ya da işlevsel kayıt yazılır. Bunlar sunucuya otomatik gönderilmez ve tarayıcı ayarlarınızdan silinebilir.</p>
+    </section>
+    <section class="kutu" id="kayitlar">
+      <h2>Tarayıcıda tutulan kayıtlar</h2>
+      <div class="tablo-kaydir">
+        <table class="sayfa-tablo">
+          <thead><tr><th scope="col">Anahtar</th><th scope="col">Ne işe yarar</th><th scope="col">Tür</th></tr></thead>
+          <tbody>
+            <tr><td><code>degerix.oturum</code></td><td>Giriş yaptıysanız oturum jetonunuz; her sayfada yeniden giriş yapmanızı önler.</td><td>Zorunlu</td></tr>
+            <tr><td><code>degerix-compare</code></td><td>Haritada karşılaştırma listesine eklediğiniz parseller.</td><td>İşlevsel</td></tr>
+            <tr><td><code>degerix-comparables</code></td><td>Emsal olarak girdiğiniz ilan ve satış bilgileri.</td><td>İşlevsel</td></tr>
+            <tr><td><code>degerix-basemap</code></td><td>Seçtiğiniz harita altlığı.</td><td>İşlevsel (tercih)</td></tr>
+            <tr><td><code>degerix-parsel-gecmisi-v1</code></td><td>Son baktığınız parsellerin tarayıcıdaki listesi.</td><td>İşlevsel</td></tr>
+            <tr><td><code>degerix.cerez-bildirimi</code></td><td>Bu bildirimi kapattığınızı hatırlar; tekrar göstermez.</td><td>Tercih</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Bu kayıtlar kalıcıdır; siz silene kadar tarayıcıda durur. Hiçbiri reklam veya izleme amacıyla kullanılmaz.</p>
+    </section>
+    <section class="kutu" id="ucuncu">
+      <h2>Üçüncü taraf kaynaklar</h2>
+      <p>Sayfalar aşağıdaki dış kaynaklardan yazı tipi, kütüphane ve harita karosu yükler. Bu kaynaklar tarayıcınızdan doğrudan istek alır; dolayısıyla IP adresinizi ve tarayıcı bilgilerinizi görürler ve kendi politikalarına göre kayıt tutabilirler. Değerix bu servislere kimliğinizi göndermez.</p>
+      <ul>
+        <li><b>Google Fonts:</b> Inter ve Source Serif 4 yazı tipleri.</li>
+        <li><b>jsDelivr:</b> harita ve arayüz kütüphanelerinin dosyaları.</li>
+        <li><b>OpenStreetMap:</b> harita karoları.</li>
+        <li><b>ArcGIS (Esri):</b> uydu görüntüsü karoları.</li>
+      </ul>
+      <p>Bu istekleri engellemek isterseniz tarayıcınızın içerik engelleyicisini kullanabilirsiniz; ancak harita ve yazı tipleri düzgün görünmeyebilir.</p>
+    </section>
+    <section class="kutu" id="yonetim">
+      <h2>Kayıtları nasıl silersiniz?</h2>
+      <p>Tarayıcınızın ayarlarındaki site verilerini temizleme seçeneğiyle yukarıdaki kayıtların hepsini silebilirsiniz. Sildiğinizde oturumunuz kapanır, karşılaştırma listeniz ve tercihleriniz sıfırlanır. Hesabınızdaki sunucu tarafı kayıtlar bundan etkilenmez; onlar için <a href="gizlilik.html">Gizlilik Politikası</a>’na bakın.</p>
+    </section>
+    <section class="kutu" id="iletisim">
+      <h2>İletişim</h2>
+      <p>Veri sorumlusu: <span class="yt">[[VERİ SORUMLUSU ÜNVANI]]</span>, <span class="yt">[[E-POSTA]]</span>. Kişisel verilere ilişkin ayrıntı için <a href="kvkk.html">KVKK Aydınlatma Metni</a>.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <nav class="footer-baglantilar" aria-label="Hukuki metinler ve yardım">
+      <a href="sss.html">Sıkça sorulan sorular</a>
+      <a href="abonelik.html">Abonelik</a>
+      <a href="kvkk.html">KVKK aydınlatma metni</a>
+      <a href="gizlilik.html">Gizlilik</a>
+      <a href="cerez.html">Çerezler</a>
+      <a href="kosullar.html">Kullanım koşulları</a>
+      <a href="mesafeli-satis.html">Mesafeli satış</a>
+      <a href="iptal-iade.html">İptal ve iade</a>
+      <a href="https://github.com/kayaal34/degerix">Kaynak kod</a>
+    </nav>
+    <p class="footer-not">Değerix lisanslı değerleme raporu üretmez; çıktısı bilgilendirme
+      amaçlıdır, yatırım tavsiyesi ya da resmî işlemlerde dayanak değildir.
+      Hukuki metinler taslak hâlindedir.</p>
+  </footer>
+  <script src="cerez.js"></script>
+</body>
+</html>

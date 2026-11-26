@@ -33,6 +33,7 @@ import ilan_karsilastir as karsilastir  # noqa: E402
 from app import market, urbanity  # noqa: E402
 from app.geo import distance_to_line_m  # noqa: E402
 from app.valuation import estimate, load_parameters  # noqa: E402
+from olcum_ortak import hedef_tl  # noqa: E402
 
 CIKTI = ROOT_DIR / "data" / "private" / "ciktilar" / "yerlesim_olcum.csv"
 # Ana Overpass ornegi gun icinde 40 s'ye kadar yavasliyor, zaman zaman 502 veriyor;
@@ -166,7 +167,11 @@ async def main() -> None:
                 continue
             # Hedef, ilanin kendisi degil pazarlik payi dusulmus fiyat; calibrate.py
             # ve ilan_karsilastir.py ile ayni hedef, yoksa oranlar kiyaslanamaz.
-            hedef = k["deger"] * (1 - indirim) / k["alan"]
+            hedef = hedef_tl(k["deger"], k["tur"], indirim)
+            if hedef is None:
+                print(f"  {sira}/{len(kayitlar)} {k['etiket']}: bilinmeyen deger_turu, olcum disi")
+                continue
+            hedef /= k["alan"]
             satirlar.append(dict(
                 il=k["il"], ilce=k["ilce"], konum=k["konum"], imar=k["usage"],
                 alan=int(k["alan"]), ilan_tl_m2=round(k["deger"] / k["alan"]),

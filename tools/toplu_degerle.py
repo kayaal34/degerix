@@ -32,8 +32,9 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT_DIR / ".env")
 
-from app import market, nearby, nominatim, tkgm, urbanity  # noqa: E402
+from app import evds, market, nearby, nominatim, tkgm, urbanity  # noqa: E402
 from app.errors import NotFound, UpstreamError  # noqa: E402
+from app.geo import _outer_rings  # noqa: E402
 from app.valuation import estimate, guess_usage  # noqa: E402
 
 # Çevre sorgusu (OSM + eğim) parsel başına birkaç saniye sürebiliyor; toplu işte
@@ -77,6 +78,46 @@ async def mahalle_id(il: str, ilce: str, mahalle: str) -> int:
     if mahalle_kaydi is None:
         raise NotFound(f"mahalle/köy bulunamadı: {mahalle}")
     return int(mahalle_kaydi["id"])
+
+
+class BelirsizSayi(ValueError):
+    """Metin hem binlik hem ondalık okunabiliyor; tahmin etmek yerine durur."""
+
+
+def alan_oku(metin: str) -> float:
+    """Alan metnini sayıya çevirir. Belirsizse tahmin etmez, hata verir.
+
+    Bu alan m² cinsinden ve değerin tamamı m² üzerinden kuruluyor; yanlış
+    okunan bir ayraç tutarı on ya da bin kat kaydırır ve kimse fark etmez.
+    O yüzden kurallar dar, belirsiz hâl ise açıkça reddediliyor:
+
+      "1.234,5"   -> 1234.5    iki ayraç birden: nokta binlik, virgül ondalık
+      "55,5"      -> 55.5      yalnız virgül: Türkçe ondalık
+      "1.000.000" -> 1000000   birden çok nokta: binlik ayracı
+      "55.5"      -> 55.5      tek nokta, ardından 3 hane değil: ondalık
+      "1234"      -> 1234      ayraçsız
+      "10.000"    -> HATA      tek nokta + tam 3 hane: 10 m² mi 10.000 m² mi?
+
+    Son satır bilerek hata. "10.000" yazan biri neredeyse kesin on bin m²
+    demek istiyor, ama "1.234" yazan biri bin iki yüz otuz dört de diyor
+    olabilir 1,234 de. İkisini ayırmanın güvenilir yolu yok; sessizce
+    tahmin etmektense kullanıcıdan "10000" ya da "10.000,0" yazmasını
+    istemek doğru. Depodaki kayıtların hepsi ayraçsız tam sayı, yani bu
+    kural var olan veriyi etkilemiyor — gelecekteki bir yazımı yakalıyor.
+    """
+    metin = metin.strip()
+    if "," in metin:
+        return float(metin.replace(".", "").replace(",", "."))
+    if metin.count(".") > 1:
+        return float(metin.replace(".", ""))
+    if metin.count(".") == 1:
+        _, _, kesir = metin.partition(".")
+        if len(kesir) == 3 and kesir.isdigit():
+            raise BelirsizSayi(
+                f"{metin!r} hem {metin.replace('.', '')} hem {metin} okunabilir; "
+                f"binlik ayracı için {metin.replace('.', '')}, ondalık için {metin},0 yazın"
+            )
+    return float(metin)
 
 
 def satirlari_oku(yol: Path) -> list[dict[str, str]]:
@@ -130,16 +171,19 @@ async def degerle(giris: dict[str, str]) -> dict:
         alan = tkgm.parse_area(ozellik.get("alan"))
         # Parselin merkezi: poligonun köşe ortalaması. Yerleşim sınıfı ve çevre bundan
         # okunur, yani ÇKS'deki köy adından değil parselin kendi yerinden.
-        halka = parsel["geometry"]["coordinates"][0]
-        lng = sum(nokta[0] for nokta in halka) / len(halka)
-        lat = sum(nokta[1] for nokta in halka) / len(halka)
+        # Polygon da MultiPolygon da app.geo'nun dış halka ayrıştırıcısından geçer.
+        noktalar = [nokta for halka in _outer_rings(parsel["geometry"]) for nokta in halka]
+        if not noktalar:
+            raise ValueError("parsel geometrisi boş")
+        lng = sum(nokta[0] for nokta in noktalar) / len(noktalar)
+        lat = sum(nokta[1] for nokta in noktalar) / len(noktalar)
     except NotFound:
         # TKGM her köyün kadastrosunu yayımlamıyor: Bandırma'nın 55 mahallesinden
         # bazılarının ne parseli ne sınırı dönüyor. Elde ÇKS'nin tapu alanı varsa
         # değerleme köy merkezi koordinatıyla yine de yapılır, ama işaretlenir.
         if not giris.get("alan_m2"):
             raise
-        alan = float(giris["alan_m2"].replace(".", "").replace(",", "."))
+        alan = alan_oku(giris["alan_m2"])
         lat, lng = await koy_merkezi(giris)
         kaynak = "ÇKS alanı · köy merkezi"
     if not alan:
@@ -155,7 +199,7 @@ async def degerle(giris: dict[str, str]) -> dict:
 
     sonuc = estimate(
         area_m2=alan, usage=imar, housing=housing, urban=yer, surroundings=cevre,
-        kaks=float(giris["emsal"].replace(",", ".")) if giris["emsal"] else None,
+        kaks=alan_oku(giris["emsal"]) if giris["emsal"] else None,
         irrigation=giris.get("sulama") or "bilinmiyor",
     )
     return {
@@ -191,42 +235,46 @@ async def main() -> None:
     print(f"{len(girisler)} parsel okunacak...\n")
 
     sonuclar, hatalar = [], []
-    for sira, giris in enumerate(girisler, 1):
-        etiket = f"{giris['il']}/{giris['ilce']}/{giris['mahalle']} {giris['ada']}/{giris['parsel']}"
-        try:
-            sonuclar.append(await degerle(giris))
-        except (NotFound, UpstreamError, ValueError) as hata:
-            hatalar.append(f"{etiket}: {hata}")
-        print(f"  {sira}/{len(girisler)} {etiket}", flush=True)
+    nedenler: dict[str, int] = {}
+    try:
+        for sira, giris in enumerate(girisler, 1):
+            etiket = f"{giris['il']}/{giris['ilce']}/{giris['mahalle']} {giris['ada']}/{giris['parsel']}"
+            try:
+                sonuclar.append(await degerle(giris))
+            except Exception as hata:  # noqa: BLE001 — tek bozuk satır koşunun tamamını düşürmesin
+                neden = type(hata).__name__
+                nedenler[neden] = nedenler.get(neden, 0) + 1
+                hatalar.append(f"{etiket}: {neden}: {hata}")
+            print(f"  {sira}/{len(girisler)} {etiket}", flush=True)
 
-    print(f"\n{'ada/parsel':>14} {'mahalle':16} {'alan m²':>9} {'imar':10} "
-          f"{'₺/m²':>9} {'değer':>14} {'aralık':>26} {'yöntem':10} {'güven':8} {'kaynak':22} not")
-    toplam = 0
-    for s in sonuclar:
-        toplam += s["deger_tl"]
-        print(f"{s['ada'] + '/' + s['parsel']:>14} {s['mahalle'][:16]:16} {s['alan_m2']:>9,} "
-              f"{s['imar']:10} {s['birim_tl_m2']:>9,} {s['deger_tl']:>14,} "
-              f"{s['alt_tl']:>11,} – {s['ust_tl']:>11,} {s['yontem']:10} {s['guven']:8} {s['kaynak']:22} {s['not']}")
-    if sonuclar:
-        print(f"\nTOPLAM: {toplam:,} ₺ · {len(sonuclar)} parsel")
-        print("Değerler modeldir, ekspertiz değildir; aralık modelin ölçülmüş hatasından gelir.")
+        print(f"\n{'ada/parsel':>14} {'mahalle':16} {'alan m²':>9} {'imar':10} "
+              f"{'₺/m²':>9} {'değer':>14} {'aralık':>26} {'yöntem':10} {'güven':8} {'kaynak':22} not")
+        toplam = 0
+        for s in sonuclar:
+            toplam += s["deger_tl"]
+            print(f"{s['ada'] + '/' + s['parsel']:>14} {s['mahalle'][:16]:16} {s['alan_m2']:>9,} "
+                  f"{s['imar']:10} {s['birim_tl_m2']:>9,} {s['deger_tl']:>14,} "
+                  f"{s['alt_tl']:>11,} – {s['ust_tl']:>11,} {s['yontem']:10} {s['guven']:8} {s['kaynak']:22} {s['not']}")
+        if sonuclar:
+            print(f"\nTOPLAM: {toplam:,} ₺ · {len(sonuclar)} parsel")
+            print("Değerler modeldir, ekspertiz değildir; aralık modelin ölçülmüş hatasından gelir.")
 
-    if hatalar:
-        print(f"\n== BULUNAMAYAN ({len(hatalar)}) ==")
-        for satir in hatalar:
-            print("  " + satir)
+        if hatalar:
+            print(f"\n== BULUNAMAYAN ({len(hatalar)}) ==")
+            for satir in hatalar:
+                print("  " + satir)
+            print("  Özet: " + ", ".join(f"{n} satır {k}" for k, n in sorted(nedenler.items())))
 
-    if secenek.csv and sonuclar:
-        with secenek.csv.open("w", encoding="utf-8", newline="") as dosya:
-            yazici = csv.DictWriter(dosya, fieldnames=list(sonuclar[0]))
-            yazici.writeheader()
-            yazici.writerows(sonuclar)
-        print(f"\nCSV yazıldı: {secenek.csv}")
-
-    await tkgm.close()
-    if hasattr(nearby, "close"):
-        await nearby.close()
-    await nominatim.close()
+        if secenek.csv and sonuclar:
+            with secenek.csv.open("w", encoding="utf-8", newline="") as dosya:
+                yazici = csv.DictWriter(dosya, fieldnames=list(sonuclar[0]))
+                yazici.writeheader()
+                yazici.writerows(sonuclar)
+            print(f"\nCSV yazıldı: {secenek.csv}")
+    finally:
+        await tkgm.close()
+        await nominatim.close()
+        await evds.close()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,158 @@
+/* Hukuki ve içerik sayfaları (sss, kvkk, gizlilik, cerez, kosullar,
+   mesafeli-satis, iptal-iade). style.css'in belirteçlerini kullanır, kendi
+   rengini uydurmaz. hesabim.css bu sayfalarda yüklenmediği için .sayfa ve
+   .kutu gibi ortak sınıflar buraya, aynı isim ve aynı değerlerle kopyalandı. */
+
+/* ---- hesabim.css'ten kopya: aynı ad, aynı değer ---- */
+
+.sayfa-govde { background: var(--paper); color: var(--ink); }
+
+.sayfa {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 16px 56px;
+  display: grid;
+  gap: 18px;
+}
+.sayfa h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); }
+
+.kutu {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+.kutu h2 { margin: 0; font-size: 17px; }
+.kutu p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.55; }
+.kutu .btn { justify-self: start; }
+.kucuk { font-size: 12px; }
+
+.ikili {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 6px 16px;
+  font-size: 14px;
+}
+.ikili dt { color: var(--muted); }
+.ikili dd { margin: 0; font-weight: 600; }
+
+.tablo-kaydir { overflow-x: auto; }
+
+@media (max-width: 520px) {
+  .ikili { grid-template-columns: 1fr; gap: 2px 0; }
+  .ikili dd { margin-bottom: 8px; }
+}
+
+/* ---- bu yedi sayfaya özgü ---- */
+
+.sayfa > * { min-width: 0; }
+.sayfa-ust { display: grid; gap: 8px; }
+.son-guncelleme { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* Taslak uyarısı: her sayfanın başında, kaçırılamayacak kadar belirgin. */
+.taslak-uyari {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--accent-line);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.taslak-uyari strong { font-weight: 700; }
+
+/* Doldurulmayı bekleyen alanlar: [[...]] */
+.yt {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Uzun metin: okunur satır genişliği, düzgün aralık. */
+.kutu p, .kutu li, .kutu dd { max-width: 68ch; overflow-wrap: anywhere; }
+.kutu p { color: var(--ink); line-height: 1.65; }
+.kutu h3 { margin: 6px 0 0; font-size: 15px; font-family: var(--font); font-weight: 600; }
+.kutu a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+.kutu a:hover { color: var(--brand-hover); }
+
+.kutu ul, .kutu ol {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.kutu li::marker { color: var(--accent); }
+
+/* Tanım listesi: terim üstte, açıklama altta; dar ekranda da aynı. */
+.tanim { margin: 0; display: grid; gap: 12px; font-size: 14px; }
+.tanim dt { font-weight: 600; color: var(--ink); }
+.tanim dd { margin: 2px 0 0; color: var(--muted); line-height: 1.6; }
+
+/* Kimlik bilgisi tablosu ve veri tabloları */
+.sayfa-tablo { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sayfa-tablo th, .sayfa-tablo td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.5;
+}
+.sayfa-tablo th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.sayfa-tablo tbody tr:last-child td,
+.sayfa-tablo tbody tr:last-child th { border-bottom: 0; }
+.sayfa-tablo td { min-width: 140px; }
+
+/* İçindekiler */
+.icindekiler {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 18px;
+}
+.icindekiler h2 { margin: 0 0 8px; font-size: 15px; }
+.icindekiler ol {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px 24px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  font-size: 14px;
+}
+.icindekiler a { color: var(--brand); text-decoration: none; }
+.icindekiler a:hover { text-decoration: underline; }
+.kutu[id] { scroll-margin-top: 80px; }
+
+/* Sık sorulan sorular: açılır kapanır, JavaScript gerekmez. */
+.soru {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.soru:first-of-type { border-top: 0; padding-top: 0; }
+.soru summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.45;
+  padding: 4px 0;
+  list-style-position: outside;
+}
+.soru summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+.soru[open] summary { color: var(--brand); }
+.soru > div { display: grid; gap: 10px; padding: 4px 0 6px; }
+
+@media (max-width: 520px) {
+  .kutu { padding: 14px; }
+  .icindekiler ol { grid-template-columns: 1fr; }
+}
