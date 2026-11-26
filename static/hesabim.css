@@ -16,12 +16,12 @@
   padding: 10px 12px;
   border-radius: 10px;
   font-size: 14px;
-  background: var(--brand-soft, rgba(29, 107, 71, .10));
+  background: var(--brand-soft, rgba(20, 84, 58, .10));
   color: var(--brand);
 }
 .sayfa-mesaj[data-tur="hata"] {
-  background: var(--danger-soft, rgba(163, 38, 31, .08));
-  color: var(--danger, #a3261f);
+  background: var(--danger-soft, rgba(146, 41, 28, .08));
+  color: var(--danger, #92291c);
 }
 
 .kutu {
@@ -72,14 +72,14 @@
 .hak p { max-width: 46ch; }
 .hak .btn { flex: 0 0 auto; }
 
-.hak-tehlikeli b { color: var(--danger, #a3261f); }
+.hak-tehlikeli b { color: var(--danger, #92291c); }
 .btn-tehlike {
-  border: 1px solid var(--danger, #a3261f);
-  color: var(--danger, #a3261f);
+  border: 1px solid var(--danger, #92291c);
+  color: var(--danger, #92291c);
   background: var(--surface);
   font-weight: 600;
 }
-.btn-tehlike:hover { background: var(--danger, #a3261f); color: #fff; }
+.btn-tehlike:hover { background: var(--danger, #92291c); color: #fff; }
 
 @media (max-width: 520px) {
   .hak { align-items: flex-start; }

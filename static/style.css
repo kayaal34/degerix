@@ -3,46 +3,63 @@
 :root {
   color-scheme: light;
 
-  --bg: #f3f4f1;
+  /* Kağıt tonları. Nötr gri değil, hafif sıcak: ekranda basılı rapor gibi
+     durur ve yeşille yan yana soğuk/kirli görünmez. */
+  --bg: #f6f5f1;
   --surface: #ffffff;
-  --surface-2: #f6f7f5;
-  --ink: #17211d;
-  --muted: #5d6a64;
-  --line: #e1e5df;
-  --line-strong: #c5ccc4;
+  --surface-2: #faf9f5;
+  --ink: #15201c;
+  --muted: #5a6760;
+  --line: #e6e3db;
+  --line-strong: #cdc9bd;
 
-  --brand: #1d6b47;
-  --brand-hover: #175a3b;
-  --brand-soft: #e5f1ea;
+  /* Derin herdemyeşil. Eski #1d6b47 biraz "uygulama yeşili"ydi; koyulaştırmak
+     onu kurumsal/ağırbaşlı tarafa çekiyor. */
+  --brand: #14543a;
+  --brand-hover: #0e4530;
+  --brand-deep: #0a3323;
+  --brand-soft: #e8f0ea;
+  --brand-ring: rgb(20 84 58 / 14%);
   --on-brand: #ffffff;
-  --on-brand-line: rgb(255 255 255 / 20%);
-  --on-brand-soft: rgb(255 255 255 / 16%);
+  --on-brand-line: rgb(255 255 255 / 18%);
+  --on-brand-soft: rgb(255 255 255 / 14%);
 
-  --up: #1d7a4b;
-  --down: #b3452b;
-  --warn-bg: #fff4e3;
-  --warn-ink: #83470c;
-  --error-bg: #fdecea;
-  --error-ink: #982b1e;
+  /* Pirinç. Bilerek az yerde: üst çizgiler, göz üstü etiket, seçim rengi.
+     Her yere sürülen altın premium değil, ucuz görünür.
+     --accent yazı rengi olarak kullanılıyor; beyaz üstünde 5,0:1 kontrast
+     verecek kadar koyu. Parlak olanı yalnız koyu zeminde süs olarak. */
+  --accent: #8a6a30;
+  --accent-bright: #b4904a;
+  --accent-soft: #f6f0e3;
+  --accent-line: rgb(156 123 63 / 38%);
 
-  --status-auction-bg: #fbeadd;
-  --status-auction-ink: #8a3a10;
-  --status-removed-bg: #eceeed;
+  --up: #1a7246;
+  --down: #a93f28;
+  --warn-bg: #fdf3e3;
+  --warn-ink: #7c4409;
+  --error-bg: #fcebe8;
+  --error-ink: #92291c;
+
+  --status-auction-bg: #f8e9dc;
+  --status-auction-ink: #85380f;
+  --status-removed-bg: #ecebe7;
   --status-removed-ink: #585d65;
 
-  --map-bg: #e8ebe6;
-  --map-label: #17392e;
+  --map-bg: #e9eae5;
+  --map-label: #122f26;
   --map-halo: #ffffff;
   --paper: #ffffff;
   --parcel: #e8590c; /* app.js MAP_COLORS.parcel ile aynı tut */
 
-  --radius: 12px;
-  --shadow: 0 1px 2px rgb(23 33 29 / 6%), 0 6px 20px rgb(23 33 29 / 8%);
-  --shadow-sm: 0 1px 2px rgb(23 33 29 / 8%);
-  --shadow-sticky: 0 6px 12px -8px rgb(23 33 29 / 30%);
+  --radius: 14px;
+  /* Gölgeler griye değil mürekkebe çalıyor; iki katman: temas + yayılım. */
+  --shadow-sm: 0 1px 2px rgb(21 32 28 / 7%);
+  --shadow: 0 1px 2px rgb(21 32 28 / 5%), 0 8px 24px -8px rgb(21 32 28 / 13%);
+  --shadow-lg: 0 2px 4px rgb(21 32 28 / 5%), 0 18px 48px -16px rgb(21 32 28 / 22%);
+  --shadow-sticky: 0 6px 14px -10px rgb(21 32 28 / 34%);
 
   /* stroke rengi --muted ile aynı; url() içinde var() çalışmaz */
-  --icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1.5 5 5 5-5' fill='none' stroke='%235d6a64' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  --icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1.5 5 5 5-5' fill='none' stroke='%235a6760' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
 
   --dur-1: 120ms;
   --dur-2: 200ms;
@@ -52,12 +69,16 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --radius-pill: 999px;
-  --shadow-brand: 0 2px 4px rgb(16 74 48 / 18%), 0 12px 28px -8px rgb(16 74 48 / 35%);
+  --shadow-brand: 0 1px 2px rgb(10 51 35 / 22%), 0 10px 28px -10px rgb(10 51 35 / 42%);
 
+  /* Başlıklarda serif, arayüzde sans. Değerleme/ekspertiz işinin dili
+     basılı rapora yakın; sayılar her yerde tabular. */
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
 }
 
 /* ---------- Temel ---------- */
@@ -105,7 +126,7 @@ button, input, select { font: inherit; color: inherit; }
 
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark { width: 32px; height: 32px; color: var(--brand); flex: none; }
-.brand h1 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.brand h1 { margin: 0; font-family: var(--font-display); font-size: 23px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.1; }
 .brand h1 a { color: inherit; text-decoration: none; }
 .brand p { margin: 0; font-size: 12px; font-weight: 500; color: var(--muted); }
 
@@ -187,8 +208,12 @@ button, input, select { font: inherit; color: inherit; }
 }
 .btn:active { transform: scale(.98); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn-primary { background: var(--brand); color: var(--on-brand); }
-.btn-primary:hover { background: var(--brand-hover); }
+.btn-primary {
+  background: linear-gradient(180deg, var(--brand) 0%, var(--brand-hover) 100%);
+  color: var(--on-brand);
+  box-shadow: var(--shadow-brand);
+}
+.btn-primary:hover { background: linear-gradient(180deg, var(--brand-hover) 0%, var(--brand-deep) 100%); }
 .btn-ghost { border: 1px solid var(--line-strong); font-weight: 600; background: var(--surface); }
 .btn-ghost:hover { border-color: var(--brand); color: var(--brand); }
 .btn-locate { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; }
@@ -434,19 +459,37 @@ button, input, select { font: inherit; color: inherit; }
 .value {
   display: grid;
   gap: 2px;
-  padding: 20px 20px;
-  background: linear-gradient(160deg, var(--brand) 0%, var(--brand-hover) 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 22px 22px 20px;
+  background: linear-gradient(152deg, var(--brand) 0%, var(--brand-deep) 100%);
   box-shadow: var(--shadow-brand);
   color: var(--on-brand);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+}
+/* Üstte ince pirinç çizgi: kartı "rapor başlığı" gibi kapatır. */
+.value::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-bright) 22%, var(--accent-bright) 78%, transparent);
+  opacity: .7;
 }
 .value.is-loading { opacity: 0.65; transition: opacity var(--dur-2) var(--ease-out) 150ms; }
-.value-label { font-size: 13px; opacity: 0.8; }
+.value-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
 .value-total {
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -772,7 +815,7 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
 .hesap-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
 .hesap-kalan {
   font-size: 12px; font-weight: 600; color: var(--brand);
-  background: var(--brand-soft, rgba(29, 107, 71, .10));
+  background: var(--brand-soft, rgba(20, 84, 58, .10));
   border-radius: 999px; padding: 3px 10px; white-space: nowrap;
 }
 .hesap-kimlik { font-size: 12px; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -794,8 +837,8 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
 .pencere-alt { margin: 0; font-size: 13px; color: var(--muted); }
 .pencere-not { margin: 6px 0 10px; font-size: 12px; color: var(--muted); }
 .pencere-hata {
-  margin: 0; font-size: 13px; color: var(--danger, #a3261f);
-  background: var(--danger-soft, rgba(163, 38, 31, .08));
+  margin: 0; font-size: 13px; color: var(--danger, #92291c);
+  background: var(--danger-soft, rgba(146, 41, 28, .08));
   border-radius: 8px; padding: 8px 10px;
 }
 .pencere-form { display: grid; gap: 4px; }
@@ -828,3 +871,89 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
 .cerez-bildirim p { margin: 0; flex: 1 1 260px; font-size: 13px; line-height: 1.5; color: var(--muted); }
 .cerez-bildirim .btn { flex: 0 0 auto; }
 @media print { .cerez-bildirim { display: none !important; } }
+
+/* ---------- Site çatısı: üst çubuk ve alt bilgi ---------- */
+/* Burada, landing.css'te değil: hesabim.html ve 404.html aynı başlığı
+   kullanıyor ama landing.css'i yüklemiyor — orada kalsaydı o sayfalarda
+   başlık ve alt bilgi biçimsiz kalırdı (kalıyordu da). */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px clamp(16px, 4vw, 48px);
+  background: rgb(255 255 255 / 82%);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: saturate(150%) blur(12px);
+  -webkit-backdrop-filter: saturate(150%) blur(12px);
+}
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  text-decoration: none;
+}
+.site-brand svg { width: 30px; height: 30px; color: var(--brand); }
+.site-nav { display: flex; align-items: center; gap: 22px; }
+.site-nav a:not(.btn) { color: var(--muted); font-size: 14px; font-weight: 500; text-decoration: none; }
+.site-nav a:not(.btn):hover { color: var(--ink); }
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 28px clamp(16px, 4vw, 48px);
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+.site-footer a { color: var(--brand); }
+
+@media (max-width: 900px) {
+  .site-nav a:not(.btn) { display: none; }
+}
+
+/* ---------- Tema cilası ---------- */
+/* Belirteçlerin üstüne, yalnızca "his" için gelen ince katman. Hiçbiri
+   yerleşimi değiştirmez; biri silinse sayfa bozulmaz, sadece sadeleşir. */
+
+::selection { background: var(--accent-soft); color: var(--ink); }
+
+/* Başlıklar serif. Sans'ta 21px bir başlık "arayüz etiketi" gibi okunur;
+   serifte aynı boy "belge başlığı" olur. */
+h1, h2, .sayfa h1, .kutu h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+
+/* Kartlar: kalkma değil, çizginin koyulaşması. Zıplayan kart premium değil. */
+.card, .kutu, .accuracy, .comparables {
+  transition: border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.card:hover, .kutu:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+
+/* Para ve alan geçen her yer tabular; sütunlar oynamaz. */
+.value-range, .value-share, .scenario-numbers, .gecmis td, .ikili dd, .compare td { font-variant-numeric: tabular-nums; }
+
+/* Panel kaydırma çubuğu ince ve sıcak. */
+.panel::-webkit-scrollbar { width: 10px; }
+.panel::-webkit-scrollbar-thumb { background: var(--line-strong); border: 3px solid var(--surface); border-radius: var(--radius-pill); }
+.panel::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* Odak halkası marka halkasıyla; input'ta kutu gölgesi zaten var. */
+:focus-visible { outline-color: var(--brand); }
+
+/* Sekme etkin durumu: gölge yerine ince iç çizgi, daha sakin. */
+.tab.is-active { box-shadow: 0 0 0 1px var(--line) inset, var(--shadow-sm); }

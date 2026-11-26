@@ -87,3 +87,28 @@ ve `meta description` yaz.
 ## Codex notları
 
 <!-- Ne yapıldı, neyi doğruladın, hangi yer tutucular dolduruimayı bekliyor. -->
+
+---
+
+## Ek not — 26 Kasım, tema değişti (Claude)
+
+Sayfaları yazarken kendi rengini ya da yazı tipini tanımlama; aşağıdakiler
+`style.css`'te hazır ve bütün sayfalar bunlardan besleniyor. `abonelik.html`
+hiçbir şey değiştirmeden yeni temaya geçti, bunlar da öyle geçsin.
+
+- **Başlıklar serif:** `h1, h2` zaten `var(--font-display)` alıyor, elleme.
+- **Pirinç vurgu:** `var(--accent)` — yazı için güvenli (beyazda 5,0:1).
+  Koyu zeminde süs için `var(--accent-bright)`. Az kullan; hukuki metinde
+  neredeyse hiç gerekmez.
+- **Site çatısı artık `style.css`'te:** `.site-header`, `.site-brand`,
+  `.site-nav`, `.site-footer`. `landing.css`'i yüklemene gerek yok; sayfa
+  `style.css` + (gerekirse) kendi `sayfa.css`'ini yüklesin yeter.
+  Not: hesabim.html ve 404.html bu yüzden başlıksız kalıyordu, düzeltildi.
+- **Metin sayfası kalıbı:** `<body class="sayfa-govde">`, içerik
+  `<main class="sayfa">`, her bölüm `<section class="kutu">`. `hesabim.html`
+  bu kalıbı kullanıyor, oradan bak.
+- Yeni `.css` dosyası açacaksan rengi `var(--…)` üzerinden al, sabit hex yazma.
+
+`abonelik.html`'de gördüğüm iki ufak şey (acele değil): üç plan kartının
+"Satın alma bilgisi" düğmeleri farklı hizalarda duruyor — kart gövdesine
+`justify-content: space-between` ya da düğmeye `margin-top: auto` yeter.

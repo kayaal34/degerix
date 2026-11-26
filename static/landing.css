@@ -10,35 +10,14 @@ a.btn-ghost { color: var(--ink); }
 .section { padding: clamp(48px, 8vw, 96px) clamp(16px, 4vw, 48px); }
 .section-alt { background: var(--bg); }
 .section-head { max-width: 660px; margin-bottom: 36px; }
-.section-head h2 { margin: 0; font-size: clamp(26px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.02em; }
+.section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(27px, 3.4vw, 38px); line-height: 1.15; letter-spacing: -0.012em; }
 .section-head p { margin: 10px 0 0; font-size: 16px; color: var(--muted); }
-
-/* ---------- Üst çubuk ---------- */
-
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px clamp(16px, 4vw, 48px);
-  background: rgb(255 255 255 / 92%);
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(8px);
-}
-.site-brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -0.02em; text-decoration: none; }
-.site-brand svg { width: 32px; height: 32px; color: var(--brand); }
-.site-nav { display: flex; align-items: center; gap: 22px; }
-.site-nav a:not(.btn) { color: var(--muted); font-size: 14px; font-weight: 500; text-decoration: none; }
-.site-nav a:not(.btn):hover { color: var(--ink); }
 
 /* ---------- Giriş ---------- */
 
 .hero { animation: rise var(--dur-3) var(--ease-out) backwards; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
-.eyebrow { margin: 0 0 14px; color: var(--brand); font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
-.hero h1 { margin: 0; font-size: clamp(32px, 5vw, 52px); line-height: 1.08; letter-spacing: -0.03em; }
+.eyebrow { margin: 0 0 14px; color: var(--accent); font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.hero h1 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(34px, 5.2vw, 56px); line-height: 1.06; letter-spacing: -0.018em; }
 .lead { max-width: 56ch; margin: 18px 0 0; color: var(--muted); font-size: clamp(16px, 1.6vw, 18px); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 
@@ -72,7 +51,7 @@ a.btn-ghost { color: var(--ink); }
   color: var(--brand);
   font-weight: 700;
 }
-.card-tag { display: block; margin-bottom: 8px; color: var(--brand); font-size: 12px; font-weight: 600; }
+.card-tag { display: block; margin-bottom: 8px; color: var(--accent); font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ---------- Karşılaştırma ---------- */
 
@@ -95,24 +74,11 @@ a.btn-ghost { color: var(--ink); }
 .cta { text-align: center; }
 .cta .section-head { margin: 0 auto 24px; }
 
-.site-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 28px clamp(16px, 4vw, 48px);
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 13px;
-}
-.site-footer a { color: var(--brand); }
-
 /* ---------- Dar ekran ---------- */
 
 @media (max-width: 900px) {
   .hero, .limits { grid-template-columns: 1fr; }
   .card-grid, .sources { grid-template-columns: 1fr 1fr; }
-  .site-nav a:not(.btn) { display: none; }
 }
 
 @media (max-width: 560px) {
