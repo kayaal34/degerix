@@ -1483,3 +1483,150 @@ h1, h2, .sayfa h1, .kutu h2 {
                 color var(--dur-2) var(--ease-out);
   }
 }
+
+/* ---------- Etkileşim katmanı ---------- */
+/*
+ * Buradaki her kural tek bir soruya cevap veriyor: kullanıcı bir şeye
+ * dokunduğunda arayüz ne diyor?
+ *
+ * Üç kural kendime:
+ *   1. Hareket yalnızca transform ve opacity üzerinden. Yükseklik, genişlik
+ *      ya da kenar boşluğu canlandırmak her karede yerleşimi yeniden
+ *      hesaplatıyor; ucuz bilgisayarda tam da kullanıcı tıklarken takılıyor.
+ *   2. Veri gösteren hiçbir şey zıplamaz. Oynayan bir rakam, oynamayan bir
+ *      rakamdan daha az güven verir. Geri tepme yalnızca kullanıcının
+ *      dokunduğu şeyde: düğme, sekme, anahtar.
+ *   3. Süreler kısa. 120 ms "anında" hissi verir, 320 ms üstü bekletir.
+ */
+
+/* --- Düğmeler: basınca gerçekten basılsın --- */
+
+.btn {
+  position: relative;
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+.btn:active { transform: translateY(1px) scale(.985); }
+
+/* Birincil düğme yukarı kalkmaz, gölgesi derinleşir: kalkan düğme oyuncak
+   gibi duruyor, derinleşen gölge "bu basılabilir" diyor. */
+.btn-primary:hover { box-shadow: var(--shadow-lg), var(--shadow-brand); }
+.btn-ghost:hover { box-shadow: var(--shadow-sm); }
+
+/* Odak halkası da canlansın: klavyeyle gezen kullanıcı nereye geldiğini
+   göz ucuyla yakalasın. */
+.btn:focus-visible,
+.tema-dugmesi:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-ring), 0 0 0 1px var(--brand);
+  transition: box-shadow var(--dur-1) var(--ease-out);
+}
+
+/* --- Girdiler --- */
+
+.field input,
+.field select,
+.search input {
+  transition:
+    border-color var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    background-color var(--dur-1) var(--ease-out);
+}
+.field input:hover:not(:focus),
+.field select:hover:not(:focus) { border-color: var(--line-strong); }
+.field input:focus-visible,
+.field select:focus-visible,
+.search input:focus-visible { box-shadow: 0 0 0 3px var(--brand-ring); }
+
+/* Yanlış doldurulan alan bir kez titrer; kırmızı kenarlık tek başına
+   gözden kaçıyor, sürekli titreyen alan ise sinir bozucu. */
+.is-invalid { animation: sarsil 240ms var(--ease-out); }
+@keyframes sarsil {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* --- Bağlantılar: alt çizgi büyüsün --- */
+
+.footer-baglantilar a,
+.panel-foot-baglantilar a,
+.site-nav a:not(.btn) {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size var(--dur-2) var(--ease-out), color var(--dur-1) var(--ease-out);
+  text-decoration: none;
+}
+.footer-baglantilar a:hover,
+.panel-foot-baglantilar a:hover,
+.site-nav a:not(.btn):hover { background-size: 100% 1px; }
+
+/* --- Sekmeler: etkin olan kayarak gelsin --- */
+
+.tab { transition: color var(--dur-1) var(--ease-out); }
+.tab.is-active {
+  animation: sekme-gel var(--dur-2) var(--ease-spring);
+}
+@keyframes sekme-gel { from { transform: scale(.96); } }
+
+/* --- Kartlar --- */
+/* Tıklanabilir kart kalkar, bilgi kartı kalkmaz. Kalkan ama tıklanmayan
+   kart kullanıcıya yalan söylüyor. */
+.archive-item, .saved-list > *, .kaynak-seridi li {
+  transition: transform var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out);
+}
+.archive-item:hover, .kaynak-seridi li:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+/* --- Yükleme: boş ekran yerine iskelet --- */
+/* Değer kartı hesaplanırken rakam yerine kayan bir parıltı duruyor.
+   Boş bir kutu "bozuldu mu" dedirtiyor, dönen çark ise ne geleceğini
+   söylemiyor; iskelet neyin geleceğini gösteriyor. */
+.value.is-loading .value-total,
+.value.is-loading .value-range {
+  color: transparent;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(90deg,
+      var(--on-brand-soft) 25%,
+      rgb(255 255 255 / 22%) 37%,
+      var(--on-brand-soft) 63%);
+  background-size: 400% 100%;
+  animation: parilti 1.4s ease-in-out infinite;
+}
+@keyframes parilti { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+/* --- Bölüm girişleri --- */
+/* Sonuç geldiğinde kartlar sırayla belirir. Hepsi birden belirince ekran
+   "patlıyor"; 40 ms aralık gözün sırayı takip etmesine yetiyor. */
+.result-output > * { animation: rise var(--dur-3) var(--ease-out) backwards; }
+.result-output > :nth-child(1) { animation-delay: 0ms; }
+.result-output > :nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+.result-output > :nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+.result-output > :nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+.result-output > :nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.result-output > :nth-child(n+6) { animation-delay: calc(var(--stagger) * 5); }
+
+/* --- Hareket azaltma --- */
+/* Süreler zaten sıfırlanıyor ama dönüşümlerin kendisi de kalkmalı:
+   süresi sıfır bir zıplama, zıplamanın anlık hâli olur. */
+@media (prefers-reduced-motion: reduce) {
+  .btn:active,
+  .archive-item:hover,
+  .kaynak-seridi li:hover,
+  .tema-dugmesi:active { transform: none; }
+  .is-invalid, .tab.is-active,
+  .value.is-loading .value-total,
+  .value.is-loading .value-range { animation: none; }
+  .value.is-loading .value-total,
+  .value.is-loading .value-range { color: inherit; background: none; }
+}

@@ -50,15 +50,21 @@ async function kur() {
     fetch("orhaneli-archive.json").then((y) => y.json()).catch(() => ({ records: [] })),
   ]);
 
+  // Harita gezilebilir ama sayfayı kaçırmaz: tekerlek varsayılan olarak
+  // kapalı (kullanıcı sayfayı kaydırırken harita yakınlaşmasın), haritaya
+  // tıklandığında açılıyor, dışına çıkınca tekrar kapanıyor.
   const harita = L.map(HARITA_ALANI, {
     zoomControl: false,
     attributionControl: false,
-    scrollWheelZoom: false,   // sayfa kaydırılırken harita yakınlaşmasın
-    dragging: false,
-    doubleClickZoom: false,
-    touchZoom: false,
-    keyboard: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: true,
+    touchZoom: true,
+    dragging: true,
   });
+  L.control.zoom({ position: "bottomright" }).addTo(harita);
+  harita.on("focus click", () => harita.scrollWheelZoom.enable());
+  harita.on("blur", () => harita.scrollWheelZoom.disable());
+  HARITA_ALANI.addEventListener("mouseleave", () => harita.scrollWheelZoom.disable());
 
   const names = iller.features.map(feature => feature.properties.text);
   const picker = document.querySelector("#heroMapProvince");
@@ -99,7 +105,10 @@ async function kur() {
   }).addTo(harita);
 
   harita.fitBounds(katman.getBounds(), { padding: [8, 8] });
-  harita.setMaxBounds(harita.getBounds());
+  // Türkiye'nin biraz dışına çıkmaya izin: tam sınıra kilitlemek sürüklemeyi
+  // yapış yapış yapıyor. Uzaklaşma sınırı da ilk görünüm.
+  harita.setMaxBounds(katman.getBounds().pad(0.35));
+  harita.setMinZoom(harita.getZoom());
 
   // Gerçek kayıtlar: belediye ihale ilanları. Uydurma pin yok — elimizde
   // kaynağı belli kaç kayıt varsa o kadar.
@@ -137,6 +146,8 @@ async function kur() {
   };
   lejantiCiz();
   legend.hidden = false;
+  listeyiDoldur(fiyatlar);
+  gorunumuKur(harita);
   yaziyiDoldur(fiyatlar, kayitlar.length);
 
   // Tema değişince renkler yeniden okunsun. Katmanı yeniden kurmuyoruz:
@@ -166,4 +177,48 @@ function yaziyiDoldur(fiyatlar, kayitSayisi) {
 if (HARITA_ALANI) {
   if (window.L) kur().catch(showMapUnavailable);
   else showMapUnavailable();
+}
+
+/* Liste görünümü: haritanın alternatifi.
+ *
+ * Haritada "hangi il daha pahalı" sorusuna renk tonundan bakmak zorundasınız;
+ * sıralı bir tablo aynı veriyi kesin söylüyor. Bir de haritanın hiç
+ * açılamadığı durumlarda (eski tarayıcı, Leaflet gelmedi) veri elde kalıyor.
+ */
+function listeyiDoldur(fiyatlar) {
+  const govde = document.querySelector("#heroMapListeGovde");
+  if (!govde) return;
+  const sirali = Object.entries(fiyatlar.iller).sort((a, b) => b[1] - a[1]);
+  govde.replaceChildren(...sirali.map(([ad, fiyat]) => {
+    const satir = document.createElement("tr");
+    const baslik = document.createElement("th");
+    baslik.scope = "row";
+    const bag = document.createElement("a");
+    bag.href = `harita.html?${new URLSearchParams({ il: ad })}#turkiye`;
+    bag.textContent = ad;
+    baslik.append(bag);
+    const hucre = document.createElement("td");
+    hucre.textContent = `₺${para.format(fiyat)}`;
+    satir.append(baslik, hucre);
+    return satir;
+  }));
+}
+
+function gorunumuKur(harita) {
+  const dugmeHarita = document.querySelector("#gorunumHarita");
+  const dugmeListe = document.querySelector("#gorunumListe");
+  const sahne = document.querySelector(".hero-map-sahne");
+  const liste = document.querySelector("#heroMapListe");
+  if (!dugmeHarita || !dugmeListe || !sahne || !liste) return;
+
+  const sec = (haritaMi) => {
+    sahne.hidden = !haritaMi;
+    liste.hidden = haritaMi;
+    dugmeHarita.setAttribute("aria-pressed", String(haritaMi));
+    dugmeListe.setAttribute("aria-pressed", String(!haritaMi));
+    // Gizliyken boyutu sıfır olan harita geri gelince gri kalıyor
+    if (haritaMi) requestAnimationFrame(() => harita.invalidateSize());
+  };
+  dugmeHarita.addEventListener("click", () => sec(true));
+  dugmeListe.addEventListener("click", () => sec(false));
 }

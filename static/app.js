@@ -236,22 +236,17 @@ if (typeof ResizeObserver !== "undefined") {
 
 // API anahtarı gerektirmeyen altlıklar. OSM karoları düşük trafikli kullanım içindir:
 // https://operations.osmfoundation.org/policies/tiles/
+// Koyu temada karolar: CSS filtresiyle.
 //
-// "streets" iki karo kümesi taşıyor: açık temada OSM'in standart karoları,
-// koyu temada CARTO'nun koyu karoları. Tek bir karo kümesini CSS filtresiyle
-// ters çevirmek ucuz çözüm ama iyi durmuyor — yollar morarıyor, yeşil alanlar
-// pembeye kaçıyor ve okunurluk düşüyor. Uydu görüntüsü ise hiç çevrilmemeli:
-// gerçek bir fotoğraf, ters çevrilince anlamını kaybeder.
-const KARO_OSM = {
-  url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları',
-};
-const KARO_KOYU = {
-  url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: "abcd",
-};
-
+// Önce CARTO'nun dark_all karolarını denedim; artık anahtar istiyor ve
+// karolar "API KEY REQUIRED" damgasıyla geliyor. Anahtar gerektiren bir
+// servise bağlanmak bu projenin kuralına aykırı (bütün veri kaynakları
+// açık ve anahtarsız), damgalı karo göndermek ise bozuk ürün demek.
+//
+// Kalan seçenek filtre. İdeal değil — yollar hafif morarıyor — ama koyu
+// bir sayfanın ortasındaki bembeyaz haritadan iyi. Filtre style.css'te,
+// yalnızca sokak katmanına uygulanıyor: uydu görüntüsü gerçek bir
+// fotoğraf, ters çevrilince anlamını kaybeder.
 const basemaps = {
   streets: L.tileLayer(KARO_OSM.url, {
     maxZoom: 19,
@@ -264,7 +259,6 @@ const basemaps = {
 };
 
 function setBasemap(name) {
-  if (name === "streets") karolariTemayaUydur();
   for (const [key, layer] of Object.entries(basemaps)) {
     if (key === name) layer.addTo(map);
     else layer.remove();
@@ -273,30 +267,6 @@ function setBasemap(name) {
     button.setAttribute("aria-pressed", String(button.dataset.basemap === name));
   });
 }
-
-/* Tema değişince sokak karolarını değiştir. Katman nesnesini yeniden
-   kurmak yerine kaynağını değiştiriyoruz: harita konumu, yakınlaştırma ve
-   üstündeki parsel çizimi olduğu gibi kalsın. */
-function karolariTemayaUydur() {
-  const koyu = document.documentElement.dataset.theme === "dark"
-    || (!document.documentElement.dataset.theme
-        && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
-  const karo = koyu ? KARO_KOYU : KARO_OSM;
-  const katman = basemaps.streets;
-  if (katman._degerixKaro === karo.url) return;
-  katman._degerixKaro = karo.url;
-  katman.options.subdomains = karo.subdomains ?? "abc";
-  katman.options.attribution = karo.attribution;
-  katman.setUrl(karo.url);
-  if (map?.attributionControl) {
-    // setUrl atıf metnini güncellemiyor; kaynağı yanlış göstermemek için elle
-    map.attributionControl.removeAttribution(KARO_OSM.attribution);
-    map.attributionControl.removeAttribution(KARO_KOYU.attribution);
-    if (map.hasLayer(katman)) map.attributionControl.addAttribution(karo.attribution);
-  }
-}
-
-document.addEventListener("tema-degisti", karolariTemayaUydur);
 
 const BasemapToggle = L.Control.extend({
   onAdd() {

@@ -295,3 +295,124 @@ a.btn-ghost { color: var(--ink); }
 }
 .sample-preview h2 { font-size: clamp(23px, 3vw, 32px); margin: 0; }
 .sample-preview p { max-width: 59ch; margin: 8px 0 0; color: var(--muted); }
+
+/* ---------- Harita: görünüm geçişi, keşfet düğmesi, liste ---------- */
+
+.hero-map-sahne { position: relative; }
+
+/* Lejant ve keşfet düğmesi haritanın ÜSTÜNDE duruyor: altına koyunca kart
+   uzuyor ve harita küçülüyor, oysa asıl görülmesi gereken harita. */
+.hero-map-legend {
+  position: absolute;
+  left: var(--sp-3);
+  bottom: var(--sp-3);
+  z-index: 500;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--sp-2);
+  max-width: 62%;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--cam);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.hero-map-legend span:nth-child(2) { height: 8px; min-width: 56px; border-radius: var(--radius-pill); }
+
+.hero-map-kesfet {
+  position: absolute;
+  right: var(--sp-3);
+  bottom: calc(var(--sp-3) + 68px);   /* yakınlaştırma düğmelerinin üstünde */
+  z-index: 500;
+  min-height: 36px;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-md);
+}
+
+/* Harita / Liste geçişi */
+.hero-map-gorunum {
+  display: flex;
+  flex: none;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+}
+.hero-map-gorunum button {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+}
+.hero-map-gorunum button:hover { color: var(--ink); }
+.hero-map-gorunum button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Liste */
+.hero-map-liste {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  animation: fade var(--dur-2) var(--ease-out);
+}
+.hero-map-liste table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
+.hero-map-liste thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-align: left;
+}
+.hero-map-liste thead th:last-child { text-align: right; }
+.hero-map-liste tbody th { padding: var(--sp-2) var(--sp-4); font-weight: 500; text-align: left; }
+.hero-map-liste tbody td {
+  padding: var(--sp-2) var(--sp-4);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.hero-map-liste tbody tr + tr th,
+.hero-map-liste tbody tr + tr td { border-top: 1px solid var(--line); }
+.hero-map-liste tbody tr:hover th, .hero-map-liste tbody tr:hover td { background: var(--surface-2); }
+.hero-map-liste a { color: inherit; text-decoration: none; }
+.hero-map-liste a:hover { color: var(--brand); text-decoration: underline; }
+
+/* Ekranda görünmeyen ama ekran okuyucunun okuduğu başlık */
+.gorsel-gizli {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Leaflet'in yakınlaştırma düğmeleri temaya uysun */
+#anaHarita .leaflet-bar { border: 1px solid var(--line) !important; box-shadow: var(--shadow-sm) !important; }
+#anaHarita .leaflet-bar a { background: var(--surface); color: var(--brand); border-bottom-color: var(--line); }
+#anaHarita .leaflet-bar a:hover { background: var(--brand-soft); }
+
+@media (max-width: 560px) {
+  .hero-map-kesfet { right: var(--sp-2); bottom: calc(var(--sp-2) + 64px); }
+  .hero-map-legend { max-width: calc(100% - 24px); }
+}

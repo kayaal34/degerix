@@ -101,11 +101,27 @@
               <h2>Türkiye konut fiyat haritası</h2>
               <p>İl geneli konut birim fiyatı · TL/m²</p>
             </div>
-            <a href="harita.html#turkiye">Bölge keşfini aç</a>
+            <div class="hero-map-gorunum" role="group" aria-label="Görünüm">
+              <button type="button" id="gorunumHarita" aria-pressed="true">Harita</button>
+              <button type="button" id="gorunumListe" aria-pressed="false">Liste</button>
+            </div>
           </div>
-          <div id="anaHarita" aria-label="Türkiye konut birim fiyatları ve belediye ihale ilanları"></div>
-          <div class="hero-map-legend" id="heroMapLegend" hidden>
-            <span>≤ 25 bin</span><span aria-hidden="true"></span><span>&gt; 75 bin TL/m²</span>
+          <div class="hero-map-sahne">
+            <div id="anaHarita" aria-label="Türkiye konut birim fiyatları ve belediye ihale ilanları"></div>
+            <div class="hero-map-legend" id="heroMapLegend" hidden>
+              <span>≤ 25 bin</span><span aria-hidden="true"></span><span>&gt; 75 bin TL/m²</span>
+            </div>
+            <a class="btn btn-primary btn-sm hero-map-kesfet" href="harita.html#turkiye">Bölgeyi keşfet →</a>
+          </div>
+          <!-- Liste, haritanın klavye ve ekran okuyucu karşılığı değil alternatifi:
+               aynı veriyi sıralı okumak isteyen için. Haritanın kendi klavye yolu
+               aşağıdaki il seçicisi. -->
+          <div class="hero-map-liste" id="heroMapListe" hidden>
+            <table>
+              <caption class="gorsel-gizli">İllere göre konut birim fiyatı, yüksekten düşüğe</caption>
+              <thead><tr><th scope="col">İl</th><th scope="col">Konut m² fiyatı</th></tr></thead>
+              <tbody id="heroMapListeGovde"></tbody>
+            </table>
           </div>
           <figcaption id="haritaAlt">Harita ve veri dönemi yükleniyor…</figcaption>
           <label class="hero-map-picker" id="heroMapPicker" hidden>
