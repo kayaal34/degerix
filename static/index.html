@@ -50,7 +50,7 @@
     </a>
     <nav class="site-nav" aria-label="Sayfa bölümleri">
       <a href="harita.html#turkiye">Bölge keşfi</a>
-      <a href="#ornek">Örnek sonuç</a>
+      <a href="ornek-rapor.html">Örnek sonuç</a>
       <a href="abonelik.html">Planlar</a>
       <a href="giris.html">Giriş yap</a>
       <a class="btn btn-primary" href="harita.html">Haritayı aç</a>
@@ -83,7 +83,7 @@
           </form>
           <div class="hero-actions">
             <a class="btn btn-ghost" href="harita.html#harita">Haritadan seç</a>
-            <a class="btn btn-ghost" href="#ornek">Örnek sonucu incele</a>
+            <a class="btn btn-ghost" href="ornek-rapor.html">Örnek sonucu incele</a>
           </div>
           <p class="hero-foot">Parsel bilgisi TKGM’den gelir. Kayıtlı hesaplara ilk üç değerleme ücretsiz.</p>
         </div>
@@ -111,39 +111,12 @@
 
     <section class="section" id="ornek">
       <div class="container">
-        <div class="section-head" data-beliren>
-          <h2>Sonuç nasıl görünüyor?</h2>
-          <p>Mudanya, Ömerbey’de bir parsel için 26 Kasım 2026’da üretilmiş örnek ön tahmin.</p>
-        </div>
-        <div class="ornek-sarmal" data-beliren>
-          <figure class="hero-card">
-          <!-- Örnek: emsal 1,20 · müstakil tapu · yola cepheli · elektrik-su var · manzara yok.
-       Model değişince yeniden üretin, elle düzeltmeyin: POST /api/estimate
-       {"province":"Bursa","district":"Mudanya","parcel":"1503/17","area_m2":4683.02,
-        "usage":"konut","lat":40.369137,"lng":28.89647,"kaks":1.2,"deed":"tam",
-        "road":"var","utilities":"var","view":"yok"}
-       Son üretim: 26 Kasım 2026, bant kalibrasyonundan SONRA.
-       Şerit işaretçisi: (56,7−26,6)/(121,0−26,6) = %32. -->
-          <figcaption>Örnek sonuç · Mudanya, Ömerbey 1503 ada 17 parsel, 4.683 m²</figcaption>
-          <div class="value has-bar">
-            <span class="value-label">Tahmini piyasa değeri</span>
-            <strong class="value-total">₺56.700.000</strong>
-            <span class="value-range">Model aralığı: 26,6 – 121,0 milyon ₺</span>
-            <div class="value-bar" aria-hidden="true"><span class="value-bar-mark" style="left:32%"></span></div>
-            <div class="value-foot">
-              <span><b>₺12.100</b> / m²</span>
-              <!-- Aralık uyarısı yalnızca alışılmıştan geniş bantlarda çıkar;
-                   bu örnekte çıkmıyor, o yüzden burada da yok. -->
-            </div>
-            <p class="value-caveat">Ön tahmindir: model henüz gerçek satışlarla doğrulanmadı; satış fiyatı bu aralığın dışında kalabilir.</p>
+        <div class="sample-preview" data-beliren>
+          <div>
+            <h2>Bir değerleme raporunu inceleyin</h2>
+            <p>Bursa Mudanya’da bir arsanın tapu alanını, hesap varsayımlarını ve tahmini fiyat aralığını görün.</p>
           </div>
-          <ul aria-label="Fiyat senaryoları">
-            <li class="scenario"><div class="scenario-text"><b>Acil satış</b></div><div class="scenario-numbers"><b>48,2 milyon ₺</b></div></li>
-            <li class="scenario is-market"><div class="scenario-text"><b>Piyasa değeri</b></div><div class="scenario-numbers"><b>56,7 milyon ₺</b></div></li>
-            <li class="scenario"><div class="scenario-text"><b>Tok satıcı</b></div><div class="scenario-numbers"><b>61,2 milyon ₺</b></div></li>
-          </ul>
-          <p class="hero-card-foot">Bu rakamın nasıl çıktığı, adım adım, raporun içinde yazar.</p>
-          </figure>
+          <a class="btn btn-primary" href="ornek-rapor.html">Ücretsiz örnek raporu aç</a>
         </div>
       </div>
     </section>

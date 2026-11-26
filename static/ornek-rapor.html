@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- Üretim: python -m tools.build_example_report --date 2026-11-26 --revision 59fd1d6589a00f8c0854d9b3e07e201f2cfedf40 -->
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Değerix örnek arsa raporu. Tapu kaydı, hesap varsayımları, veri dönemi ve fiyat aralığı.">
+  <title>Örnek arsa raporu · Değerix</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ornek-rapor.css">
+</head>
+<body>
+  <a class="atla" href="#icerik">İçeriğe atla</a>
+  <header class="site-header">
+    <a class="site-brand" href="./">Değerix</a>
+    <a class="btn btn-ghost" href="harita.html?lat=40.369137&amp;lng=28.89647&amp;mahalle=39428&amp;ada=1503&amp;parsel=17">Parseli haritada aç</a>
+  </header>
+  <main class="report-sample" id="icerik" tabindex="-1">
+    <header class="sample-title">
+      <h1>Örnek arsa raporu</h1>
+      <p>Bursa / Mudanya / Ömerbey · 1503 ada, 17 parsel</p>
+    </header>
+    <section class="sample-summary" aria-labelledby="summary-title">
+      <h2 id="summary-title">Tahmini piyasa değeri</h2>
+      <strong class="sample-total">51.500.000 TL</strong>
+      <p>Tahmini aralık <strong>23.800.000 – 111.000.000 TL</strong></p>
+      <p>11.000 TL/m² · yoğun kentsel küme</p>
+    </section>
+    <div class="sample-grid">
+      <section class="sample-card" aria-labelledby="parcel-source">
+        <h2 id="parcel-source">Kayıt ve varsayımlar</h2>
+        <dl>
+          <dt>TKGM kaydı</dt><dd>Arsa · 4.683,02 m²</dd>
+          <dt>Örnek hesap girdisi</dt><dd>Konut kullanımı · KAKS 1,20</dd>
+          <dt>Örnek beyanlar</dt><dd>Müstakil tapu, yol cephesi, elektrik ve su var. Manzara yok.</dd>
+        </dl>
+        <p>İmar ve diğer beyanlar örnek hesap için seçildi. Belediyeden doğrulanmış imar bilgisi kullanılmadı.</p>
+      </section>
+      <section class="sample-card" aria-labelledby="data-source">
+        <h2 id="data-source">Veri dönemi ve model</h2>
+        <dl>
+          <dt>Konut fiyatı</dt><dd>Bursa · 41.264 TL/m² · 2026 2. çeyrek</dd>
+          <dt>Fiyat kaynağı</dt><dd>TCMB EVDS kopyası (2026-09-12)</dd>
+          <dt>Rapor tarihi</dt><dd><time datetime="2026-11-26">26.11.2026</time></dd>
+          <dt>Model kodu</dt><dd><a href="https://github.com/kayaal34/degerix/tree/59fd1d6589a00f8c0854d9b3e07e201f2cfedf40">59fd1d6</a></dd>
+        </dl>
+      </section>
+    </div>
+    <section class="sample-card">
+      <h2>Fiyat senaryoları</h2>
+      <ul class="sample-scenarios"><li><strong>Acil satış</strong><span>43.800.000 TL</span></li><li><strong>Piyasa değeri</strong><span>51.500.000 TL</span></li><li><strong>Tok satıcı</strong><span>55.600.000 TL</span></li></ul>
+      <p>Tutarlar model senaryolarıdır. Bu örnek için ilan fiyatı, gerçekleşmiş satış veya ihale bedeli kullanılmadı.</p>
+    </section>
+    <section class="sample-card">
+      <h2>Hesabın dayanakları</h2>
+      <p><strong>Geliştirme hesabı</strong> · 5.620 m² inşaat hakkı · hasılat ₺201.798.356 − maliyet ₺111.268.555 (III-A) − geliştirici payı ₺30.269.753 · sonuç, beyan edilen emsalle hesaplanan değerin %55&#x27;i ile bölgede tipik emsal (1,20) üzerinden hesaplananın harmanı</p>
+      <ul class="sample-factors"><li><strong>Büyüklük</strong><span>4.683 m² parsel</span></li><li><strong>Tapu</strong><span>Müstakil tapu</span></li><li><strong>Yol cephesi</strong><span>Yola cephesi var</span></li><li><strong>Elektrik ve su</strong><span>Elektrik ve su var</span></li><li><strong>Manzara</strong><span>Manzara yok</span></li></ul>
+    </section>
+    <footer class="sample-note">
+      <p>Bu sayfa tarihli bir ön tahmindir. Lisanslı değerleme raporu yerine geçmez ve resmî işlemlerde dayanak olarak kullanılamaz.</p>
+      <a href="harita.html?lat=40.369137&amp;lng=28.89647&amp;mahalle=39428&amp;ada=1503&amp;parsel=17">Güncel sorgu için parseli haritada aç</a>
+    </footer>
+  </main>
+</body>
+</html>

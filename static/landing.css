@@ -233,9 +233,6 @@ a.btn-ghost { color: var(--ink); }
 .il-ipucu::before { display: none; }   /* Leaflet'in beyaz oku koyu kutuda ters duruyor */
 .il-ipucu i { color: rgb(255 255 255 / 70%); font-style: normal; }
 
-/* Örnek sonuç artık kendi bölümünde, ortada ve dar */
-.ornek-sarmal { display: grid; justify-items: center; }
-.ornek-sarmal .hero-card { width: min(520px, 100%); }
 
 @media (max-width: 900px) {
   #anaHarita { aspect-ratio: 1 / 1; }
@@ -283,3 +280,18 @@ a.btn-ghost { color: var(--ink); }
 
 .hero-map-legend { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
 .hero-map-legend span:nth-child(2) { height: 8px; border-radius: var(--radius-pill); }
+
+
+.sample-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  padding: clamp(18px, 4vw, 36px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+.sample-preview h2 { font-size: clamp(23px, 3vw, 32px); margin: 0; }
+.sample-preview p { max-width: 59ch; margin: 8px 0 0; color: var(--muted); }
