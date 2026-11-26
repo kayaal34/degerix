@@ -15,7 +15,7 @@ from typing import Any, Literal
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi import Path as PathParam
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -262,6 +262,41 @@ async def account(authorization: str | None = Header(default=None)) -> dict[str,
             **await accounts.status(user)}
 
 
+async def _require_user(authorization: str | None) -> accounts.User:
+    if not accounts.configured():
+        raise HTTPException(status_code=404, detail={
+            "kod": "uyelik_kapali", "mesaj": "Bu kurulumda üyelik açık değil."})
+    user = await accounts.current_user(accounts.bearer(authorization))
+    if user is None:
+        raise HTTPException(status_code=401, detail={
+            "kod": "oturum_yok", "mesaj": "Giriş yapın."})
+    return user
+
+
+@app.get("/api/account/data", tags=["üyelik"])
+async def account_data(authorization: str | None = Header(default=None)) -> JSONResponse:
+    """KVKK 11. madde — erişim ve taşınabilirlik: kullanıcının kendisi hakkında
+    tutulan verinin tamamı, indirilebilir tek dosya olarak."""
+    user = await _require_user(authorization)
+    return JSONResponse(
+        await accounts.my_data(user),
+        headers={"Content-Disposition": 'attachment; filename="degerix-verilerim.json"'})
+
+
+@app.delete("/api/account", tags=["üyelik"])
+async def account_delete(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    """KVKK 11. madde — silme hakkı. Hesap ve bağlı bütün kayıtlar gider;
+    geri alınamaz."""
+    return await accounts.delete_account(await _require_user(authorization))
+
+
+@app.delete("/api/account/history", tags=["üyelik"])
+async def account_history_clear(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    """Sorgu künyelerini temizler. Kayıtlar silinmez, içleri boşaltılır: aksi
+    hâlde ücretsiz hak sayımı sıfırlanır ve kota tek düğmeyle aşılır."""
+    return await accounts.clear_history(await _require_user(authorization))
+
+
 @app.post("/api/estimate", response_model=Estimate, tags=["değerleme"])
 async def estimate_value(request: EstimateRequest,
                          authorization: str | None = Header(default=None)) -> Estimate:
@@ -347,4 +382,68 @@ async def revalidate_static_files(request: Request, call_next):
 
 
 # API rotalarından sonra bağlanmalı; aksi halde "/" her isteği yakalar
+# İndekslenecek sayfalar ve arama motoruna verilen tazelik ipucu.
+INDEXED_PAGES: tuple[tuple[str, str, str], ...] = (
+    ("", "weekly", "1.0"),
+    ("harita.html", "weekly", "0.9"),
+    ("abonelik.html", "monthly", "0.7"),
+    ("sss.html", "monthly", "0.6"),
+    ("kosullar.html", "yearly", "0.3"),
+    ("kvkk.html", "yearly", "0.3"),
+    ("gizlilik.html", "yearly", "0.3"),
+    ("mesafeli-satis.html", "yearly", "0.3"),
+    ("iptal-iade.html", "yearly", "0.3"),
+    ("cerez.html", "yearly", "0.2"),
+)
+
+
+ROBOTS = """# Değerix
+User-agent: *
+Allow: /
+# Kişiye özel sayfalar ve API dizine girmez
+Disallow: /hesabim.html
+Disallow: /api/
+
+Sitemap: {root}/sitemap.xml
+"""
+
+
+def _site_root(request: Request) -> str:
+    """Sitenin kendi adresi. Alan adı dosyaya yazılmaz: yanlış yazılmış bir
+    sitemap adresi arama motoruna sessizce boş harita verir, üstelik proje
+    hem localhost'ta hem Render'da hem de ileride kendi alan adında çalışacak."""
+    return str(request.base_url).rstrip("/")
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots(request: Request) -> PlainTextResponse:
+    return PlainTextResponse(ROBOTS.format(root=_site_root(request)))
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap(request: Request) -> Response:
+    root = _site_root(request)
+    satirlar = "".join(
+        f"<url><loc>{root}/{yol}</loc><changefreq>{siklik}</changefreq>"
+        f"<priority>{oncelik}</priority></url>"
+        for yol, siklik, oncelik in INDEXED_PAGES
+        if yol == "" or (STATIC_DIR / yol).exists())   # yazılmamış sayfa haritaya girmez
+    return Response(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{satirlar}</urlset>",
+        media_type="application/xml")
+
+
+@app.exception_handler(404)
+async def not_found_page(request: Request, exc: Exception) -> Response:
+    """Olmayan bir sayfa istendiğinde JSON değil, sitenin kendi 404 sayfası."""
+    if request.url.path.startswith("/api/"):
+        return JSONResponse({"detail": "Bulunamadı."}, status_code=404)
+    sayfa = STATIC_DIR / "404.html"
+    if sayfa.exists():
+        return HTMLResponse(sayfa.read_text(encoding="utf-8"), status_code=404)
+    return PlainTextResponse("Sayfa bulunamadı.", status_code=404)
+
+
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

@@ -1,0 +1,92 @@
+/* Hesabım sayfası. style.css'in değişkenlerini kullanır, kendi rengini uydurmaz. */
+
+.sayfa-govde { background: var(--paper); color: var(--text); }
+
+.sayfa {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 16px 56px;
+  display: grid;
+  gap: 18px;
+}
+.sayfa h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); }
+
+.sayfa-mesaj {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--brand-soft, rgba(29, 107, 71, .10));
+  color: var(--brand);
+}
+.sayfa-mesaj[data-tur="hata"] {
+  background: var(--danger-soft, rgba(163, 38, 31, .08));
+  color: var(--danger, #a3261f);
+}
+
+.kutu {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+.kutu h2 { margin: 0; font-size: 17px; }
+.kutu p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.55; }
+.kutu .btn { justify-self: start; }
+.kucuk { font-size: 12px; }
+
+.ikili {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 6px 16px;
+  font-size: 14px;
+}
+.ikili dt { color: var(--muted); }
+.ikili dd { margin: 0; font-weight: 600; }
+
+.tablo-kaydir { overflow-x: auto; }
+.gecmis { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gecmis th, .gecmis td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.gecmis th { color: var(--muted); font-weight: 600; }
+.gecmis tbody tr:last-child td { border-bottom: 0; }
+
+/* Haklar: her biri kendi satırında, ne yaptığı düğmeye basmadan okunur. */
+.hak {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.hak b { display: block; font-size: 14px; margin-bottom: 2px; }
+.hak p { max-width: 46ch; }
+.hak .btn { flex: 0 0 auto; }
+
+.hak-tehlikeli b { color: var(--danger, #a3261f); }
+.btn-tehlike {
+  border: 1px solid var(--danger, #a3261f);
+  color: var(--danger, #a3261f);
+  background: var(--surface);
+  font-weight: 600;
+}
+.btn-tehlike:hover { background: var(--danger, #a3261f); color: #fff; }
+
+@media (max-width: 520px) {
+  .hak { align-items: flex-start; }
+  .hak .btn { width: 100%; }
+  .ikili { grid-template-columns: 1fr; gap: 2px 0; }
+  .ikili dd { margin-bottom: 8px; }
+}
+
+.dort-yol { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
+.dort-yol a { font-weight: 600; }

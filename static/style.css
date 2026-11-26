@@ -815,3 +815,16 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
     break-inside: avoid;
   }
 }
+
+/* Çerez bildirimi: onay değil, bildirim. */
+.cerez-bildirim {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+  z-index: 1300; width: min(620px, calc(100vw - 24px));
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line-strong, var(--line));
+  border-radius: 12px; padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+}
+.cerez-bildirim p { margin: 0; flex: 1 1 260px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.cerez-bildirim .btn { flex: 0 0 auto; }
+@media print { .cerez-bildirim { display: none !important; } }

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Değerix · Hesabım</title>
+  <meta name="description" content="Abonelik durumunuz, sorgu geçmişiniz ve kişisel verileriniz üzerindeki haklarınız: verinizi indirin, geçmişinizi temizleyin, hesabınızı silin.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1d6b47">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d6b47'/%3E%3Cpath d='M8 8h4.2v16H8z' fill='%23fff' fill-opacity='.62'/%3E%3Cpath d='M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z' fill='%23fff'/%3E%3Cpath d='M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z' fill='%23fff' fill-opacity='.62'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="hesabim.css">
+</head>
+<body class="sayfa-govde">
+  <header class="site-header">
+    <a class="site-brand" href="./">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="8" fill="currentColor"/>
+        <path d="M8 8h4.2v16H8z" fill="#fff" fill-opacity=".62"/>
+        <path d="M13.2 8H16.8a7.6 7.6 0 0 1 7.6 7.6H13.2Z" fill="#fff"/>
+        <path d="M13.2 16.4H24.4A7.6 7.6 0 0 1 16.8 24H13.2Z" fill="#fff" fill-opacity=".62"/>
+      </svg>
+      Değerix
+    </a>
+    <nav class="site-nav" aria-label="Sayfa bölümleri">
+      <a href="abonelik.html">Abonelik</a>
+      <a class="btn btn-primary" href="harita.html">Haritayı aç</a>
+    </nav>
+  </header>
+
+  <main class="sayfa">
+    <h1>Hesabım</h1>
+
+    <p class="sayfa-mesaj" id="hesapMesaj" role="status" hidden></p>
+
+    <section id="uyelikKapali" hidden>
+      <div class="kutu">
+        <h2>Üyelik bu kurulumda kapalı</h2>
+        <p>Bu sunucuda üyelik sistemi tanımlı değil; değerleme üyeliksiz ve sınırsız
+          çalışıyor. Hesap, abonelik ve sorgu geçmişi yalnızca üyelik açıkken oluşur.</p>
+        <a class="btn btn-primary" href="harita.html">Haritaya dön</a>
+      </div>
+    </section>
+
+    <section id="girisGerek" hidden>
+      <div class="kutu">
+        <h2>Giriş yapın</h2>
+        <p>Hesap bilgilerinizi ve sorgu geçmişinizi görmek için giriş yapmanız gerekiyor.</p>
+        <button class="btn btn-primary" id="btnGirisYap" type="button">Giriş yap</button>
+      </div>
+    </section>
+
+    <div id="hesapIcerik" hidden>
+      <section class="kutu">
+        <h2>Hesap</h2>
+        <dl class="ikili">
+          <dt>E-posta</dt><dd id="kimlikEposta">—</dd>
+          <dt>Telefon</dt><dd id="kimlikTelefon">—</dd>
+        </dl>
+      </section>
+
+      <section class="kutu">
+        <h2>Sorgu hakkınız</h2>
+        <dl class="ikili" id="planListe"></dl>
+        <a class="btn btn-ghost" href="abonelik.html">Planlara bak</a>
+      </section>
+
+      <section class="kutu">
+        <h2>Sorgu geçmişi</h2>
+        <p id="gecmisBos" hidden>Henüz değerleme yapmadınız.</p>
+        <div class="tablo-kaydir" id="gecmisTablo" hidden>
+          <table class="gecmis">
+            <thead>
+              <tr><th scope="col">Tarih</th><th scope="col">Parsel</th><th scope="col">Alan</th><th scope="col">Değer</th><th scope="col">Hak</th></tr>
+            </thead>
+            <tbody id="gecmisGovde"></tbody>
+          </table>
+        </div>
+        <p class="kucuk">Son 50 sorgu gösterilir.</p>
+      </section>
+
+      <section class="kutu kutu-haklar">
+        <h2>Kişisel verileriniz</h2>
+        <p>6698 sayılı Kişisel Verilerin Korunması Kanunu'nun 11. maddesi size
+          verilerinize erişme ve onları sildirme hakkı verir. Bu haklar aşağıdaki
+          düğmelerle, başvuru beklemeden, anında işler.
+          <a href="kvkk.html">Aydınlatma metni</a> ·
+          <a href="gizlilik.html">Gizlilik politikası</a></p>
+
+        <div class="hak">
+          <div>
+            <b>Verilerimi indir</b>
+            <p>Hesabınız, aboneliğiniz ve bütün sorgu geçmişiniz tek dosyada.</p>
+          </div>
+          <button class="btn btn-ghost" id="btnVeriIndir" type="button">JSON indir</button>
+        </div>
+
+        <div class="hak">
+          <div>
+            <b>Sorgu geçmişimi temizle</b>
+            <p>Hangi parseli sorduğunuz silinir. Kullandığınız sorgu sayısı korunur —
+              aksi hâlde kota tek düğmeyle sıfırlanırdı.</p>
+          </div>
+          <button class="btn btn-ghost" id="btnGecmisTemizle" type="button">Geçmişi temizle</button>
+        </div>
+
+        <div class="hak hak-tehlikeli">
+          <div>
+            <b>Hesabımı sil</b>
+            <p>Hesabınız, aboneliğiniz ve bütün kayıtlarınız kalıcı olarak silinir.
+              Bu işlem geri alınamaz.</p>
+          </div>
+          <button class="btn btn-tehlike" id="btnHesapSil" type="button">Hesabı sil</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span>Değerix bir portfolyo projesidir. Tahminler bilgilendirme amaçlıdır, yatırım tavsiyesi değildir.</span>
+    <a href="https://github.com/kayaal34/degerix">Kaynak kod: GitHub</a>
+  </footer>
+
+  <div class="pencere" id="girisPenceresi" role="dialog" aria-modal="true" aria-labelledby="girisBaslik" hidden>
+    <div class="pencere-ic">
+      <button class="pencere-kapat" type="button" data-kapat="girisPenceresi" aria-label="Kapat">&times;</button>
+      <h2 id="girisBaslik">Giriş yap</h2>
+      <p class="pencere-alt">İlk üç değerleme ücretsiz. Kayıt için telefonunuz ve kodun gönderileceği bir e-posta yeterli.</p>
+
+      <form id="formKod" class="pencere-form" novalidate>
+        <div id="girisAdim1">
+          <label class="field"><span>Telefon</span>
+            <input id="girisTelefon" type="tel" inputmode="tel" autocomplete="tel" placeholder="05xx xxx xx xx" required>
+          </label>
+          <label class="field"><span>E-posta</span>
+            <input id="girisEposta" type="email" inputmode="email" autocomplete="email" placeholder="ad@ornek.com" required>
+          </label>
+          <p class="pencere-not">Doğrulama kodu şimdilik e-postayla gönderiliyor; telefonunuz hesabınıza kaydedilir.</p>
+          <button class="btn btn-primary" id="btnKodGonder" type="submit">Kod gönder</button>
+        </div>
+      </form>
+
+      <form id="formDogrula" class="pencere-form" novalidate>
+        <div id="girisAdim2" hidden>
+          <p class="pencere-not" id="girisKodBilgi"></p>
+          <label class="field"><span>Doğrulama kodu</span>
+            <input id="girisKod" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="------">
+          </label>
+          <button class="btn btn-primary" id="btnDogrula" type="submit">Doğrula ve gir</button>
+        </div>
+      </form>
+
+      <p class="pencere-hata" id="girisHata" hidden></p>
+    </div>
+  </div>
+
+  <script type="module" src="hesabim.js"></script>
+  <script src="cerez.js"></script>
+</body>
+</html>

@@ -136,6 +136,21 @@ async def close_query(user: User, grant: Grant, unit_price: float, total: float)
         pass
 
 
+async def my_data(user: User) -> dict[str, Any]:
+    """KVKK 11. madde: kullanıcının kendisi hakkında tutulan verinin tamamı."""
+    return await _rpc(user, "degerix_verilerim", {})
+
+
+async def delete_account(user: User) -> dict[str, Any]:
+    """KVKK 11. madde: silme hakkı. Geri alınamaz, zincirleme siler."""
+    return await _rpc(user, "degerix_hesabimi_sil", {})
+
+
+async def clear_history(user: User) -> dict[str, Any]:
+    """Sorgu künyelerini temizler; ücretsiz hak sayımı bozulmaz."""
+    return await _rpc(user, "degerix_gecmisimi_sil", {})
+
+
 async def cancel_query(user: User, grant: Grant) -> None:
     """Değerleme tamamlanamadıysa hak yanmaz."""
     if grant.query_id is None:

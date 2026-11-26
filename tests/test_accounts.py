@@ -110,3 +110,47 @@ def test_configured_iki_degeri_birden_ister(monkeypatch):
     assert accounts.configured() is False
     monkeypatch.setenv("SUPABASE_ANON_KEY", "anon")
     assert accounts.configured() is True
+
+
+# ─────────────────────── KVKK 11. madde hakları ───────────────────────
+
+def test_uyelik_kapaliyken_kvkk_uclari_yok(client):
+    """Üyelik kurulu değilse ortada kişisel veri de yok; uçlar 404."""
+    assert client.get("/api/account/data").status_code == 404
+    assert client.delete("/api/account").status_code == 404
+
+
+def test_verilerim_oturum_ister(client, uyelik_acik):
+    assert client.get("/api/account/data").status_code == 401
+    assert client.delete("/api/account").status_code == 401
+    assert client.delete("/api/account/history").status_code == 401
+
+
+def test_verilerim_indirilebilir_dosya_doner(client, uyelik_acik, monkeypatch):
+    async def my_data(user):
+        return {"hesap": {"kimlik": user.id}, "sorgular": []}
+
+    monkeypatch.setattr(accounts, "my_data", my_data)
+    cevap = client.get("/api/account/data", headers={"Authorization": "Bearer jwt"})
+    assert cevap.status_code == 200
+    assert cevap.json()["hesap"]["kimlik"] == "u-1"
+    assert "degerix-verilerim.json" in cevap.headers["content-disposition"]
+
+
+def test_hesap_silme_ve_gecmis_temizleme(client, uyelik_acik, monkeypatch):
+    çağrı = []
+
+    async def delete_account(user):
+        çağrı.append(("sil", user.id))
+        return {"silindi": True, "silinen_sorgu": 3}
+
+    async def clear_history(user):
+        çağrı.append(("gecmis", user.id))
+        return {"silindi": True, "temizlenen": 3}
+
+    monkeypatch.setattr(accounts, "delete_account", delete_account)
+    monkeypatch.setattr(accounts, "clear_history", clear_history)
+
+    assert client.delete("/api/account", headers={"Authorization": "Bearer jwt"}).json()["silindi"]
+    assert client.delete("/api/account/history", headers={"Authorization": "Bearer jwt"}).json()["temizlenen"] == 3
+    assert çağrı == [("sil", "u-1"), ("gecmis", "u-1")]
