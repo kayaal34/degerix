@@ -77,6 +77,43 @@ def _prune_cache(now: float) -> None:
             _cache.pop(anahtar, None)
 
 
+# Arka plan ölçümlerinin toplam eşzamanlılık sınırı. Sınırsızken bot, tarama ya da
+# çoklu sekme onlarca farklı koordinat getirince Overpass'a aynı anda onlarca sorgu
+# gidiyordu; ağır sorgusu yüzünden ana örnek zaten 40 sn'ye çıkıyor ve ücretsiz
+# kullanım politikası birkaç eşzamanlı yuvaya izin veriyor. 4: tek örnek için
+# nazik, ama iki-üç sekmenin aynı anda değerlemesini kuyruğa sokmayacak kadar geniş.
+# Open-Meteo hafif ve hızlı olduğundan daha geniş bir sınır yeter.
+OSM_MAX_CONCURRENT = 4
+SLOPE_MAX_CONCURRENT = 8
+# Uçuştaki farklı koordinat sayısı sınırı; aşılırsa yeni nokta için ölçüm başlatılmaz
+# (fetch_within None döner, tahmin çevresiz hesaplanır) ve _inflight büyümez.
+INFLIGHT_MAX = 200
+
+_slots: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Semaphore]] = {}
+
+
+def _slot(name: str, size: int) -> asyncio.Semaphore:
+    """Çalışan olay döngüsüne bağlı semafor (her asyncio.run yeni döngü açar)."""
+    loop = asyncio.get_running_loop()
+    hit = _slots.get(name)
+    if hit is None or hit[0] is not loop:
+        hit = _slots[name] = (loop, asyncio.Semaphore(size))
+    return hit[1]
+
+
+class _Progress:
+    """Uçuştaki bir ölçümün o ana kadar gelen parçaları (fetch_within için)."""
+
+    __slots__ = ("osm", "slope")
+
+    def __init__(self) -> None:
+        self.osm: OsmContext | None = None
+        self.slope: float | None = None
+
+
+_progress: dict[str, _Progress] = {}
+
+
 async def fetch(lat: float, lng: float) -> Surroundings:
     key = f"{lat:.5f},{lng:.5f}"
     now = time.monotonic()
@@ -85,10 +122,26 @@ async def fetch(lat: float, lng: float) -> Surroundings:
         return hit[1]
     _prune_cache(now)
 
-    async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, timeout=15) as client:
-        osm, slope = await asyncio.gather(_osm_context(client, lat, lng), _slope_pct(client, lat, lng))
-    result = Surroundings(osm=osm, slope_pct=slope)
-    if osm is not None and slope is not None:  # eksik sonuç saklanmaz, sonraki istekte yeniden denenir
+    progress = _progress[key] = _Progress()
+
+    async def osm_part(client: httpx.AsyncClient) -> None:
+        async with _slot("osm", OSM_MAX_CONCURRENT):
+            progress.osm = await _osm_context(client, lat, lng)
+
+    async def slope_part(client: httpx.AsyncClient) -> None:
+        async with _slot("slope", SLOPE_MAX_CONCURRENT):
+            progress.slope = await _slope_pct(client, lat, lng)
+
+    try:
+        # İki servis birbirini beklemez: her parça biter bitmez progress'e yazılır.
+        async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, timeout=15) as client:
+            await asyncio.gather(osm_part(client), slope_part(client))
+    finally:
+        if _progress.get(key) is progress:
+            del _progress[key]
+    result = Surroundings(osm=progress.osm, slope_pct=progress.slope)
+    if progress.osm is not None and progress.slope is not None:
+        # eksik sonuç saklanmaz, sonraki istekte yeniden denenir
         _cache[key] = (now + CACHE_TTL_S, result)
     return result
 
@@ -97,21 +150,27 @@ _inflight: dict[str, asyncio.Task[Surroundings]] = {}
 
 
 async def fetch_within(lat: float, lng: float, budget_s: float) -> Surroundings | None:
-    """Ölçümü en fazla budget_s saniye bekler; yetişmezse None döner.
+    """Ölçümü en fazla budget_s saniye bekler; yetişmezse o ana kadar gelen parçayı verir.
 
-    Ölçüm iptal edilmez, arka planda sürer ve bitince önbelleğe yazılır; böylece
-    değer tahmini yavaş bir dış servisi beklemez. Aynı nokta için eşzamanlı
-    istekler tek ölçümü paylaşır.
+    Ölçüm iptal edilmez, arka planda sürer ve bitince (eksiksizse) önbelleğe yazılır;
+    böylece değer tahmini yavaş bir dış servisi beklemez. Bütçe dolduğunda yalnız
+    biri gelmişse (örn. eğim var, OSM yok) o parça döner; hiçbiri gelmediyse None.
+    Aynı nokta için eşzamanlı istekler tek ölçümü paylaşır.
     """
     key = f"{lat:.5f},{lng:.5f}"
     task = _inflight.get(key)
     if task is None:
+        if len(_inflight) >= INFLIGHT_MAX:
+            return None
         task = asyncio.create_task(fetch(lat, lng))
         _inflight[key] = task
         task.add_done_callback(lambda _: _inflight.pop(key, None))
     try:
         return await asyncio.wait_for(asyncio.shield(task), budget_s)
     except TimeoutError:
+        part = _progress.get(key)
+        if part is not None and (part.osm is not None or part.slope is not None):
+            return Surroundings(osm=part.osm, slope_pct=part.slope)
         return None
 
 

@@ -218,3 +218,47 @@ a.btn-ghost { color: var(--ink); }
   .hero-alirsiniz li { display: grid; gap: 1px; }
   .hero-alirsiniz b { min-width: 0; }
 }
+
+/* ---------- Ana sayfa Türkiye haritası ---------- */
+/* Karo yok: 81 poligon tek dosya, ilk açılış anında. Harita gezinmek için
+   değil tek bakışta okunmak için, o yüzden sürükleme ve tekerlek kapalı —
+   sayfa kaydırılırken harita yakınlaşmıyor. */
+
+.hero-harita { margin: 0; display: grid; gap: 10px; }
+#anaHarita {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.hero-harita figcaption,
+.harita-hata { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.harita-hata { display: grid; place-items: center; height: 100%; padding: 24px; text-align: center; }
+
+/* Leaflet'in kendi arka planı gri; kağıt tonumuz olsun */
+#anaHarita .leaflet-container { background: var(--surface); }
+
+.il-ipucu {
+  padding: 7px 10px;
+  background: var(--ink);
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+.il-ipucu::before { display: none; }   /* Leaflet'in beyaz oku koyu kutuda ters duruyor */
+.il-ipucu i { color: rgb(255 255 255 / 70%); font-style: normal; }
+
+/* Örnek sonuç artık kendi bölümünde, ortada ve dar */
+.ornek-sarmal { display: grid; justify-items: center; }
+.ornek-sarmal .hero-card { width: min(520px, 100%); }
+
+@media (max-width: 900px) {
+  #anaHarita { aspect-ratio: 1 / 1; }
+}

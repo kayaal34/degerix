@@ -1,0 +1,91 @@
+/* Giriş ekranı. Renk ve yazı tipi style.css'teki belirteçlerden gelir. */
+
+.giris-govde {
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.giris {
+  flex: 1;
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 64px) clamp(16px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(28px, 5vw, 64px);
+  align-items: center;
+}
+
+/* ---------- Sol: neden hesap açıyorum ---------- */
+
+.giris-anlat { display: grid; gap: 20px; align-content: center; }
+.giris-anlat .site-brand { justify-self: start; }
+.giris-anlat h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.4vw, 36px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  max-width: 18ch;
+}
+
+.giris-liste { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.giris-liste li { display: grid; gap: 2px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.giris-liste b { font-size: 14.5px; font-weight: 600; }
+.giris-liste span { font-size: 13.5px; color: var(--muted); }
+
+.giris-alt { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.giris-alt a { color: var(--brand); }
+
+/* ---------- Sağ: işin kendisi ---------- */
+
+.giris-kutu {
+  position: relative;
+  padding: clamp(22px, 3vw, 32px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+/* Değer kartındaki ve pencerelerdeki aynı pirinç çizgi */
+.giris-kutu::before {
+  content: "";
+  position: absolute; inset: 0 0 auto; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent) 24%, var(--accent) 76%, transparent);
+  opacity: .55;
+}
+.giris-kutu h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+.giris-not { margin: 0 0 16px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+
+.giris-kutu .field { margin-bottom: 14px; }
+.giris-kutu .btn-primary { width: 100%; }
+.giris-kutu .link-button { margin-top: 12px; }
+
+.giris-hata {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--error-bg);
+  color: var(--error-ink);
+  font-size: 13.5px;
+}
+
+.giris-eylemler { display: flex; flex-wrap: wrap; gap: 10px; }
+
+@media (max-width: 860px) {
+  .giris { grid-template-columns: 1fr; align-items: start; }
+  /* Dar ekranda form önce gelsin: kullanıcı buraya giriş yapmaya geldi,
+     anlatıyı okumaya değil. */
+  .giris-kutu { order: -1; }
+}

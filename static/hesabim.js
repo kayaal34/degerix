@@ -171,7 +171,12 @@ async function baslat() {
   }
   ayarlar = { url: (veri.supabase_url || "").replace(/\/$/, ""), anonKey: veri.supabase_anon_key || "" };
   await hesap.kur();
-  $("#btnGirisYap")?.addEventListener("click", () => hesap.girisAc());
+  // Burada pencere açmak yerine giriş ekranına gidiyoruz: kullanıcı zaten
+  // "giriş yapın" diyen boş bir sayfaya bakıyor, araya bir katman daha
+  // koymanın anlamı yok. Dönüş adresi korunuyor.
+  $("#btnGirisYap")?.addEventListener("click", () => {
+    window.location.href = "giris.html?devam=hesabim.html";
+  });
   $("#btnVeriIndir")?.addEventListener("click", veriIndir);
   $("#btnGecmisTemizle")?.addEventListener("click", gecmisiTemizle);
   $("#btnHesapSil")?.addEventListener("click", hesabiSil);

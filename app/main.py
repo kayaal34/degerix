@@ -174,6 +174,25 @@ async def usages() -> list[UsageOption]:
 
 # ─────────────────────────── İdari yapı ───────────────────────────
 
+@app.get("/api/housing-prices", tags=["bölge analizi"])
+async def housing_prices() -> dict[str, Any]:
+    """81 ilin konut m² fiyatı, tek istekte.
+
+    Ana sayfadaki Türkiye haritası bunu kullanıyor. İl il /api/stats çağırmak
+    81 istek demekti; bu tablo zaten depoda duran tek bir anlık görüntü.
+    """
+    snapshot = market.snapshot()
+    return {
+        "kaynak": snapshot["kaynak"],
+        "donem": snapshot["donem"],
+        "turkiye": snapshot["turkiye"],
+        "iller": snapshot["iller"],
+        # Hangi iller ölçülmedi de komşularından tahmin edildi: haritada
+        # ayırt edilebilsin, kullanıcı ölçülmüş veriyle tahmini karıştırmasın.
+        "tahmin_edilen": snapshot.get("tahmin_edilen", []),
+    }
+
+
 @app.get("/api/provinces", response_model=list[Place], tags=["idari yapı"])
 async def provinces() -> list[dict[str, Any]]:
     return await tkgm.list_provinces()

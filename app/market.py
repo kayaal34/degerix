@@ -28,6 +28,11 @@ def _snapshot() -> dict:
     return json.loads(SNAPSHOT_FILE.read_text(encoding="utf-8"))
 
 
+def snapshot() -> dict:
+    """Depodaki il fiyat tablosunun tamamı (ana sayfadaki Türkiye haritası için)."""
+    return _snapshot()
+
+
 @lru_cache(maxsize=1)
 def _index() -> dict[str, str]:
     """Türkçe yazım farklarını yok sayan il adı dizini."""

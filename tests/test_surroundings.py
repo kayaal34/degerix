@@ -255,3 +255,102 @@ def test_cevre_olculemezse_fiyat_ag_hizina_birakilmaz():
     assert olculemedi.low > 0
     # Çevre ölçülemeyince aralık alışılmışın üstüne çıkar ve bunu söyler
     assert olculemedi.confidence == "alışılmıştan geniş"
+
+
+def _services(osm_delay, slope_delay, osm_value, slope_value, monkeypatch):
+    async def osm(client, lat, lng):
+        await asyncio.sleep(osm_delay)
+        return osm_value
+
+    async def slope(client, lat, lng):
+        await asyncio.sleep(slope_delay)
+        return slope_value
+
+    monkeypatch.setattr(nearby, "_osm_context", osm)
+    monkeypatch.setattr(nearby, "_slope_pct", slope)
+
+
+def test_fetch_within_returns_slope_when_osm_is_slow(monkeypatch):
+    nearby.clear_cache()
+    _services(0.3, 0.0, OsmContext(coast_m=None, main_road_m=50, services=1), 4.2, monkeypatch)
+
+    async def run():
+        partial = await nearby.fetch_within(40.3, 28.9, budget_s=0.05)
+        await asyncio.sleep(0.4)  # arka plan görevi iptal edilmedi, bitti
+        return partial, nearby._cache.get("40.30000,28.90000")
+
+    partial, cached = asyncio.run(run())
+    assert partial == Surroundings(osm=None, slope_pct=4.2)
+    assert cached is not None and cached[1].osm.services == 1  # tamamlanınca önbelleğe yazıldı
+    nearby.clear_cache()
+
+
+def test_fetch_within_returns_osm_when_slope_is_slow(monkeypatch):
+    nearby.clear_cache()
+    osm = OsmContext(coast_m=200, main_road_m=None, services=3)
+    _services(0.0, 0.3, osm, 1.0, monkeypatch)
+    partial = asyncio.run(nearby.fetch_within(40.4, 28.9, budget_s=0.05))
+    assert partial == Surroundings(osm=osm, slope_pct=None)
+    nearby.clear_cache()
+
+
+def test_fetch_within_none_when_nothing_arrived(monkeypatch):
+    nearby.clear_cache()
+    _services(0.3, 0.3, None, None, monkeypatch)
+    assert asyncio.run(nearby.fetch_within(40.5, 28.9, budget_s=0.05)) is None
+    nearby.clear_cache()
+
+
+def test_partial_result_is_not_cached_when_one_service_fails(monkeypatch):
+    nearby.clear_cache()
+    _services(0.0, 0.0, None, 3.0, monkeypatch)
+    result = asyncio.run(nearby.fetch(40.6, 28.9))
+    assert result == Surroundings(osm=None, slope_pct=3.0)
+    assert nearby._cache == {}
+    assert nearby._progress == {}
+
+
+def test_concurrent_osm_requests_are_capped(monkeypatch):
+    nearby.clear_cache()
+    active = peak = 0
+
+    async def osm(client, lat, lng):
+        nonlocal active, peak
+        active += 1
+        peak = max(peak, active)
+        await asyncio.sleep(0.02)
+        active -= 1
+        return OsmContext(coast_m=None, main_road_m=None, services=0)
+
+    async def slope(client, lat, lng):
+        return 1.0
+
+    monkeypatch.setattr(nearby, "_osm_context", osm)
+    monkeypatch.setattr(nearby, "_slope_pct", slope)
+
+    async def run():
+        await asyncio.gather(*(nearby.fetch(40.0 + i * 0.01, 29.0) for i in range(20)))
+
+    asyncio.run(run())
+    assert peak == nearby.OSM_MAX_CONCURRENT
+    nearby.clear_cache()
+
+
+def test_inflight_is_bounded(monkeypatch):
+    monkeypatch.setattr(nearby, "INFLIGHT_MAX", 3)
+    started = []
+
+    async def slow_fetch(lat, lng):
+        started.append(lat)
+        await asyncio.sleep(0.1)
+        return Surroundings(osm=None, slope_pct=1.0)
+
+    monkeypatch.setattr(nearby, "fetch", slow_fetch)
+
+    async def run():
+        results = await asyncio.gather(*(nearby.fetch_within(40.0 + i * 0.01, 29.0, 1.0) for i in range(6)))
+        return results, len(nearby._inflight)
+
+    results, left = asyncio.run(run())
+    assert len(started) == 3 and results[3:] == [None, None, None]
+    assert left == 0

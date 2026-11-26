@@ -23,6 +23,8 @@ jobs:
             echo "node --check $f"
             node --check "$f"
           done
+      - name: Arayüz yarış testi (arama)
+        run: node tests/js/search_race.test.js
       - run: pytest
       - name: 81 ilde model taraması
         run: python tools/province_sweep.py
