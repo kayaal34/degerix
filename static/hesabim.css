@@ -1,6 +1,6 @@
 /* Hesabım sayfası. style.css'in değişkenlerini kullanır, kendi rengini uydurmaz. */
 
-.sayfa-govde { background: var(--paper); color: var(--text); }
+.sayfa-govde { background: var(--paper); color: var(--ink); }
 
 .sayfa {
   max-width: 760px;
@@ -16,12 +16,12 @@
   padding: 10px 12px;
   border-radius: 10px;
   font-size: 14px;
-  background: var(--brand-soft, rgba(20, 84, 58, .10));
+  background: var(--brand-soft);
   color: var(--brand);
 }
 .sayfa-mesaj[data-tur="hata"] {
-  background: var(--danger-soft, rgba(146, 41, 28, .08));
-  color: var(--danger, #92291c);
+  background: var(--error-bg);
+  color: var(--error-ink);
 }
 
 .kutu {
@@ -72,14 +72,14 @@
 .hak p { max-width: 46ch; }
 .hak .btn { flex: 0 0 auto; }
 
-.hak-tehlikeli b { color: var(--danger, #92291c); }
+.hak-tehlikeli b { color: var(--error-ink); }
 .btn-tehlike {
-  border: 1px solid var(--danger, #92291c);
-  color: var(--danger, #92291c);
+  border: 1px solid var(--error-ink);
+  color: var(--error-ink);
   background: var(--surface);
   font-weight: 600;
 }
-.btn-tehlike:hover { background: var(--danger, #92291c); color: #fff; }
+.btn-tehlike:hover { background: var(--error-ink); color: #fff; }
 
 @media (max-width: 520px) {
   .hak { align-items: flex-start; }

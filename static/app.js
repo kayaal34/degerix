@@ -798,7 +798,11 @@ function drawSketch(geometry) {
 function prepareReport() {
   if (!state.parcel) return;
   const date = new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-  $("#printMeta").textContent = `${date} · ${location.href}`;
+  // Antette kimlik ve tarih; "Rapor bilgileri"nde bağlantı. Bağlantı uzun ve
+  // antette satır kırıp belgeyi dağıtıyordu, aşağı aldım.
+  $("#printHeadMeta").textContent = [$("#parcelTitle").textContent, $("#parcelPlace").textContent, date]
+    .filter(Boolean).join(" · ");
+  $("#printMeta").textContent = `Düzenlenme: ${date} · Bağlantı: ${location.href}`;
   drawSketch(state.parcel.geometry);
   $("#printAnswers").replaceChildren(...reportAnswers().flatMap(([term, value]) => [el("dt", "", term), el("dd", "", value)]));
 }

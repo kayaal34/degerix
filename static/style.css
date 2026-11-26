@@ -700,7 +700,49 @@ button, input, select { font: inherit; color: inherit; }
   text-shadow: 0 1px 2px var(--map-halo), 1px 0 2px var(--map-halo), -1px 0 2px var(--map-halo);
 }
 
-.leaflet-popup-content { min-width: 220px; }
+/* Leaflet kendi yazı tipini ve kontrol görünümünü dayatıyor; harita da
+   ürünün bir parçası, varsayılan görünümüyle kalırsa gerisi boşa gider. */
+.leaflet-container { font-family: var(--font); }
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 34px;
+  height: 34px;
+  line-height: 34px;
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 19px;
+  font-weight: 600;
+  border-bottom-color: var(--line);
+}
+.leaflet-bar a:hover { background: var(--brand-soft); }
+.leaflet-bar a.leaflet-disabled { background: var(--surface-2); color: var(--line-strong); }
+
+/* Atıf şart, ama sayfanın en sesli öğesi olmasın. */
+.leaflet-control-attribution {
+  padding: 2px 8px;
+  background: rgb(255 255 255 / 78%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: var(--radius-sm) 0 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.leaflet-control-attribution a { color: var(--muted); text-decoration: none; }
+.leaflet-control-attribution a:hover { color: var(--ink); text-decoration: underline; }
+
+.leaflet-popup-content-wrapper {
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  color: var(--ink);
+}
+.leaflet-popup-tip { background: var(--surface); box-shadow: none; }
+.leaflet-popup-close-button { color: var(--muted) !important; }
+.leaflet-popup-close-button:hover { color: var(--ink) !important; }
+.leaflet-popup-content { min-width: 220px; font-size: 13px; line-height: 1.5; }
 .leaflet-popup-content .archive-item { padding: 0; border: 0; background: transparent; }
 
 /* ---------- Alt bilgi ---------- */
@@ -776,38 +818,119 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
 }
 
 /* ---------- Yazdırma / PDF raporu ---------- */
+/* Bu, ürünün parayla satılan çıktısı. Ekran dökümü gibi değil, belge gibi
+   dizilmesi gerekiyor: antet, başlık rakamı, dayanaklar, en sonda yasal uyarı. */
 
-.print-extras { display: none; }
+.print-extras, .print-head, .print-legal { display: none; }
 
 @media print {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  @page { size: A4; margin: 14mm; }
-  body { background: var(--paper); font-size: 12px; }
+  @page { size: A4; margin: 16mm 14mm; }
+  body { background: #fff; font-size: 11.5px; line-height: 1.5; }
   .app { display: block; height: auto; }
-  .panel { gap: 12px; padding: 0; overflow: visible; border: 0; }
-  .map-wrap, .tabs, .tab-panel, .alert, .empty, .form-grid, .questions, .calc-actions,
-  .result-actions, .compare-tray, .nearby-feed, .empty-card,
-  #parcelNote, #saveParcel, #btnBackToMap { display: none !important; }
-  .result, .result-output { gap: 12px; }
+  .panel { gap: 14px; padding: 0; overflow: visible; border: 0; max-width: 100%; }
+  .result-output { max-width: 100%; }
 
-  .print-extras { display: grid; gap: 6px; order: -1; }
-  .print-extras h3 { margin: 6px 0 0; font-size: 14px; }
-  .print-meta { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
-  .print-sketch { width: 220px; height: 154px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+  /* Ekrana ait olan her şey. .brand de burada: içinde hesap çubuğu var ve
+     "Giriş yap" düğmesi basılı bir raporda saçma durur. */
+  .brand, .map-wrap, .tabs, .tab-panel, .alert, .empty, .form-grid, .questions,
+  .calc-actions, .result-actions, .compare-tray, .nearby-feed, .empty-card,
+  .search, .btn-locate, .comparable-form, .comparables-note, .parcel-actions,
+  #btnComparableCsv, #parcelNote, #saveParcel, #btnBackToMap { display: none !important; }
+
+  /* ---- Antet ---- */
+  .print-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--brand);
+  }
+  .print-head-brand { display: flex; align-items: center; gap: 8px; color: var(--brand); }
+  .print-head-brand svg { width: 22px; height: 22px; }
+  .print-head-brand b { font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .print-head-doc { display: grid; justify-items: end; text-align: right; }
+  .print-doc-tur {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .print-doc-alt { font-size: 10.5px; color: var(--muted); }
+
+  /* ---- Sıra: rakam önce, dayanaklar sonra, uyarı en sonda ---- */
+  .value          { order: 1; }
+  .print-extras   { order: 2; }
+  #settlementNote { order: 3; }
+  .accuracy       { order: 4; }
+  .scenarios      { order: 5; }
+  .comparables    { order: 6; }
+  .analysis       { order: 7; }
+  .breakdown      { order: 8; }
+  .print-legal    { order: 9; }
+
+  /* ---- Belge tipografisi ---- */
+  h2, h3, .breakdown summary, .accuracy summary {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .print-extras h3, .print-legal h3, .scenarios h3, .comparables h3,
+  .analysis h3, .breakdown summary, .accuracy summary {
+    margin: 0 0 6px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--line);
+  }
+  #parcelTitle { font-family: var(--font-display); }
+
+  .print-extras { display: grid; gap: 8px; }
+  .print-meta { margin: 0; font-size: 10px; color: var(--muted); overflow-wrap: anywhere; }
+  .print-sketch { width: 190px; height: 133px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
   .print-sketch path { fill: var(--parcel); fill-opacity: 0.15; stroke: var(--parcel); stroke-width: 1.5; }
-  .print-answers { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; margin: 0; }
+  .print-sketch text { fill: var(--muted); font-size: 9px; }
+  .print-answers {
+    display: grid;
+    grid-template-columns: max-content 1fr max-content 1fr;
+    gap: 3px 14px;
+    margin: 0;
+  }
   .print-answers dt { color: var(--muted); }
   .print-answers dd { margin: 0; font-weight: 600; }
 
-  .value, .scenario.is-market, .factor-total, .sparkline-area { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .value, .scenarios, .analysis, .factor { break-inside: avoid; }
+  /* ---- Değer kartı: rapor kapağı gibi ---- */
+  .value { padding: 16px 18px; border-radius: var(--radius-md); }
+  .value-total { font-size: 30px; }
+  .value-caveat { font-size: 10px; }
+
+  /* ---- Yasal uyarı: en sonda, çerçeveli, bölünmeden ---- */
+  .print-legal {
+    display: block;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+  }
+  .print-uyari { margin: 0; font-size: 9.5px; line-height: 1.5; color: var(--muted); }
+  .print-uyari b { color: var(--ink); }
+
+  /* ---- Renkler basılsın, bloklar sayfa arasında bölünmesin ---- */
+  .value, .scenario.is-market, .factor-total, .sparkline-area,
+  .print-head, .print-legal { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .value, .scenarios, .analysis, .factor, .print-head, .print-legal,
+  .print-extras, .comparables { break-inside: avoid; }
 
   /* Kapalı <details> içeriği normalde basılmaz; raporda döküm her zaman görünsün */
   .breakdown::details-content, .accuracy::details-content { content-visibility: visible; }
-  .breakdown summary { list-style: none; font-size: 14px; }
-  .accuracy summary { list-style: none; }
+  .breakdown summary, .accuracy summary { list-style: none; }
   .breakdown summary { break-after: avoid; } /* döküm sayfalar arasında bölünebilir, başlığı yalnız kalmaz */
-  .print-sketch text { fill: var(--muted); font-size: 9px; }
+
+  /* Emsal girilmediyse bölüm basılmasın: boş bir "Emsaller" başlığı
+     raporda yer kaplamaktan başka bir şey yapmıyor. */
+  .comparables:has(.comparable-list:empty) { display: none; }
+
+  /* Grafik sayfadan taşmasın */
+  .sparkline, .compare-wrap, .comparables, .analysis { max-width: 100%; }
+  .sparkline { height: 46px; }
 }
 
 /* ---------- Üyelik: hesap çubuğu ve pencereler ---------- */
@@ -815,7 +938,7 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
 .hesap-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
 .hesap-kalan {
   font-size: 12px; font-weight: 600; color: var(--brand);
-  background: var(--brand-soft, rgba(20, 84, 58, .10));
+  background: var(--brand-soft);
   border-radius: 999px; padding: 3px 10px; white-space: nowrap;
 }
 .hesap-kimlik { font-size: 12px; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -824,49 +947,57 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
 .pencere {
   position: fixed; inset: 0; z-index: 1200;
   display: grid; place-items: center; padding: 16px;
-  background: rgba(16, 24, 20, .55);
+  background: rgb(14 22 18 / 52%);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fade var(--dur-2) var(--ease-out);
 }
 .pencere[hidden] { display: none; }
 .pencere-ic {
-  position: relative; width: min(380px, 100%);
+  position: relative; width: min(392px, 100%);
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: 14px; padding: 22px; display: grid; gap: 10px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, .22);
+  border-radius: var(--radius-lg); padding: 24px; display: grid; gap: 10px;
+  box-shadow: var(--shadow-lg);
+  animation: rise var(--dur-3) var(--ease-out);
 }
-.pencere-ic h2 { margin: 0; font-size: 18px; }
+/* Değer kartındaki pirinç çizginin aynısı: ödeme ekranı da aynı belgenin parçası. */
+.pencere-ic::before {
+  content: "";
+  position: absolute; inset: 0 0 auto; height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: linear-gradient(90deg, transparent, var(--accent) 24%, var(--accent) 76%, transparent);
+  opacity: .55;
+}
+.pencere-ic h2 { margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: -0.012em; }
 .pencere-alt { margin: 0; font-size: 13px; color: var(--muted); }
 .pencere-not { margin: 6px 0 10px; font-size: 12px; color: var(--muted); }
 .pencere-hata {
-  margin: 0; font-size: 13px; color: var(--danger, #92291c);
-  background: var(--danger-soft, rgba(146, 41, 28, .08));
-  border-radius: 8px; padding: 8px 10px;
+  margin: 0; font-size: 13px; color: var(--error-ink);
+  background: var(--error-bg);
+  border-radius: var(--radius-sm); padding: 8px 10px;
 }
 .pencere-form { display: grid; gap: 4px; }
 .pencere-form .btn { width: 100%; }
 .pencere-kapat {
-  position: absolute; top: 8px; right: 10px;
-  border: 0; background: none; cursor: pointer;
+  position: absolute; top: 10px; right: 10px;
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  border: 0; border-radius: var(--radius-sm); background: none; cursor: pointer;
   font-size: 22px; line-height: 1; color: var(--muted);
 }
-.pencere-kapat:hover { color: var(--text); }
+.pencere-kapat:hover { background: var(--surface-2); color: var(--ink); }
 
-@media print {
-  .hesap-bar, .pencere { display: none !important; }
-  .print-uyari {
-    font-size: 10px; line-height: 1.45; color: #333;
-    border: 1px solid #bbb; border-radius: 4px; padding: 8px; margin: 4px 0 0;
-    break-inside: avoid;
-  }
-}
+@media print { .hesap-bar, .pencere { display: none !important; } }
 
 /* Çerez bildirimi: onay değil, bildirim. */
 .cerez-bildirim {
   position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
   z-index: 1300; width: min(620px, calc(100vw - 24px));
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  background: var(--surface); border: 1px solid var(--line-strong, var(--line));
-  border-radius: 12px; padding: 12px 14px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  box-shadow: var(--shadow-lg);
+  animation: rise var(--dur-3) var(--ease-out) backwards 400ms;
 }
 .cerez-bildirim p { margin: 0; flex: 1 1 260px; font-size: 13px; line-height: 1.5; color: var(--muted); }
 .cerez-bildirim .btn { flex: 0 0 auto; }
@@ -957,3 +1088,22 @@ h1, h2, .sayfa h1, .kutu h2 {
 
 /* Sekme etkin durumu: gölge yerine ince iç çizgi, daha sakin. */
 .tab.is-active { box-shadow: 0 0 0 1px var(--line) inset, var(--shadow-sm); }
+
+/* Panel bölüm başlıkları da serif: ekranda gördüğünüz şey, indirdiğiniz
+   PDF'te aynı dille karşınıza çıksın. 14px sans bunlar için fazla "arayüz"dü. */
+.scenarios h3,
+.comparables-head h3,
+.analysis-head h3,
+.breakdown summary,
+.accuracy summary,
+.city-report h3,
+.explore h2 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+}
+
+/* Dökümün son satırı sonucun kendisi; biraz ayrışsın. */
+.factor-total { border-top: 1px solid var(--line-strong); }
+.factor-total .factor-text b, .factor-total .factor-value { font-weight: 700; }
