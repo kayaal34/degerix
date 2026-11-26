@@ -253,10 +253,12 @@ async def account(authorization: str | None = Header(default=None)) -> dict[str,
     üyeliksiz çalışır ve ön yüz hiçbir kapı göstermez."""
     if not accounts.configured():
         return {"uyelik": False}
+    # Her ikisi de herkese açık değerlerdir; ön yüz giriş akışını bunlarla kurar.
+    public = {"uyelik": True, **accounts.public_config()}
     user = await accounts.current_user(accounts.bearer(authorization))
     if user is None:
-        return {"uyelik": True, "oturum": False}
-    return {"uyelik": True, "telefon": user.phone, "eposta": user.email,
+        return {**public, "oturum": False}
+    return {**public, "telefon": user.phone, "eposta": user.email,
             **await accounts.status(user)}
 
 

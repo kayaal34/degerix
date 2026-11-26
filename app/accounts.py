@@ -58,6 +58,11 @@ def configured() -> bool:
     return bool(_url() and _anon_key())
 
 
+def public_config() -> dict[str, str]:
+    """Ön yüzün giriş akışı için gereken, herkese açık iki değer."""
+    return {"supabase_url": _url() or "", "supabase_anon_key": _anon_key() or ""}
+
+
 def bearer(header: str | None) -> str | None:
     if not header:
         return None

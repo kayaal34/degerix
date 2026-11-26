@@ -766,3 +766,52 @@ details::details-content { animation: fade var(--dur-2) var(--ease-out); }
   .breakdown summary { break-after: avoid; } /* döküm sayfalar arasında bölünebilir, başlığı yalnız kalmaz */
   .print-sketch text { fill: var(--muted); font-size: 9px; }
 }
+
+/* ---------- Üyelik: hesap çubuğu ve pencereler ---------- */
+
+.hesap-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.hesap-kalan {
+  font-size: 12px; font-weight: 600; color: var(--brand);
+  background: var(--brand-soft, rgba(29, 107, 71, .10));
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+}
+.hesap-kimlik { font-size: 12px; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+.pencere {
+  position: fixed; inset: 0; z-index: 1200;
+  display: grid; place-items: center; padding: 16px;
+  background: rgba(16, 24, 20, .55);
+}
+.pencere[hidden] { display: none; }
+.pencere-ic {
+  position: relative; width: min(380px, 100%);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 22px; display: grid; gap: 10px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .22);
+}
+.pencere-ic h2 { margin: 0; font-size: 18px; }
+.pencere-alt { margin: 0; font-size: 13px; color: var(--muted); }
+.pencere-not { margin: 6px 0 10px; font-size: 12px; color: var(--muted); }
+.pencere-hata {
+  margin: 0; font-size: 13px; color: var(--danger, #a3261f);
+  background: var(--danger-soft, rgba(163, 38, 31, .08));
+  border-radius: 8px; padding: 8px 10px;
+}
+.pencere-form { display: grid; gap: 4px; }
+.pencere-form .btn { width: 100%; }
+.pencere-kapat {
+  position: absolute; top: 8px; right: 10px;
+  border: 0; background: none; cursor: pointer;
+  font-size: 22px; line-height: 1; color: var(--muted);
+}
+.pencere-kapat:hover { color: var(--text); }
+
+@media print {
+  .hesap-bar, .pencere { display: none !important; }
+  .print-uyari {
+    font-size: 10px; line-height: 1.45; color: #333;
+    border: 1px solid #bbb; border-radius: 4px; padding: 8px; margin: 4px 0 0;
+    break-inside: avoid;
+  }
+}

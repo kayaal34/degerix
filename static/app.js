@@ -139,15 +139,32 @@ function radioValue(name) {
 }
 
 async function api(path, options) {
+  const settings = { ...options };
+  // Üyelik açıksa oturum jetonu her isteğe eklenir; kapalıysa Hesap modülü yok
+  // sayılır ve uygulama bugünkü gibi üyeliksiz çalışır.
+  let token = null;
+  try {
+    token = (await window.Hesap?.jeton?.()) ?? null;
+  } catch {
+    token = null;
+  }
+  if (token) settings.headers = { ...(settings.headers ?? {}), Authorization: `Bearer ${token}` };
+
   let response;
   try {
-    response = await fetch(path, options);
+    response = await fetch(path, settings);
   } catch {
     throw new Error("Sunucuya bağlanılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
   }
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(typeof body?.detail === "string" ? body.detail : "İstek işlenemedi, girilen bilgileri kontrol edin.");
+    const detail = body?.detail;
+    const error = new Error(
+      typeof detail === "string" ? detail
+        : detail?.mesaj ?? "İstek işlenemedi, girilen bilgileri kontrol edin.");
+    if (detail && typeof detail === "object") error.kod = detail.kod;
+    error.durum = response.status;
+    throw error;
   }
   return body;
 }
@@ -552,6 +569,8 @@ function postEstimate(parcel, inputs) {
       corner: inputs.corner,
       irrigation: inputs.irrigation,
       comparables: state.comparables.map(({ price_tl, area_m2, kind }) => ({ price_tl, area_m2, kind })),
+      district: parcel.district ?? null,
+      parcel: [parcel.ada, parcel.parsel].filter(Boolean).join("/") || null,
     }),
   });
 }
@@ -571,7 +590,9 @@ async function runEstimate() {
   const inputs = readInputs();
   if (!state.calculated) {
     // Kullanıcı soruları yanıtlarken ilçe sınırı ve çevre ölçümleri sunucuda hazırlansın
-    if (!inputs.error && state.prewarmedParcel !== parcel) {
+    // Üyelik açıkken ön ısıtma yapılmaz: /api/estimate kotadan düşer ve
+    // kullanıcı daha "Hesapla"ya basmadan hakkı yanar.
+    if (!inputs.error && state.prewarmedParcel !== parcel && !window.Hesap?.hak?.()?.uyelik) {
       state.prewarmedParcel = parcel;
       postEstimate(parcel, inputs).catch(() => {});
     }
@@ -591,8 +612,18 @@ async function runEstimate() {
     if (seq !== state.estimateSeq) return;
     hideAlert();
     renderEstimate(result, parcel);
+    window.Hesap?.hakYenile?.();      // kalan sorgu rozeti tazelensin
   } catch (error) {
-    if (seq === state.estimateSeq) showAlert(error.message);
+    if (seq !== state.estimateSeq) {
+      // başka bir hesap devraldı
+    } else if (error.kod === "oturum_yok") {
+      window.Hesap?.girisAc?.();
+    } else if (error.kod === "hak_bitti") {
+      window.Hesap?.odemeDuvari?.();
+      window.Hesap?.hakYenile?.();
+    } else {
+      showAlert(error.message);
+    }
   } finally {
     if (seq === state.estimateSeq) $("#valueCard").classList.remove("is-loading");
   }

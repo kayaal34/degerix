@@ -48,7 +48,10 @@ def test_oturumsuz_istek_401(client, uyelik_acik):
     cevap = client.post("/api/estimate", json=ISTEK)
     assert cevap.status_code == 401
     assert cevap.json()["detail"]["kod"] == "oturum_yok"
-    assert client.get("/api/account").json() == {"uyelik": True, "oturum": False}
+    hesap = client.get("/api/account").json()
+    assert hesap["uyelik"] is True and hesap["oturum"] is False
+    # Ön yüz giriş akışını kurabilsin diye açık anahtarlar da döner
+    assert {"supabase_url", "supabase_anon_key"} <= set(hesap)
 
 
 def test_hak_bitince_402(client, uyelik_acik, monkeypatch):

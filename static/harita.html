@@ -27,6 +27,12 @@
           <h1><a href="./">Değerix</a></h1>
           <p>Arsa değer tahmini</p>
         </div>
+        <div class="hesap-bar" id="hesapBar" hidden>
+          <span class="hesap-kalan" id="hesapKalan" hidden></span>
+          <span class="hesap-kimlik" id="hesapKimlik" hidden></span>
+          <button class="btn btn-ghost btn-sm" id="btnGiris" type="button">Giriş yap</button>
+          <button class="btn btn-ghost btn-sm" id="btnCikis" type="button" hidden>Çıkış</button>
+        </div>
       </header>
 
       <div class="tabs" role="tablist">
@@ -307,6 +313,17 @@
             <svg class="print-sketch" id="printSketch" viewBox="0 0 200 140" preserveAspectRatio="xMidYMid meet"></svg>
             <h3>Verilen bilgiler</h3>
             <dl class="print-answers" id="printAnswers"></dl>
+            <h3>Yasal uyarı</h3>
+            <p class="print-uyari">Bu belge <b>lisanslı değerleme raporu değildir</b> ve
+              2499 sayılı mevzuat kapsamında yetkilendirilmiş bir değerleme kuruluşunca
+              düzenlenmemiştir. Kredi, ipotek, teminat, sigorta, vergi, miras, kamulaştırma,
+              mahkeme ve diğer resmî işlemlerde <b>delil ya da dayanak olarak kullanılamaz</b>;
+              ticari bir taahhüt oluşturmaz. İçerdiği tutarlar, kamuya açık kaynaklardan
+              (TCMB konut fiyat endeksi, Çevre ve Şehircilik Bakanlığı birim maliyetleri, TKGM
+              parsel kaydı, OpenStreetMap) üretilmiş <b>istatistiksel bir tahmindir</b>; parseli
+              yerinde gören bir eksper incelemesinin yerini tutmaz. Gerçek alım satım değeri
+              buradaki aralığın dışında kalabilir. Alınan kararların sorumluluğu kullanıcıya
+              aittir.</p>
           </div>
         </div>
 
@@ -339,6 +356,54 @@
     </main>
   </div>
 
+  <div class="pencere" id="girisPenceresi" role="dialog" aria-modal="true" aria-labelledby="girisBaslik" hidden>
+    <div class="pencere-ic">
+      <button class="pencere-kapat" type="button" data-kapat="girisPenceresi" aria-label="Kapat">&times;</button>
+      <h2 id="girisBaslik">Giriş yap</h2>
+      <p class="pencere-alt">İlk üç değerleme ücretsiz. Kayıt için telefonunuz ve kodun gönderileceği bir e-posta yeterli.</p>
+
+      <form id="formKod" class="pencere-form" novalidate>
+        <div id="girisAdim1">
+          <label class="field"><span>Telefon</span>
+            <input id="girisTelefon" type="tel" inputmode="tel" autocomplete="tel" placeholder="05xx xxx xx xx" required>
+          </label>
+          <label class="field"><span>E-posta</span>
+            <input id="girisEposta" type="email" inputmode="email" autocomplete="email" placeholder="ad@ornek.com" required>
+          </label>
+          <p class="pencere-not">Doğrulama kodu şimdilik e-postayla gönderiliyor; telefonunuz hesabınıza kaydedilir.</p>
+          <button class="btn btn-primary" id="btnKodGonder" type="submit">Kod gönder</button>
+        </div>
+      </form>
+
+      <form id="formDogrula" class="pencere-form" novalidate>
+        <div id="girisAdim2" hidden>
+          <p class="pencere-not" id="girisKodBilgi"></p>
+          <label class="field"><span>Doğrulama kodu</span>
+            <input id="girisKod" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="------">
+          </label>
+          <button class="btn btn-primary" id="btnDogrula" type="submit">Doğrula ve gir</button>
+        </div>
+      </form>
+
+      <p class="pencere-hata" id="girisHata" hidden></p>
+    </div>
+  </div>
+
+  <div class="pencere" id="odemePenceresi" role="dialog" aria-modal="true" aria-labelledby="odemeBaslik" hidden>
+    <div class="pencere-ic">
+      <button class="pencere-kapat" type="button" data-kapat="odemePenceresi" aria-label="Kapat">&times;</button>
+      <h2 id="odemeBaslik">Ücretsiz hakkınız doldu</h2>
+      <p class="pencere-alt">Üç ücretsiz değerlemenizi kullandınız. Devam etmek için bir plan seçin.</p>
+      <a class="btn btn-primary" href="abonelik.html">Planlara bak</a>
+      <p class="pencere-not">Geçmiş sorgularınız ve raporlarınız hesabınızda duruyor.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as hesap from "./hesap.js";
+    window.Hesap = hesap;          // app.js klasik betik; jetonu buradan okur
+    hesap.kur();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
   <script src="explore.js"></script>
