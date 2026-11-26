@@ -162,6 +162,7 @@ async def kayitlari_olc() -> list[dict]:
         oran = hedef / e.total
         satirlar.append({
             "etiket": k["etiket"],
+            "ilce": f"{k['il']}/{k.get('ilce', '?')}",
             "taban": e.basis,
             "imarli": k["usage"] in ("konut", "ticari", "sanayi"),
             "log_hata": abs(math.log2(oran)),
@@ -187,9 +188,28 @@ def gereken_taban_payi(satir: dict) -> float:
 
 
 def katlara_ayir(satirlar: list[dict], k: int) -> list[list[dict]]:
-    karisik = list(satirlar)
-    random.Random(TOHUM).shuffle(karisik)
-    return [karisik[i::k] for i in range(k)]
+    """Katlar İLÇEYE göre ayrılır, satır satır değil.
+
+    Satırları karıştırmak yetmiyor: aynı ilçeden on sekiz ilan varsa bir kısmı
+    kurulumda bir kısmı testte kalıyor ve ilçeye özgü ne varsa (fiyat seviyesi,
+    ilan kültürü, aynı satıcının benzer parselleri) kurulumdan teste sızıyor;
+    ölçüm olduğundan iyi çıkıyor. İlçeyi bütün hâlde tek kata koyunca test
+    kümesi gerçekten görülmemiş bir yer oluyor.
+
+    İlçeler en kalabalıktan başlayıp o an en küçük kata konuyor; katlar kabaca
+    eşit kalsın diye.
+    """
+    gruplar: dict[str, list[dict]] = defaultdict(list)
+    for satir in satirlar:
+        gruplar[satir["ilce"]].append(satir)
+    sirali = list(gruplar.values())
+    random.Random(TOHUM).shuffle(sirali)      # eşit büyüklükler arasında düzen bozulsun
+    sirali.sort(key=len, reverse=True)
+    katlar: list[list[dict]] = [[] for _ in range(k)]
+    for grup in sirali:
+        katlar.sort(key=len)
+        katlar[0].extend(grup)
+    return katlar
 
 
 def capraz_dogrula(satirlar: list[dict], hedef: float) -> dict:
@@ -225,8 +245,16 @@ def paylari_kur(satirlar: list[dict], hedef: float) -> dict[str, float]:
 
 def rapor(satirlar: list[dict], hedefler: list[float]) -> None:
     p = load_parameters()
-    print(f"\n{len(satirlar)} kayıt · {KATLAR} katlı çapraz doğrulama · tohum {TOHUM}")
-    print("Yayılım her katta diğer katlardan kurulur, o katta hiç görülmemiş kayıtlarda ölçülür.\n")
+    ilce_sayisi = len({s["ilce"] for s in satirlar})
+    print()
+    print(f"{len(satirlar)} kayıt · {ilce_sayisi} ilçe · {KATLAR} kat (ilçeye göre) · tohum {TOHUM}")
+    print("Yayılım her katta diğer katlardan kurulur, o katta hiç görülmemiş İLÇELERDE ölçülür.")
+    print("UYARI: bu KEŞİF amaçlı bir çapraz doğrulamadır. Nokta tahmin modelinin")
+    print("katsayıları (calibration.json) bu kayıtların hepsiyle kurulmuştu, yani")
+    print("artıklar zaten o veriye uyarlanmış bir modelden geliyor. Üretim iddiası")
+    print("için nokta modelinin de görmediği, tarih ve yer bakımından ayrı bir dış")
+    print("test kümesi gerekir.")
+    print()
 
     print(f"{'hedef':>6} {'grup':<22} {'n':>4} {'kapsama':>9} {'ort. genişlik':>14}")
     print("-" * 60)
