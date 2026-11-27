@@ -146,6 +146,22 @@ async function kur() {
   };
   lejantiCiz();
   legend.hidden = false;
+  // Pencere boyutu değişince harita kendini yeniden ölçmüyor: Türkiye
+  // kutunun ortasında küçük kalıyor ya da taşıyor. ResizeObserver kutuyu
+  // izliyor, sığdırmayı tekrar yapıyoruz. İlk tetiklemeyi atlıyoruz çünkü
+  // fitBounds zaten yukarıda çağrıldı.
+  if ("ResizeObserver" in window) {
+    let ilk = true;
+    new ResizeObserver(() => {
+      if (ilk) { ilk = false; return; }
+      harita.invalidateSize();
+      harita.setMinZoom(0);                       // sınır yeni boyutta yeniden kurulacak
+      harita.fitBounds(katman.getBounds(), { padding: [8, 8] });
+      harita.setMinZoom(harita.getZoom());
+      harita.setMaxBounds(katman.getBounds().pad(0.35));
+    }).observe(HARITA_ALANI);
+  }
+
   listeyiDoldur(fiyatlar);
   gorunumuKur(harita);
   yaziyiDoldur(fiyatlar, kayitlar.length);

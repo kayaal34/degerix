@@ -56,3 +56,48 @@ if (!OGELER.length) {
     }
   }, { once: true });
 }
+
+/* Sayan rakamlar.
+ *
+ * Bunlar ürün hakkında SABİT olgular (81 il, 104 ölçülen ilan, 3 ücretsiz
+ * sorgu), bir tahmin değil. Değer kartındaki rakamı hiç böyle saydırmam:
+ * oynayan bir fiyat, oynamayan bir fiyattan daha az güven verir. Burada
+ * ise sayma, göze "bu sayı önemli" dedirtiyor ve yanlış bir şey söylemiyor.
+ *
+ * Son değer HTML'de yazılı; JavaScript çalışmazsa ya da hareket azaltma
+ * açıksa rakam olduğu gibi duruyor.
+ */
+function sayilariCalistir() {
+  const ogeler = document.querySelectorAll("[data-say]");
+  if (!ogeler.length) return;
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  if (!("IntersectionObserver" in window)) return;
+
+  const bicim = new Intl.NumberFormat("tr-TR");
+  const say = (oge) => {
+    const hedef = Number(oge.dataset.say);
+    if (!Number.isFinite(hedef)) return;
+    const sure = 900;
+    const basla = performance.now();
+    const adim = (simdi) => {
+      const t = Math.min((simdi - basla) / sure, 1);
+      // Sona doğru yavaşlasın: doğrusal sayma mekanik duruyor
+      const yumusak = 1 - (1 - t) ** 3;
+      oge.textContent = bicim.format(Math.round(hedef * yumusak));
+      if (t < 1) requestAnimationFrame(adim);
+      else oge.textContent = bicim.format(hedef);
+    };
+    requestAnimationFrame(adim);
+  };
+
+  const gozlemci = new IntersectionObserver((kayitlar) => {
+    for (const kayit of kayitlar) {
+      if (!kayit.isIntersecting) continue;
+      say(kayit.target);
+      gozlemci.unobserve(kayit.target);
+    }
+  }, { threshold: 0.6 });
+  for (const oge of ogeler) gozlemci.observe(oge);
+}
+
+sayilariCalistir();

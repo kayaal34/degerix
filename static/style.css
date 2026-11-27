@@ -69,6 +69,7 @@
   /* --- Anlam: marka --- */
 
   --brand: var(--yesil-600);
+  --brand-light: var(--yesil-500);   /* gradyanın açık ucu */
   --brand-hover: var(--yesil-700);
   --brand-deep: var(--yesil-800);
   --brand-soft: var(--yesil-100);
@@ -236,7 +237,8 @@
     --line-strong: #3a453e;
 
     --brand: #5aa37c;
-    --brand-hover: #6fb68e;
+    --brand-light: #6fb68e;
+    --brand-hover: #4a8e6a;
     --brand-deep: #0e4530;
     --brand-soft: #16271f;
     --brand-ring: rgb(90 163 124 / 22%);
@@ -316,7 +318,8 @@
   --line-strong: #3a453e;
 
   --brand: #5aa37c;
-  --brand-hover: #6fb68e;
+  --brand-light: #6fb68e;
+  --brand-hover: #4a8e6a;
   --brand-deep: #0e4530;
   --brand-soft: #16271f;
   --brand-ring: rgb(90 163 124 / 22%);
@@ -1724,4 +1727,126 @@ h1, h2, .sayfa h1, .kutu h2 {
    kâğıtta kaydırma yok, IntersectionObserver hiç tetiklenmez. */
 @media print {
   [data-beliren] { opacity: 1 !important; transform: none !important; }
+}
+
+/* ======================================================================
+   ATMOSFER
+   ======================================================================
+   Düz beyaz bir sayfa 2015'te modern görünüyordu. Bugün bir ürünün
+   "yapılmış" hissi vermesi için sayfanın kendisinin bir derinliği olması
+   gerekiyor: yüzeyler bir zeminin ÜSTÜNDE durmalı, zeminle aynı renkte
+   olmamalı.
+
+   Burada üç katman var ve üçü de sabit (scroll ile kaymıyor), çünkü
+   kayan arka plan her karede yeniden boyama demek:
+     1. markanın yeşilinden çok soluk bir ışık, sol üstte
+     2. pirinçten daha da soluk bir ışık, sağda
+     3. en altta kağıt rengi
+   Hiçbiri %8'den güçlü değil: arka plan fark edilmemeli, yalnızca
+   sayfanın üstündeki kartların kenarı belli olmalı. */
+
+/* Gradyanlar body'nin KENDİ katmanları olarak duruyor, ::before olarak
+   değil. Denedim ve görünmedi: body'nin arka planı tuvale yayılıyor,
+   z-index:-1 verilen sözde öğe o tuvalin ARKASINA düşüyor ve hiç
+   boyanmıyor. Katman olarak verince düz renk en alta, ışıklar üstüne. */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1100px 620px at 10% -6%, rgb(20 84 58 / 13%), transparent 58%),
+    radial-gradient(900px 560px at 94% 6%, rgb(156 123 63 / 10%), transparent 56%),
+    radial-gradient(820px 560px at 52% 106%, rgb(20 84 58 / 8%), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+:root[data-theme="dark"] body {
+  background-image:
+    radial-gradient(1100px 620px at 10% -6%, rgb(90 163 124 / 15%), transparent 58%),
+    radial-gradient(900px 560px at 94% 6%, rgb(180 144 74 / 10%), transparent 56%),
+    radial-gradient(820px 560px at 52% 106%, rgb(90 163 124 / 9%), transparent 60%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background-image:
+      radial-gradient(1100px 620px at 10% -6%, rgb(90 163 124 / 15%), transparent 58%),
+      radial-gradient(900px 560px at 94% 6%, rgb(180 144 74 / 10%), transparent 56%),
+      radial-gradient(820px 560px at 52% 106%, rgb(90 163 124 / 9%), transparent 60%);
+  }
+}
+
+/* ======================================================================
+   YÜZEYLER
+   ====================================================================== */
+
+/* Kartların üst kenarında ince bir ışık. Gerçek malzemede ışık yukarıdan
+   gelir ve üst kenar parlar; bu tek çizgi kartı "çizilmiş dikdörtgen"
+   olmaktan çıkarıp "yüzey" yapıyor. */
+.kutu, .card, .parcel-quick, .hero-harita, .giris-kutu, .pencere-ic,
+.comparables, .accuracy, .hero-card, .plan-card, .hero-map-liste {
+  position: relative;
+  isolation: isolate;
+}
+.kutu::after, .card::after, .parcel-quick::after, .hero-harita::after,
+.giris-kutu::after, .comparables::after, .hero-card::after, .plan-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
+}
+:root[data-theme="dark"] .kutu::after, :root[data-theme="dark"] .card::after,
+:root[data-theme="dark"] .parcel-quick::after, :root[data-theme="dark"] .hero-harita::after,
+:root[data-theme="dark"] .giris-kutu::after, :root[data-theme="dark"] .comparables::after,
+:root[data-theme="dark"] .hero-card::after, :root[data-theme="dark"] .plan-card::after {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+
+/* ======================================================================
+   DÜĞMELER: gradyan ve parlama
+   ====================================================================== */
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--brand-light) 0%, var(--brand) 55%, var(--brand-hover) 100%);
+  border: 0;
+}
+/* Üstünden geçen ışık. Yalnızca imleç üstündeyken ve bir kez: sürekli
+   parlayan düğme reklam panosu gibi duruyor. */
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-130%) skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 26%), transparent);
+  pointer-events: none;
+}
+.btn-primary:hover::after { animation: parlama 760ms var(--ease-out); }
+@keyframes parlama { to { transform: translateX(130%) skewX(-18deg); } }
+.btn-primary:hover { background: linear-gradient(180deg, var(--brand) 0%, var(--brand-hover) 60%, var(--brand-deep) 100%); }
+
+/* ======================================================================
+   BELİREN BÖLÜMLER: daha görünür
+   ====================================================================== */
+/* 14px ve yalnız opaklık, kaydırırken fark edilmiyordu. 28px ve hafif
+   ölçek, "bu bölüm şimdi geldi" diyor. */
+.beliren-acik [data-beliren] {
+  opacity: 0;
+  transform: translateY(28px) scale(.985);
+  filter: blur(2px);
+}
+.beliren-acik [data-beliren].belirdi {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition:
+    opacity var(--dur-4) var(--ease-out) calc(var(--sira, 0) * var(--stagger)),
+    transform var(--dur-4) var(--ease-out) calc(var(--sira, 0) * var(--stagger)),
+    filter var(--dur-4) var(--ease-out) calc(var(--sira, 0) * var(--stagger));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary:hover::after { animation: none; }
+  .beliren-acik [data-beliren] { opacity: 1; transform: none; filter: none; }
 }

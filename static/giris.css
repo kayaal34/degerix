@@ -1,7 +1,7 @@
 /* Giriş ekranı. Renk ve yazı tipi style.css'teki belirteçlerden gelir. */
 
+/* Arka plan style.css'te; burada kısayol kullanmak gradyanları siler. */
 .giris-govde {
-  background: var(--bg);
   color: var(--ink);
   min-height: 100dvh;
   display: flex;

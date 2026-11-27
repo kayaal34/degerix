@@ -69,7 +69,7 @@
       <div class="container hero">
         <div class="hero-text">
           <p class="eyebrow">Arsa ve tarla değerleme</p>
-          <h1>Arsanızın değerini verilerle inceleyin</h1>
+          <h1>Arsanızın değerini <span class="vurgu">verilerle</span> inceleyin</h1>
           <p class="lead">Parselin sınırını bulun. Arsanın özelliklerine göre oluşan tahmini değer aralığını, hesabın dayanaklarını ve PDF raporunu görün.</p>
 
           <form class="parcel-quick" id="parcelQuick" action="harita.html#harita" hidden>
@@ -92,7 +92,12 @@
             <a class="btn btn-ghost" href="harita.html#harita">Haritadan seç</a>
             <a class="btn btn-ghost" href="ornek-rapor.html">Örnek sonucu incele</a>
           </div>
-          <p class="hero-foot">Parsel bilgisi TKGM’den gelir. Kayıtlı hesaplara ilk üç değerleme ücretsiz.</p>
+          <ul class="hero-sayilar" aria-label="Değerix sayılarla">
+            <li><b data-say="81">81</b><span>ilin güncel konut fiyatı</span></li>
+            <li><b data-say="104">104</b><span>gerçek ilanda ölçülen isabet</span></li>
+            <li><b data-say="3">3</b><span>değerleme ücretsiz</span></li>
+          </ul>
+          <p class="hero-foot">Parsel bilgisi TKGM’den gelir. Ölçüm sonuçları açık: ilanların yarısı tahminin 1,5 katı içinde kaldı.</p>
         </div>
 
         <figure class="hero-harita">
@@ -148,7 +153,7 @@
 
     <section class="section section-alt" id="nasil-calisir">
       <div class="container">
-        <div class="section-head" data-beliren>
+        <div class="section-head" data-beliren data-etiket="Nasıl çalışır">
           <h2>Üç adımda değer</h2>
           <p>Hesabınızla girin, ilk üç değerleme ücretsiz.</p>
         </div>
@@ -174,7 +179,7 @@
 
     <section class="section" id="yontem">
       <div class="container">
-        <div class="section-head" data-beliren>
+        <div class="section-head" data-beliren data-etiket="Yöntem">
           <h2>Arsanın değeri, üstüne yapılabilecek şeyden geriye kalandır</h2>
           <p>İmarlı arsa örneklerinde kullanılan geliştirme hesabının özeti. Arazi türüne göre hesap değişebilir.</p>
         </div>
@@ -207,7 +212,7 @@
 
     <section class="section section-alt" id="kaynaklar">
       <div class="container">
-        <div class="section-head" data-beliren>
+        <div class="section-head" data-beliren data-etiket="Veri kaynakları">
           <h2>Rakamlar nereden geliyor?</h2>
           <p>Hepsi resmî ya da açık kaynak. Hiçbir ilan sitesinden veri kopyalanmaz.</p>
         </div>
@@ -224,7 +229,7 @@
 
     <section class="section">
       <div class="container limits">
-        <div class="section-head" data-beliren>
+        <div class="section-head" data-beliren data-etiket="Sınırlar">
           <h2>Neyi yapmaz?</h2>
           <p>Bir aracın sınırlarını bilmek, sonucuna ne kadar güveneceğinizi belirler.</p>
         </div>
@@ -239,7 +244,7 @@
 
     <section class="section section-alt cta">
       <div class="container">
-        <div class="section-head" data-beliren>
+        <div class="section-head" data-beliren data-etiket="Başlayın">
           <h2>Arsanızın değerine bakın</h2>
           <p>Birkaç dakika sürer. İlk üç değerleme ücretsiz.</p>
         </div>

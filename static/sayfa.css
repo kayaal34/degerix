@@ -5,7 +5,9 @@
 
 /* ---- hesabim.css'ten kopya: aynı ad, aynı değer ---- */
 
-.sayfa-govde { background: var(--paper); color: var(--ink); }
+/* Arka planı burada TANIMLAMIYORUZ: `background` kısayolu style.css'teki
+   atmosfer gradyanlarını siliyor ve sayfa düz bir renge dönüyor. */
+.sayfa-govde { color: var(--ink); }
 
 .sayfa {
   max-width: var(--kolon-metin);

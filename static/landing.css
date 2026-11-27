@@ -1,6 +1,10 @@
 /* Tanıtım sayfası. Renkler, yazı tipi ve düğmeler style.css'teki tasarım belirteçlerinden gelir. */
 
-.landing { background: var(--surface); }
+/* Bu sınıf gövdede duruyor ve eskiden `background: var(--surface)` diyordu.
+   Kısayol olduğu için yalnız rengi değil, style.css'teki atmosfer
+   gradyanlarını da siliyordu — sayfa bembeyaz kalıyordu ve sebebi
+   görünmüyordu. Kural tamamen kaldırıldı: gövdenin arka planı tek yerde,
+   style.css'te tanımlı. */
 
 a.btn { text-decoration: none; }
 a.btn-ghost { color: var(--ink); }
@@ -8,7 +12,9 @@ a.btn-ghost { color: var(--ink); }
 
 .container { max-width: var(--kolon-genis); margin: 0 auto; }
 .section { padding: clamp(48px, 8vw, 96px) clamp(16px, 4vw, 48px); }
-.section-alt { background: var(--bg); }
+/* Şeritler arası geçiş sert bir renk değişimi değil, hafif bir
+   koyulaşma: kağıt üstünde ışığın azaldığı bir bölge gibi. */
+.section-alt { background: color-mix(in srgb, var(--ink) 3.5%, transparent); }
 .section-head { max-width: 660px; margin-bottom: 36px; }
 .section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(27px, 3.4vw, 38px); line-height: 1.15; letter-spacing: -0.012em; }
 .section-head p { margin: 10px 0 0; font-size: 16px; color: var(--muted); }
@@ -544,4 +550,129 @@ a.btn-ghost { color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .parcel-quick label, .parcel-quick .btn, #quickSubmit:not(:disabled) { animation: none; }
+}
+
+/* ======================================================================
+   KAHRAMAN: giriş koreografisi
+   ======================================================================
+   Sayfa açıldığında öğeler sırayla geliyor: göz üstü etiket, başlık,
+   açıklama, form, ikincil düğmeler. Hepsi birden gelince ekran bir anda
+   doluyor ve hiçbir şey okunmuyor; 90 ms aralıkla göz sırayı takip
+   ediyor ve önce başlığı okuyor.
+
+   Süreler kasten kısa (420 ms): "yükleniyor" hissi vermemeli, sayfa
+   açılırken zaten yerinde olduğu hissi vermeli. */
+
+.hero-text > * { animation: giris-gel 420ms var(--ease-out) backwards; }
+.hero-text > :nth-child(1) { animation-delay: 60ms; }
+.hero-text > :nth-child(2) { animation-delay: 150ms; }
+.hero-text > :nth-child(3) { animation-delay: 240ms; }
+.hero-text > :nth-child(4) { animation-delay: 330ms; }
+.hero-text > :nth-child(5) { animation-delay: 400ms; }
+.hero-text > :nth-child(6) { animation-delay: 460ms; }
+.hero-harita { animation: giris-gel 520ms var(--ease-out) 200ms backwards; }
+
+@keyframes giris-gel {
+  from { opacity: 0; transform: translateY(18px); }
+}
+
+/* Başlıkta vurgulu kelime: gradyan dolgulu. Tek bir yerde, başlığın
+   tamamında değil — her yeri gradyan olan bir sayfa okunmuyor. */
+.hero h1 .vurgu {
+  background: linear-gradient(100deg, var(--brand) 10%, var(--accent) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Gradyan desteklenmezse metin görünmez kalmasın */
+  @supports not (background-clip: text) { color: var(--brand); }
+}
+
+/* ======================================================================
+   İSTATİSTİK ŞERİDİ
+   ====================================================================== */
+
+.hero-sayilar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+  margin: var(--sp-6) 0 0;
+  padding: var(--sp-4) 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+.hero-sayilar li { display: grid; gap: 2px; }
+.hero-sayilar b {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand);
+}
+.hero-sayilar span { font-size: var(--fs-sm); color: var(--muted); line-height: 1.35; }
+
+/* ======================================================================
+   BÖLÜM BAŞLIKLARI
+   ====================================================================== */
+
+.section-head h2 { font-size: clamp(28px, 3.6vw, 40px); }
+.section-head { max-width: 62ch; }
+/* Her bölümün üstünde kısa bir pirinç etiket: sayfa bölümlere ayrılmış
+   görünsün, tek uzun akış gibi değil. */
+.section-head::before {
+  content: attr(data-etiket);
+  display: block;
+  margin-bottom: var(--sp-2);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.section-head:not([data-etiket])::before { display: none; }
+
+/* ======================================================================
+   KARTLAR: gerçek hareket
+   ====================================================================== */
+
+.card {
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--line-strong);
+}
+.card-step {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: var(--sp-2);
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+/* Denklem şeridi: sonuç kartı nefes alsın */
+.denklem-sonuc { box-shadow: var(--shadow-brand); }
+.denklem-ogesi { transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out); }
+.denklem-ogesi:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+/* Gradyan kartta başlık ve alt metin aynı renk olsun: denetimde ikisi
+   farklıydı ve koyu uçta başlık okunmuyordu. */
+.denklem-sonuc b, .denklem-sonuc i { color: var(--on-brand); }
+.denklem-sonuc i { opacity: .82; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-text > *, .hero-harita { animation: none; }
+  .card:hover, .denklem-ogesi:hover { transform: none; }
+}
+
+@media (max-width: 560px) {
+  .hero-sayilar { grid-template-columns: 1fr; gap: var(--sp-3); }
 }
